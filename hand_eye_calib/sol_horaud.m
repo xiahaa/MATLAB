@@ -19,6 +19,8 @@ function varargout = sol_horaud(TA,TB,N)
         T2 = TB(i,:,:);T2 = reshape(T2,dim,dim,1);
         q1 = rot2vec(T1(1:3,1:3));
         q2 = rot2vec(T2(1:3,1:3));
+        q1 = q1./norm(q1);
+        q2 = q2./norm(q2);
         A = formA([0;q2],[0;q1]);
         At = At + A;
     end
