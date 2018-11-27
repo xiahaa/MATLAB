@@ -1,11 +1,11 @@
 function varargout = hand_eye_calib_sol()
     
     path = mfilename('fullpath');
-%     i = findstr(path,'\');
-%     folder = path(1:i(end));
-    cd(path);
+    i = findstr(path,'\');
+    folder = path(1:i(end));
+    cd(folder);
 
-    addpath('/solver/');
+    addpath('./solver/');
     addpath('../MatrixLieGroup/barfoot_tro14');
     addpath('../quaternion');
     
@@ -66,26 +66,30 @@ function varargout = hand_eye_calib_sol()
     Ts4 = sol_horaud(T1,T2,N);
     toc
     disp(Ts4*dTt)
-    Ts5 = sol_horaud_nlopt(T1,T2,N);
-    disp(Ts5*dTt)
     Ts6 = sol_dual_quaternion(T1,T2,N);
     disp(Ts6*dTt)
-    tic
-    Ts7 = sol_cvx1(T1,T2,N);
-    disp(Ts7*dTt)
-    toc
-    Ts8 = sol_dphec(T1,T2,N);
-    disp(Ts8*dTt)
     Ts9 = sol_improved_dual_quaternion(T1,T2,N);
     disp(Ts9*dTt)
-    
     Ts10 = sol_adjoint_transformation_algo(T1,T2,N);
     disp(Ts10*dTt)
-    
-    Ts11 = sol_dual_sdp_cvx(T1,T2,N);
-    disp(Ts11*dTt)
-    
     Ts12 = sol_chou(T1,T2,N);
     disp(Ts12*dTt)
+    
+    tic
+    Ts5 = sol_horaud_nlopt(T1,T2,N);
+    disp(Ts5*dTt)
+    toc
+    tic
+    Ts7 = sol_cvx2(T1,T2,N);
+    disp(Ts7*dTt)
+    toc
+    tic
+    Ts8 = sol_dphec(T1,T2,N);
+    disp(Ts8*dTt)
+    toc
+    tic
+    Ts11 = sol_dual_sdp_cvx(T1,T2,N);
+    disp(Ts11*dTt)
+    toc
 end
 

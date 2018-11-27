@@ -55,7 +55,3 @@ function R = pr2R(pr)
     pr2 = pr'*pr;
     R = (1-pr2*0.5)*eye(3) + 0.5.*(pr*pr'+sqrt(4-pr2).*skewm(pr));
 end
-
-function s = skewm(w)
-    s = [0 -w(3) w(2);w(3) 0 -w(1);-w(2) w(1) 0];
-end
