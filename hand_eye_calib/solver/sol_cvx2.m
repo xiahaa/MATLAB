@@ -16,63 +16,126 @@ function varargout = sol_cvx2(TA,TB,N)
     
     format short;
     
-    C = zeros(N*12,12);
-    d = zeros(N*12,1);
-    for i = 1:N
-        T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);
-        T2 = TB(i,:,:);T2 = reshape(T2,dim,dim,1);
-        Ra = T2(1:3,1:3);ta = T2(1:3,4);
-        Rb = T1(1:3,1:3);tb = T1(1:3,4);
-        
-        id = (i-1)*12;
-        C(id+1:id+12,:) = [kron(eye(3),Ra)-kron(Rb',eye(3)) zeros(9,3); ...
-                           kron(tb', eye(3)) eye(3)-Ra];
-        d(id+1:id+12) = [zeros(9,1);ta];
-    end
-    
-    As = C'*C;
-    bs = d'*C;
-        
-    %% vector to optimize
-%     x0 = C\d;
-    x0 = [1 0 0 0 1 0 0 0 1 0 0 0]';
-    x = x0;
     options = optimoptions('quadprog','Display','off');
     useSCF = 1;
-    if useSCF == 1
-        regualrization = 0;
-        AA = 2*blkdiag(As,regualrization);
-        ft = [(-2*bs)';0];
-        tic
-        for k = 1:1000
-            [L,S] = conslin(x);
-    %         disp(S);
-            soln = quadprog(AA, ft, L, S,[],[],[],[],[],options);
-            xnew = soln(1:12);
-            if norm(xnew-x) < 1e-12
-                disp(['converge at step ', num2str(k)]);
-                break;
+    useQ = 1;
+    
+    if useQ == 1
+        Nv = 0;
+        ids = [];
+        thetaas = zeros(N,1);das = zeros(N,1);
+        thetabs = zeros(N,1);dbs = zeros(N,1);
+        las = zeros(N,3);mas = zeros(N,3);
+        lbs = zeros(N,3);mbs = zeros(N,3);
+        for i = 1:N
+            T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);
+            T2 = TB(i,:,:);T2 = reshape(T2,dim,dim,1);
+
+            [thetaa, da, la, ma] = screwParams(T2(1:3,1:3),T2(1:3,4));
+            [thetab, db, lb, mb] = screwParams(T1(1:3,1:3),T1(1:3,4));
+
+            thetaas(i) = thetaa;das(i) = da;las(i,:) = la';mas(i,:) = ma';
+            thetabs(i) = thetab;dbs(i) = db;lbs(i,:) = lb';mbs(i,:) = mb';
+
+            if abs(thetaa-thetab) < 0.15 && abs(da-db) < 0.15
+                Nv = Nv + 1;
+                ids = [ids;i];
             end
-            x = xnew;
         end
-        time = toc;
-        disp(['scf :',num2str(time)]);
+        T = zeros(6*Nv, 8);
+        As = zeros(8,8);
+        for i = 1:Nv
+            ii = ids(i);
+            qas = [cos(thetaas(ii)*0.5);sin(thetaas(ii)*0.5).*las(ii,:)'];
+            qdas = [(-das(ii)*0.5)*sin(thetaas(ii)*0.5);sin(thetaas(ii)*0.5).*mas(ii,:)'+(das(ii)*0.5*cos(thetaas(ii)*0.5)).*las(ii,:)'];
+            qbs = [cos(thetabs(ii)*0.5);sin(thetabs(ii)*0.5).*lbs(ii,:)'];
+            qdbs = [(-dbs(ii)*0.5)*sin(thetabs(ii)*0.5);sin(thetabs(ii)*0.5).*mbs(ii,:)'+(dbs(ii)*0.5*cos(thetabs(ii)*0.5)).*lbs(ii,:)'];
+            a = qas(2:4);b = qbs(2:4);
+            ad = qdas(2:4);bd = qdbs(2:4);
+
+            T((i-1)*6+1:(i-1)*6+3,:) = [a-b skewm(a+b) zeros(3,1) zeros(3,3)];
+            T((i-1)*6+4:(i-1)*6+6,:) = [ad-bd skewm(ad+bd) a-b skewm(a+b)];
+            
+            As = As + T((i-1)*6+1:(i-1)*6+6,:)'*T((i-1)*6+1:(i-1)*6+6,:);
+        end
+        x0 = [1 0 0 0 0 0 0 0]';
+        x = x0;
+        if useSCF == 1
+            AA = 2*As;
+            tic
+            for k = 1:1000
+                [L,S] = conslin(x);
+                soln = quadprog(AA, ft, L, S,[],[],[],[],[],options);
+                xnew = soln(1:12);
+                if norm(xnew-x) < 1e-12
+                    disp(['converge at step ', num2str(k)]);
+                    break;
+                end
+                x = xnew;
+            end
+            time = toc;
+            disp(['scf :',num2str(time)]);
+        else
+            
+        end
     else
-        AA = 2*As;
-        ft = (-2*bs)';
-        tic
-        for k = 1:1000
-            [L,S] = conslin2(x);
-            soln = quadprog(AA, ft, [],[],L,S,[],[],[],options);
-            xnew = soln(1:12);
-            if norm(xnew-x) < 1e-12
-                disp(['converge at step ', num2str(k)]);
-                break;
-            end
-            x = xnew;
+        C = zeros(N*12,12);
+        d = zeros(N*12,1);
+        for i = 1:N
+            T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);
+            T2 = TB(i,:,:);T2 = reshape(T2,dim,dim,1);
+            Ra = T2(1:3,1:3);ta = T2(1:3,4);
+            Rb = T1(1:3,1:3);tb = T1(1:3,4);
+
+            id = (i-1)*12;
+            C(id+1:id+12,:) = [kron(eye(3),Ra)-kron(Rb',eye(3)) zeros(9,3); ...
+                               kron(tb', eye(3)) eye(3)-Ra];
+            d(id+1:id+12) = [zeros(9,1);ta];
         end
-        time = toc;
-        disp(['SQP :',num2str(time)]);
+
+        As = C'*C;
+        bs = d'*C;
+
+        %% vector to optimize
+    %     x0 = C\d;
+        x0 = [1 0 0 0 1 0 0 0 1 0 0 0]';
+        x = x0;
+        
+        if useSCF == 1
+            regualrization = 0;
+            AA = 2*blkdiag(As,regualrization);
+            ft = [(-2*bs)';0];
+            tic
+            for k = 1:1000
+                [L,S] = conslin(x);
+        %         disp(S);
+                soln = quadprog(AA, ft, L, S,[],[],[],[],[],options);
+                xnew = soln(1:12);
+                if norm(xnew-x) < 1e-12
+                    disp(['converge at step ', num2str(k)]);
+                    break;
+                end
+                x = xnew;
+            end
+            time = toc;
+            disp(['scf :',num2str(time)]);
+        else
+            AA = 2*As;
+            ft = (-2*bs)';
+            tic
+            for k = 1:1000
+                [L,S] = conslin2(x);
+                soln = quadprog(AA, ft, [],[],L,S,[],[],[],options);
+                xnew = soln(1:12);
+                if norm(xnew-x) < 1e-12
+                    disp(['converge at step ', num2str(k)]);
+                    break;
+                end
+                x = xnew;
+            end
+            time = toc;
+            disp(['SQP :',num2str(time)]);
+        end
     end
 
     R12 = [x(1) x(4) x(7); ...
