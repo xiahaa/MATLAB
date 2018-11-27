@@ -77,7 +77,7 @@ function varargout = hand_eye_calib_sol()
     
     tic
     Ts5 = sol_horaud_nlopt(T1,T2,N);
-    disp(Ts5*dTt)
+    Ts5*dTt
     toc
     tic
     Ts7 = sol_cvx2(T1,T2,N);

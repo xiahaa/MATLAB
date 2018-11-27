@@ -14,7 +14,7 @@ function varargout = sol_cvx2(TA,TB,N)
         return;
     end
     
-    format long;
+    format short;
     
     C = zeros(N*12,12);
     d = zeros(N*12,1);
@@ -37,18 +37,44 @@ function varargout = sol_cvx2(TA,TB,N)
 %     x0 = C\d;
     x0 = [1 0 0 0 1 0 0 0 1 0 0 0]';
     x = x0;
-    for k = 1:1000
-        [L,S] = conslin(x);
-        disp(S);
-        soln = quadprog(2*As,(-2*bs)', [],[],L, S);
-        xnew = soln;
-        if norm(xnew-x) < 1e-12
-            disp(['converge at step ', num2str(k)]);
-            break;
+    options = optimoptions('quadprog','Display','off');
+    useSCF = 1;
+    if useSCF == 1
+        regualrization = 0;
+        AA = 2*blkdiag(As,regualrization);
+        ft = [(-2*bs)';0];
+        tic
+        for k = 1:1000
+            [L,S] = conslin(x);
+    %         disp(S);
+            soln = quadprog(AA, ft, L, S,[],[],[],[],[],options);
+            xnew = soln(1:12);
+            if norm(xnew-x) < 1e-12
+                disp(['converge at step ', num2str(k)]);
+                break;
+            end
+            x = xnew;
         end
-        x = xnew;
+        time = toc;
+        disp(['scf :',num2str(time)]);
+    else
+        AA = 2*As;
+        ft = (-2*bs)';
+        tic
+        for k = 1:1000
+            [L,S] = conslin2(x);
+            soln = quadprog(AA, ft, [],[],L,S,[],[],[],options);
+            xnew = soln(1:12);
+            if norm(xnew-x) < 1e-12
+                disp(['converge at step ', num2str(k)]);
+                break;
+            end
+            x = xnew;
+        end
+        time = toc;
+        disp(['SQP :',num2str(time)]);
     end
-    
+
     R12 = [x(1) x(4) x(7); ...
            x(2) x(5) x(8); ...
            x(3) x(6) x(9)];
@@ -61,6 +87,28 @@ function varargout = sol_cvx2(TA,TB,N)
     else
         varargout{1} = R12;
     end
+end
+
+
+function [L,S] = conslin2(x)
+    f1 = @(x) (x(1)*x(4)+x(2)*x(5)+x(3)*x(6));
+    f2 = @(x) (x(1)*x(7)+x(2)*x(8)+x(3)*x(9));
+    f3 = @(x) (x(4)*x(7)+x(5)*x(8)+x(6)*x(9));
+    f4 = @(x) (x(1)*x(1)+x(2)*x(2)+x(3)*x(3));
+    f5 = @(x) (x(4)*x(4)+x(5)*x(5)+x(6)*x(6));
+    f6 = @(x) (x(7)*x(7)+x(8)*x(8)+x(9)*x(9));
+    
+    df1 = [x(4) x(5) x(6) x(1) x(2) x(3) 0 0 0 0 0 0];
+    df2 = [x(7) x(8) x(9) 0 0 0 x(1) x(2) x(3) 0 0 0];
+    df3 = [0 0 0 x(7) x(8) x(9) x(4) x(5) x(6) 0 0 0];
+    df4 = [2*x(1) 2*x(2) 2*x(3) 0 0 0 0 0 0 0 0 0];
+    df5 = [0 0 0 2*x(4) 2*x(5) 2*x(6) 0 0 0 0 0 0];
+    df6 = [0 0 0 0 0 0 2*x(7) 2*x(8) 2*x(9) 0 0 0];
+    
+    h = [0 0 0 1 1 1]';
+    L = [df1;df2;df3;df4;df5;df6];
+    b1 = [f1(x)-df1*x;f2(x)-df2*x;f3(x)-df3*x;f4(x)-df4*x;f5(x)-df5*x;f6(x)-df6*x];
+    S = h-b1;
 end
 
 function [L,S] = conslin(x)
@@ -78,12 +126,9 @@ function [L,S] = conslin(x)
     df5 = [0 0 0 2*x(4) 2*x(5) 2*x(6) 0 0 0 0 0 0];
     df6 = [0 0 0 0 0 0 2*x(7) 2*x(8) 2*x(9) 0 0 0];
     
-    b = [0 0 0 1 1 1]';
-    
-    L1 = [df1;df2;df3;df4;df5;df6];
-    fstar = [f1(x);f2(x);f3(x);f4(x);f5(x);f6(x)];
-    fhatstar = L1 * x;
-    S1 = b + fhatstar - fstar;
-    L = [L1;];%-1.*L1];
-    S = [S1;];%-1.*S1];
+    h = [0 0 0 1 1 1]';
+    a1 = [df1;df2;df3;df4;df5;df6];
+    L = [[-a1 -h];[-a1 h]];
+    b1 = [f1(x)-df1*x;f2(x)-df2*x;f3(x)-df3*x;f4(x)-df4*x;f5(x)-df5*x;f6(x)-df6*x];
+    S = [b1;b1];
 end
