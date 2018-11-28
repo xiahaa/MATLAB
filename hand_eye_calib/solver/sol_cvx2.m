@@ -81,6 +81,7 @@ function varargout = sol_cvx2(TA,TB,N)
     else
         C = zeros(N*12,13);
 %         d = zeros(N*12,1);
+        As2 = zeros(13,13);
         for i = 1:N
             T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);
             T2 = TB(i,:,:);T2 = reshape(T2,dim,dim,1);
@@ -90,8 +91,10 @@ function varargout = sol_cvx2(TA,TB,N)
             id = (i-1)*12;
             C(id+1:id+12,:) = [kron(eye(3),Ra)-kron(Rb',eye(3)) zeros(9,3) zeros(9,1); ...
                                kron(tb', eye(3)) eye(3)-Ra -ta];
+           As2 = As2 + C(id+1:id+12,:)'*C(id+1:id+12,:);
         end
-        As = C'*C;
+%         As = C'*C;
+        As = (As2+As2')/2;
         %% vector to optimize
     %     x0 = C\d;
         x0 = [1 0 0 0 1 0 0 0 1 0 0 0 1]';
