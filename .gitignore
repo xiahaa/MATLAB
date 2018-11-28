@@ -1,2 +1,10 @@
 
 *.m~
+*.zip
+3rdparty/*
+data.mat
+cvx_project_traj_gen_sdp_t_relax.m
+*.asv
+ipin_marker_mapper/*
+ellipse/*
+visualize_mm.m
