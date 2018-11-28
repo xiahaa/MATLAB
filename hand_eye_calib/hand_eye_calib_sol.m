@@ -91,5 +91,9 @@ function varargout = hand_eye_calib_sol()
     Ts11 = sol_dual_sdp_cvx(T1,T2,N);
     disp(Ts11*dTt)
     toc
+    tic
+    Ts12 = sol_manifold_opt_SE3(T1,T2,N);
+    toc
+    disp(Ts12*dTt)
 end
 

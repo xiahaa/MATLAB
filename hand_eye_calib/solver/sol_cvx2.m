@@ -17,8 +17,8 @@ function varargout = sol_cvx2(TA,TB,N)
     format short;
     
     options = optimoptions('quadprog','Display','off');
-    useSCF = 1;
-    useQ = 0;
+    useSCF = 0;
+    useQ = 1;
     
     if useQ == 1
         Nv = 0;
@@ -42,7 +42,9 @@ function varargout = sol_cvx2(TA,TB,N)
                 ids = [ids;i];
             end
         end
-        T = zeros(6*Nv, 8);
+        
+%         T = zeros(6*Nv, 8);%% formulation 1
+        T = zeros(8, 8);
         As = zeros(8,8);
         for i = 1:Nv
             ii = ids(i);
@@ -50,23 +52,30 @@ function varargout = sol_cvx2(TA,TB,N)
             qdas = [(-das(ii)*0.5)*sin(thetaas(ii)*0.5);sin(thetaas(ii)*0.5).*mas(ii,:)'+(das(ii)*0.5*cos(thetaas(ii)*0.5)).*las(ii,:)'];
             qbs = [cos(thetabs(ii)*0.5);sin(thetabs(ii)*0.5).*lbs(ii,:)'];
             qdbs = [(-dbs(ii)*0.5)*sin(thetabs(ii)*0.5);sin(thetabs(ii)*0.5).*mbs(ii,:)'+(dbs(ii)*0.5*cos(thetabs(ii)*0.5)).*lbs(ii,:)'];
-            a = qas(2:4);b = qbs(2:4);
-            ad = qdas(2:4);bd = qdbs(2:4);
-
-            T((i-1)*6+1:(i-1)*6+3,:) = [a-b skewm(a+b) zeros(3,1) zeros(3,3)];
-            T((i-1)*6+4:(i-1)*6+6,:) = [ad-bd skewm(ad+bd) a-b skewm(a+b)];
-            
-            As = As + T((i-1)*6+1:(i-1)*6+6,:)'*T((i-1)*6+1:(i-1)*6+6,:);
+            %% formulation 1
+%             a = qas(2:4);b = qbs(2:4);
+%             ad = qdas(2:4);bd = qdbs(2:4);
+%             T((i-1)*6+1:(i-1)*6+3,:) = [a-b skewm(a+b) zeros(3,1) zeros(3,3)];
+%             T((i-1)*6+4:(i-1)*6+6,:) = [ad-bd skewm(ad+bd) a-b skewm(a+b)];
+%             As = As + T((i-1)*6+1:(i-1)*6+6,:)'*T((i-1)*6+1:(i-1)*6+6,:);
+            %% formulation 2
+            a = qas(1:4);b = qbs(1:4);
+            ad = qdas(1:4);bd = qdbs(1:4);
+            T(1:4,:) = [q2m_left(a)-q2m_right(b) zeros(4,4)];
+            T(5:8,:) = [q2m_left(ad)-q2m_right(bd) q2m_left(a)-q2m_right(b)];
+            As = As + T'*T;
         end
-        x0 = [1 0 0 0 0 0 0 0]';
+        As = (As+As')/2;
+        x0 = [1 0 0 0 1 0 0 0]';
         x = x0;
         if useSCF == 1
-            AA = 2*As;
+            regualrization = 0;
+            AA = 2*blkdiag(As,regualrization);
             tic
             for k = 1:1000
-                [L,S] = conslin(x);
-                soln = quadprog(AA, ft, L, S,[],[],[],[],[],options);
-                xnew = soln(1:12);
+                [L,S] = conslin4(x);
+                soln = quadprog(AA, [], L, S,[],[],[],[],[],options);
+                xnew = soln(1:8);
                 if norm(xnew-x) < 1e-12
                     disp(['converge at step ', num2str(k)]);
                     break;
@@ -76,11 +85,28 @@ function varargout = sol_cvx2(TA,TB,N)
             time = toc;
             disp(['scf :',num2str(time)]);
         else
-            
+            AA = 2*As;
+            tic
+            for k = 1:1000
+                [L,S] = conslin5(x);
+                soln = quadprog(AA, [], [], [], L, S,[],[],[],options);
+                xnew = soln(1:8);
+                if norm(xnew-x) < 1e-12
+                    disp(['converge at step ', num2str(k)]);
+                    break;
+                end
+                x = xnew;
+            end
+            time = toc;
+            disp(['scf :',num2str(time)]);
         end
+        q12 = x(1:4);
+        q12d = x(5:8);
+        R12 = q2R(q12);
+        t12 = 2.*qprod(q12d, conjugateq(q12));
+        t12 = t12(2:4);
     else
         C = zeros(N*12,13);
-%         d = zeros(N*12,1);
         As2 = zeros(13,13);
         for i = 1:N
             T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);
@@ -103,25 +129,22 @@ function varargout = sol_cvx2(TA,TB,N)
         if useSCF == 1
             regualrization = 0;
             AA = 2*blkdiag(As,regualrization);
-            tic
-            for k = 1:1000
-%                 [L,S, Aeq, beq] = conslin(x);
-                [L,S] = conslin(x);
-                soln = quadprog(AA, [], L, S, [], [], [], [], [],options);
-                xnew = soln(1:13);
-                if norm(xnew-x) < 1e-12
-                    disp(['converge at step ', num2str(k)]);
-                    break;
-                end
-                x = xnew;
-            end
-            time = toc;
-            disp(['scf :',num2str(time)]);
-
+%             tic
+%             for k = 1:1000
+%                 [L,S] = conslin(x);
+%                 soln = quadprog(AA, [], L, S, [], [], [], [], [],options);
+%                 xnew = soln(1:13);
+%                 if norm(xnew-x) < 1e-12
+%                     disp(['converge at step ', num2str(k)]);
+%                     break;
+%                 end
+%                 x = xnew;
+%             end
+%             time = toc;
+%             disp(['scf :',num2str(time)]);
             tic
             for k = 1:1000
                 [L,S, Aeq, beq] = conslin3(x);
-%                 [L,S] = conslin(x);
                 soln = quadprog(AA, [], L, S, Aeq, beq, [], [], [],options);
                 xnew = soln(1:13);
                 if norm(xnew-x) < 1e-12
@@ -149,14 +172,15 @@ function varargout = sol_cvx2(TA,TB,N)
             time = toc;
             disp(['SQP :',num2str(time)]);
         end
+        R12 = [x(1) x(4) x(7); ...
+               x(2) x(5) x(8); ...
+               x(3) x(6) x(9)];
+        t12 = x(10:12);
+        R12 = R12*inv(sqrtm(R12'*R12));
     end
 
-    R12 = [x(1) x(4) x(7); ...
-           x(2) x(5) x(8); ...
-           x(3) x(6) x(9)];
-    t12 = x(10:12);
+
     
-    R12 = R12*inv(sqrtm(R12'*R12));
     
     if dim == 4
         varargout{1} = [R12 t12;[0 0 0 1]];
@@ -240,4 +264,32 @@ function [L,S,A,b] = conslin3(x)
     S = [b1;b1];
     A = [df7 0];
     b = 1;
+end
+
+function [L,S] = conslin4(x)
+    f1 = @(x) (x(1)*x(1)+x(2)*x(2)+x(3)*x(3)+x(4)*x(4));
+    f2 = @(x) (x(1)*x(5)+x(2)*x(6)+x(3)*x(7)+x(4)*x(8));
+    
+    df1 = [2*x(1) 2*x(2) 2*x(3) 2*x(4) 0 0 0 0];
+    df2 = [x(5) x(6) x(7) x(8) x(1) x(2) x(3) x(4)];
+
+    h = [1 0]';
+    a1 = [df1;df2];
+    L = [[-a1 -h];[-a1 h]];
+    b1 = [f1(x)-df1*x;f2(x)-df2*x];
+    S = [b1;b1];
+end
+
+function [L,S] = conslin5(x)
+    f1 = @(x) (x(1)*x(1)+x(2)*x(2)+x(3)*x(3)+x(4)*x(4));
+    f2 = @(x) (x(1)*x(5)+x(2)*x(6)+x(3)*x(7)+x(4)*x(8));
+    
+    df1 = [2*x(1) 2*x(2) 2*x(3) 2*x(4) 0 0 0 0];
+    df2 = [x(5) x(6) x(7) x(8) x(1) x(2) x(3) x(4)];
+
+    h = [1 0]';
+    a1 = [df1;df2];
+    L = a1;
+    b1 = [f1(x)-df1*x;f2(x)-df2*x];
+    S = h - b1;
 end
