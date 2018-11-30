@@ -31,5 +31,4 @@ function [X] = sol_andreff(TA,TB,N)
 
     [u, ~, v] = svd(X); X = u*v'; if det(X)<0, X = u*diag([1 1 -1])*v'; end
     X = [X' x(10:12);[0 0 0 1]];
-
 end

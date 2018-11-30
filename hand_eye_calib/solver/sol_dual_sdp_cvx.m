@@ -33,8 +33,8 @@ function  varargout = sol_dual_sdp_cvx(TA,TB,N)
         t2(:,i) = T2(1:3,4);        
     end
 
-    addpath('C:/Users/xiahaa/Documents/DTU/paper/hand_eye_calibration/code/certifiable-calibration-master/certifiable-calibration-master/matlab/egomotion_calibration');
-    addpath('C:/Users/xiahaa/Documents/DTU/paper/hand_eye_calibration/code/certifiable-calibration-master/certifiable-calibration-master/matlab/utils');
+    addpath('D:/dtu/sourcecode/hand_eye/certifiable-calibration-master/certifiable-calibration-master/matlab/egomotion_calibration');
+    addpath('D:/dtu/sourcecode/hand_eye/certifiable-calibration-master/certifiable-calibration-master/matlab/utils');
 
     disp('Estimate:');
     [R_cal, t_cal] = egomotion_calibration(R1,t1,R2,t2)

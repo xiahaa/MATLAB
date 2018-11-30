@@ -89,7 +89,7 @@ function varargout = sol_dphec(TA,TB,N)
 %     t12 = [rqx(5:7)];
 
     %% direct use the code provided by the author
-    addpath('C:/Users/xiahaa/Documents/DTU/paper/hand_eye_calibration/code/mpherwc/mpherwc');
+    addpath('D:/dtu/sourcecode/hand_eye/mpherwc/mpherwc');
 %     exp.verbose = 1;
     for i = 1:N
         T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);

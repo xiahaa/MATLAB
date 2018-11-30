@@ -1,4 +1,4 @@
-function dT = sol_manifold_opt_SE3(TA, TB, N)
+function varargout = sol_manifold_opt_SE3_cmp(TA, TB, N)
 %% input should be Nx4x4 3D matrices.    
     if iscell(TA) == false
         %% 1st, prepare data, transform to cell array
@@ -12,18 +12,32 @@ function dT = sol_manifold_opt_SE3(TA, TB, N)
         A = TA;
         B = TB;
     end
+    T0 = [eye(3) [0;0;0];0 0 0 1];
+    convSolver = {@sol_andreff, ...                               %% LIE
+%                   @, ...                                   %% KR
+%                   @HandEye_DQ, ...                                    %% DQ
+                    };
+    num = size(convSolver,2)+1;
+    dT = cell(num);
     
-    dT = se3optimization(A, B, N);
+    dT{1} = se3optimization(A, B, N, T0);
+    varargout{1} = dT{1};
+    for i = 1:size(convSolver,2)
+        handle_sol = convSolver{i};
+        T0 = handle_sol(TA, TB, N);
+        dT{i+1} = se3optimization(A, B, N, T0);
+        varargout{i+1} = dT{i+1};
+    end
 end
 
-function dTopt = se3optimization(A, B, N)
-    maxIter = 100;    
+function dTopt = se3optimization(A, B, N, T0)
+    maxIter = 1000;    
     % Solve for pose using our algorithm
-    T = [eye(3) [0;0;0];0 0 0 1];
+    T = T0;
+    xo = zeros(6,1);
     for i=1:maxIter      % Gauss-Newton iterations
         LHS = zeros(6);
         RHS = zeros(6,1);
-        
         for k=1:N
             [G,e] = eJSE3(A{k},B{k},T);
             LHS = LHS + G'*G;
@@ -31,6 +45,11 @@ function dTopt = se3optimization(A, B, N)
         end
         xi = -LHS \ RHS;
         T = vec2tran( xi ) * T;
+        
+        if norm(xi-xo) < 1e-12
+            break;
+        end
+        xo = xi;
     end
     dTopt = T;
 end

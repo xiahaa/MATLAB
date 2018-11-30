@@ -14,11 +14,11 @@ function varargout = sol_cvx2(TA,TB,N)
         return;
     end
     
-    format short;
+    format long;
     
     options = optimoptions('quadprog','Display','off');
-    useSCF = 0;
-    useQ = 1;
+    useSCF = 1;
+    useQ = 0;
     
     if useQ == 1
         Nv = 0;
@@ -155,7 +155,6 @@ function varargout = sol_cvx2(TA,TB,N)
             end
             time = toc;
             disp(['scf eq:',num2str(time)]);
-
         else
             AA = 2*As;
             tic
@@ -178,9 +177,6 @@ function varargout = sol_cvx2(TA,TB,N)
         t12 = x(10:12);
         R12 = R12*inv(sqrtm(R12'*R12));
     end
-
-
-    
     
     if dim == 4
         varargout{1} = [R12 t12;[0 0 0 1]];

@@ -8,3 +8,5 @@ cvx_project_traj_gen_sdp_t_relax.m
 ipin_marker_mapper/*
 ellipse/*
 visualize_mm.m
+*.mat
+*.pdf

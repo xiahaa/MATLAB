@@ -92,7 +92,7 @@ function varargout = sol_horaud_nlopt(TA,TB,N)
 %     f2
     
     options = optimoptions('fminunc','Algorithm','trust-region', ...
-        'SpecifyObjectiveGradient',true,'MaxIterations',10,'OptimalityTolerance',1e-6);
+        'SpecifyObjectiveGradient',true,'MaxIterations',1000,'OptimalityTolerance',1e-6);
     x = fminunc(@(x) fcost(x,A,B,C,d,e,l),x0,options);
     q12 = x(1:4);
     q12 = q12./norm(q12);

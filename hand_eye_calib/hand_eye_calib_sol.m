@@ -72,7 +72,7 @@ function varargout = hand_eye_calib_sol()
     disp(Ts9*dTt)
     Ts10 = sol_adjoint_transformation_algo(T1,T2,N);
     disp(Ts10*dTt)
-    Ts12 = sol_chou(T1,T2,N);
+    Ts12 = sol_andreff(T1,T2,N);
     disp(Ts12*dTt)
     
     tic
