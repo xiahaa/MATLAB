@@ -12,14 +12,16 @@ function dT = sol_manifold_opt_SE3(TA, TB, N)
         A = TA;
         B = TB;
     end
-    
-    dT = se3optimization(A, B, N);
+    T0 = [eye(3) [0;0;0];0 0 0 1];
+    T0 = sol_andreff(TA, TB, N);
+    dT = se3optimization(A, B, N, T0);
 end
 
-function dTopt = se3optimization(A, B, N)
+function dTopt = se3optimization(A, B, N, T0)
     maxIter = 100;    
     % Solve for pose using our algorithm
-    T = [eye(3) [0;0;0];0 0 0 1];
+    T = T0;
+    xo = zeros(6,1);
     for i=1:maxIter      % Gauss-Newton iterations
         LHS = zeros(6);
         RHS = zeros(6,1);
@@ -31,6 +33,10 @@ function dTopt = se3optimization(A, B, N)
         end
         xi = -LHS \ RHS;
         T = vec2tran( xi ) * T;
+        if norm(xi-xo) < 1e-12
+            break;
+        end
+        xo = xi;
     end
     dTopt = T;
 end

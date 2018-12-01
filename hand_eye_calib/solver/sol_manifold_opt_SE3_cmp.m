@@ -14,18 +14,21 @@ function varargout = sol_manifold_opt_SE3_cmp(TA, TB, N)
     end
     T0 = [eye(3) [0;0;0];0 0 0 1];
     convSolver = {@sol_andreff, ...                               %% LIE
-%                   @, ...                                   %% KR
-%                   @HandEye_DQ, ...                                    %% DQ
+                  @sol_park_martin, ...                                   %% KR
+                  @HandEye_DQ, ...                                    %% DQ
                     };
     num = size(convSolver,2)+1;
     dT = cell(num);
-    
+    tic
     dT{1} = se3optimization(A, B, N, T0);
+    toc
     varargout{1} = dT{1};
     for i = 1:size(convSolver,2)
         handle_sol = convSolver{i};
         T0 = handle_sol(TA, TB, N);
+        tic
         dT{i+1} = se3optimization(A, B, N, T0);
+        toc
         varargout{i+1} = dT{i+1};
     end
 end
