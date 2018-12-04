@@ -1,4 +1,4 @@
-function [Bi] = createTraj(a, b, c, c1, c2, c3, t1, t2, num, twist)
+function [Bi] = createTrajTwist(a, b, c, c1, c2, c3, t1, t2, num, twist)
     %twist will be used to give perturbations around the normal axis
     %TRAJECTORY
     t = (0:2*pi/(num-1):2*pi);
