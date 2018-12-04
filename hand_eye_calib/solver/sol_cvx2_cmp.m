@@ -13,7 +13,7 @@ function varargout = sol_cvx2_cmp(TA,TB,N)
     options = optimoptions('quadprog','Display','off');
     
     Asq = preprocessing_q(TA,TB,N);
-    x0q = [1 0 0 0 1 0 0 0]';
+    x0q = [1 0 0 0 0 0 0 0]';
     [Ask,x0k] = preprocessing_kron(TA,TB,N);
     
     [T1, time1] = solv_SCF(x0q, Asq, options);
