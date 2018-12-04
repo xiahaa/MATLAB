@@ -30,7 +30,7 @@ N = 100; % Times of simulation
          
  prefix = 'data/SE3/Cmp';
          
-for j = 2:numel(usedstd)
+for j = 3:numel(usedstd)
     for i =  6:numel(naaray)
         numPair = naaray(i);
         %Trajectory Generation
@@ -71,19 +71,19 @@ for j = 2:numel(usedstd)
             numsam = size(TA,1);
             handle_sol = usedsolver{1};
             %% SCF
-            [T1,T2] = handle_sol(TB,TA,numsam);
+            [T1,T2,T3,T4] = handle_sol(TB,TA,numsam);
             xsol(1:4,1:4,1) = T1;
             xsol(1:4,1:4,2) = T2;
-%             xsol(1:4,1:4,3) = T3;
-%             xsol(1:4,1:4,4) = T4;
+            xsol(1:4,1:4,3) = T3;
+            xsol(1:4,1:4,4) = T4;
 %             xsol(1:4,1:4,5) = T5;
 %             xsol(1:4,1:4,6) = T6;
-            flag(1) = 1;flag(2) = 1;%flag(3) = 1;
+            flag(1) = 1;flag(2) = 1;flag(3) = 1;flag(4) = 1;
 %             flag(4) = 1;flag(5) = 1;flag(6) = 1;
             
             xsols{k} = xsol;
 %             tsols{k} = [1,1,1,1,1,1];
-            tsols{k} = {1,1};
+            tsols{k} = [1,1,1,1];
             Xs{k} = X;
             flags{k} = flag;
         end
