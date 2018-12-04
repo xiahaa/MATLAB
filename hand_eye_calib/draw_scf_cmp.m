@@ -4,20 +4,21 @@ clear all;
 
 addpath('../beautiful_plot/');
 
-naaray = [10 20 40 60 80 100];
-nstd2 = [0 0.05 0.1 0.2 0.5 1];
+naaray = [10 20 30 40];
+nstd2 = [0.1 0.2 0.3 0.4 0.5 1];
 usedstd = nstd2;
 prefix = 'data/SCF/scfCmp';
 
 convSols = {'SCFQ', 'SQPQ', 'SCFKRON', 'SQPKRON'};
 nsols = size(convSols, 2);
-N = 100;
+N = 50;
 ts = zeros(numel(naaray),nsols);
+nnn = {'5', '10', '20', '40'};
 
 rotErrors = cell(numel(usedstd), numel(naaray));
 tranErrors = cell(numel(usedstd), numel(naaray));
 
-if 0
+if 1
     for j = 2:numel(usedstd)
         for i =  1:numel(naaray)
             numPair = naaray(i);
@@ -55,8 +56,8 @@ cc = jet(4);
 mm = {'-o','-*','-s','-d','-x','-+','-^'};
 
 font_size = 16;
-bar_labels = categorical({'$10$', '$20$', '$40$', '$60$', '$80$', '$100$'});
-bar_labels = reordercats(bar_labels,{'$10$', '$20$', '$40$', '$60$', '$80$', '$100$'});
+bar_labels = categorical(nnn);
+bar_labels = reordercats(bar_labels,nnn);
 
 fig = figure();
 set(fig,'defaulttextinterpreter','latex');
@@ -145,17 +146,17 @@ boxplot(boxdata,box_labels);
 title('Gaussian Noise standard deviation: (0.1), Samples: 60')
 ylabel('$E_{R_X}$','Interpreter','latex');
 
-subaxis(6,1,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{3,5};grid on;
-boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.1), Samples: 80')
-ylabel('$E_{R_X}$','Interpreter','latex');
-
-subaxis(6,1,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{3,6};grid on;
-boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.1), Samples: 100')
-ylabel('$E_{R_X}$','Interpreter','latex');
+% subaxis(6,1,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+% boxdata = rotErrors{3,5};grid on;
+% boxplot(boxdata,box_labels);
+% title('Gaussian Noise standard deviation: (0.1), Samples: 80')
+% ylabel('$E_{R_X}$','Interpreter','latex');
+% 
+% subaxis(6,1,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+% boxdata = rotErrors{3,6};grid on;
+% boxplot(boxdata,box_labels);
+% title('Gaussian Noise standard deviation: (0.1), Samples: 100')
+% ylabel('$E_{R_X}$','Interpreter','latex');
 
 
 %% t error
@@ -228,15 +229,15 @@ boxplot(boxdata,box_labels);
 title('Gaussian Noise standard deviation: (0.1), Samples: 60')
 ylabel('$E_{R_X}$','Interpreter','latex');
 
-subaxis(6,1,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{3,5};grid on;
-boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.1), Samples: 80')
-ylabel('$E_{R_X}$','Interpreter','latex');
-
-subaxis(6,1,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{3,6};grid on;
-boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.1), Samples: 100')
-ylabel('$E_{R_X}$','Interpreter','latex');
+% subaxis(6,1,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+% boxdata = tranErrors{3,5};grid on;
+% boxplot(boxdata,box_labels);
+% title('Gaussian Noise standard deviation: (0.1), Samples: 80')
+% ylabel('$E_{R_X}$','Interpreter','latex');
+% 
+% subaxis(6,1,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+% boxdata = tranErrors{3,6};grid on;
+% boxplot(boxdata,box_labels);
+% title('Gaussian Noise standard deviation: (0.1), Samples: 100')
+% ylabel('$E_{R_X}$','Interpreter','latex');
 
