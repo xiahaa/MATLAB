@@ -1,7 +1,7 @@
 function varargout = sol_horaud(TA,TB,N)
 %% implementation of hand eye calibration proposed by:
-% R. Horaud and F. Dornaika. 
-% Hand-eye calibration. 
+% R. Horaud and F. Dornaika.
+% Hand-eye calibration.
 % International Journal of Robotics Research, 14(3):195?210, 1995.
 
 %% Author: xiahaa@space.dtu.dk
@@ -11,7 +11,7 @@ function varargout = sol_horaud(TA,TB,N)
         return;
     end
     dim = size(TA,2);
-    
+
     format long;
     At = zeros(4,4);
     for i = 1:N
@@ -19,6 +19,11 @@ function varargout = sol_horaud(TA,TB,N)
         T2 = TB(i,:,:);T2 = reshape(T2,dim,dim,1);
         q1 = rot2vec(T1(1:3,1:3));
         q2 = rot2vec(T2(1:3,1:3));
+
+        if (norm(q1) < 1e-3 || norm(q2) < 1e-3) %mall motion
+            continue;
+        end
+
         q1 = q1./norm(q1);
         q2 = q2./norm(q2);
         A = formA([0;q2],[0;q1]);

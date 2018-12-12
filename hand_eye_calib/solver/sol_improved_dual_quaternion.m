@@ -33,7 +33,10 @@ function varargout = sol_improved_dual_quaternion(TA,TB,N)
         thetaas(i) = thetaa;das(i) = da;las(i,:) = la';mas(i,:) = ma';
         thetabs(i) = thetab;dbs(i) = db;lbs(i,:) = lb';mbs(i,:) = mb';
         
-        if abs(thetaa-thetab) < 1e-3 && abs(da-db) < 1e-3
+        isvalid = (ma(1) == ma(1)) & (ma(2) == ma(2)) & (ma(3) == ma(3)) ...
+                 & (mb(1) == mb(1)) & (mb(2) == mb(2)) & (mb(3) == mb(3));
+        
+        if abs(thetaa-thetab) < 1e-3 && abs(da-db) < 1e-3 && isvalid
             Nv = Nv + 1;
             ids = [ids;i];
         end

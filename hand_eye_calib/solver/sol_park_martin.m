@@ -1,7 +1,7 @@
 function varargout = sol_park_martin(TA,TB,N)
 %% implementation of hand eye calibration proposed by:
-%   F. Park and B. Martin 
-%   Robot Sensor Calibration: Solving AX = XB on the Euclidean Group, 
+%   F. Park and B. Martin
+%   Robot Sensor Calibration: Solving AX = XB on the Euclidean Group,
 %   IEEE Transactions on Robotics and Automation, (10) 1994, p. 717?721
 
 %% Author: xiahaa@space.dtu.dk
@@ -12,9 +12,9 @@ function varargout = sol_park_martin(TA,TB,N)
     end
     dim = size(TA,2);
     M = zeros(3,3);
-    
+
     format long;
-    
+
     if N == 2
         T1 = TA(1,:,:);T1 = reshape(T1,dim,dim,1);
         T2 = TB(1,:,:);T2 = reshape(T2,dim,dim,1);
@@ -24,7 +24,16 @@ function varargout = sol_park_martin(TA,TB,N)
         so32 = rot2vec(T2(1:3,1:3));
         so33 = rot2vec(T3(1:3,1:3));
         so34 = rot2vec(T4(1:3,1:3));
-        R12 = [so31,so33,cross(so31,so33)]*inv([so32,so34,cross(so32,so34)]);
+
+        so34 = rot2vec(T4(1:3,1:3));
+        if (norm(so31) < 1e-3 || norm(so32) < 1e-3) || (norm(so33) < 1e-3 || (norm(so34) < 1e-3))%mall motion
+            error('Bad rotation samples!');
+            varargout{1} = [];
+            return;
+        end
+
+        M = [so31,so33,cross(so31,so33)]*inv([so32,so34,cross(so32,so34)]);
+        R12 = inv(sqrtm(M'*M))*M';
     else
         for i = 1:N
             T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);
@@ -32,18 +41,21 @@ function varargout = sol_park_martin(TA,TB,N)
             %% log
             so31 = rot2vec(T1(1:3,1:3));
             so32 = rot2vec(T2(1:3,1:3));
+            if (norm(so31) < 1e-3 || norm(so32) < 1e-3)
+                continue;
+            end
             M = M + so31*so32';
         end
         R12 = inv(sqrtm(M'*M))*M';
     end
-    
+
     if dim == 4
         A = zeros(3*N,3);
         b = zeros(3*N,1);
         for i = 1:N
             T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);
             T2 = TB(i,:,:);T2 = reshape(T2,dim,dim,1);
-            
+
             A((i-1)*3+1:i*3,:) = -T2(1:3,1:3)+eye(3);
             b((i-1)*3+1:i*3) = -R12*T1(1:3,4)+T2(1:3,4);
         end
