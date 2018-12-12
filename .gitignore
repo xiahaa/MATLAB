@@ -10,3 +10,7 @@ ellipse/*
 visualize_mm.m
 *.mat
 *.pdf
+*.mltbx
+Add-Ons/.toolboxFolders
+Add-Ons/.toolboxJavaEntries
+Add-Ons/Toolboxes/Robotics Toolbox for MATLAB/code/*
