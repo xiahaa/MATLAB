@@ -14,15 +14,15 @@ function varargout = sol_cvx2(TA,TB,N)
     
     Asq = preprocessing_q(TA,TB,N);
     x0q = [1 0 0 0 1 0 0 0]';
-%     [Ask,x0k] = preprocessing_kron(TA,TB,N);
+    [Ask,x0k] = preprocessing_kron(TA,TB,N);
     
-%     [T1, time1] = solv_SCF(x0q, Asq, options);
-    [T2, time2] = solve_SQP(x0q, Asq, options);
+%     [T, time1] = solv_SCF(x0q, Asq, options);
+    [T, time2] = solve_SQP(x0q, Asq, options);
     
-%     [T3, time3] = solv_SCF_k(x0k,Ask, options);   
-%     [T4, time4] = solv_SQP_k(x0k,Ask, options);
+%     [T, time3] = solv_SCF_k(x0k,Ask, options);   
+%     [T, time4] = solv_SQP_k(x0k,Ask, options);
 
-    varargout{1} = T2;
+    varargout{1} = T;
 %     varargout{2} = T2;
 %     varargout{3} = T3;
 %     varargout{4} = T4;
@@ -123,10 +123,10 @@ function As = preprocessing_q(TA,TB,N)
         thetaas(i) = thetaa;das(i) = da;las(i,:) = la';mas(i,:) = ma';
         thetabs(i) = thetab;dbs(i) = db;lbs(i,:) = lb';mbs(i,:) = mb';
 
-    %             if abs(thetaa-thetab) < 0.15 && abs(da-db) < 0.15
+        if isempty(find(isnan(ma),1)) && isempty(find(isnan(mb),1)) %abs(thetaa-thetab) < 0.1 && abs(da-db) < 0.1 && 
             Nv = Nv + 1;
             ids = [ids;i];
-    %             end
+        end
     end
 %         T = zeros(6*Nv, 8);%% formulation 1
     T = zeros(8, 8);

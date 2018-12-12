@@ -14,3 +14,5 @@ visualize_mm.m
 Add-Ons/.toolboxFolders
 Add-Ons/.toolboxJavaEntries
 Add-Ons/Toolboxes/Robotics Toolbox for MATLAB/code/*
+test_script/test_homo.m
+test_script/test_imu_gps_data.m

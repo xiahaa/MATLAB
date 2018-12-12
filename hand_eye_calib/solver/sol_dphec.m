@@ -39,7 +39,7 @@ function varargout = sol_dphec(TA,TB,N)
         thetaas(i) = thetaa;das(i) = da;las(i,:) = la';mas(i,:) = ma';
         thetabs(i) = thetab;dbs(i) = db;lbs(i,:) = lb';mbs(i,:) = mb';
         
-        if abs(thetaa-thetab) < 1e-3 && abs(da-db) < 1e-3
+        if abs(thetaa-thetab) < 0.1 && abs(da-db) < 0.1
             Nv = Nv + 1;
             ids = [ids;i];
         end
