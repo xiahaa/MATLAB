@@ -16,3 +16,5 @@ Add-Ons/.toolboxJavaEntries
 Add-Ons/Toolboxes/Robotics Toolbox for MATLAB/code/*
 test_script/test_homo.m
 test_script/test_imu_gps_data.m
+hand_eye_calib/docs/figures/mit_ut_data_gen/3dterrain.fig
+hand_eye_calib/docs/figures/mit_ut_data_gen/circle_terrain.eps

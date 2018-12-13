@@ -13,7 +13,7 @@ function dT = sol_manifold_opt_SE3(TA, TB, N)
         B = TB;
     end
     T0 = [eye(3) [0;0;0];0 0 0 1];
-    T0 = sol_andreff(TA, TB, N);
+    T0 = sol_andreff(TA, TB, N);%sol_dual_quaternion
     dT = se3optimization(A, B, N, T0);
 end
 
@@ -33,12 +33,13 @@ function dTopt = se3optimization(A, B, N, T0)
         end
         xi = -LHS \ RHS;
         T = vec2tran( xi ) * T;
-        if norm(xi-xo) < 1e-12
+        if norm(xi-xo) < 1e-15
             break;
         end
         xo = xi;
     end
     dTopt = T;
+    disp(['iter: ', num2str(i)]);
 end
 
 function [G,e] = eJSE3(A,B,T)

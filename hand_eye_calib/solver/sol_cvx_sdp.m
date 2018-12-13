@@ -38,7 +38,7 @@ function As = preprocessing_q(TA,TB,N)
         thetaas(i) = thetaa;das(i) = da;las(i,:) = la';mas(i,:) = ma';
         thetabs(i) = thetab;dbs(i) = db;lbs(i,:) = lb';mbs(i,:) = mb';
 
-        if abs(thetaa-thetab) < 0.15 && abs(da-db) < 0.15 && isempty(find(isnan(la),1)) && isempty(find(isnan(ma),1))
+        if abs(thetaa-thetab) < 0.15 && isempty(find(isnan(la),1)) && isempty(find(isnan(ma),1))
             Nv = Nv + 1;
             ids = [ids;i];
         end
