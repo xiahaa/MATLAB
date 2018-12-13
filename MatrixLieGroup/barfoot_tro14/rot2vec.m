@@ -1,7 +1,7 @@
 function [ phi ] = rot2vec( C )
 % ROT2VEC Compute the matrix log of the rotation matrix C.
 %
-% From: Timothy D Barfoot and Paul T Furgale, 
+% From: Timothy D Barfoot and Paul T Furgale,
 %       Associating Uncertainty with Three-Dimensional Poses for use in Estimation Problems
 %		DOI: 10.1109/TRO.2014.2298059
 %       tim.barfoot@utoronto.ca, paul.furgale@mavt.ethz.ch
@@ -20,15 +20,15 @@ function [ phi ] = rot2vec( C )
 %
 
 rotValidate(C);
-
+phi = [1;0;0];
 [v,d]=eig(C);
-for i=1:3 
-   if abs(d(i,i)-1) < 1e-10 
+for i=1:3
+   if abs(d(i,i)-1) < 1e-10
       a = v(:,i);
       a = a/sqrt(a'*a);
       phim = acos((trace(C)-1)/2);
       phi = phim*a;
-         
+
       if abs(trace(vec2rot( phi )'*C)-3) > 1e-14
          phi = -phi;
       end
