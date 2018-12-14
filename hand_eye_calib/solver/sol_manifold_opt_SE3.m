@@ -1,5 +1,5 @@
 function dT = sol_manifold_opt_SE3(TA, TB, N)
-%% input should be Nx4x4 3D matrices.    
+%% input should be Nx4x4 3D matrices.
     if iscell(TA) == false
         %% 1st, prepare data, transform to cell array
         for j = 1:N
@@ -13,19 +13,22 @@ function dT = sol_manifold_opt_SE3(TA, TB, N)
         B = TB;
     end
     T0 = [eye(3) [0;0;0];0 0 0 1];
-    T0 = sol_andreff(TA, TB, N);%sol_dual_quaternion
+    T1 = sol_park_martin(TA, TB, N);%sol_dual_quaternion
+    if ~isempty(T1)
+        T0 = T1;
+    end
     dT = se3optimization(A, B, N, T0);
 end
 
 function dTopt = se3optimization(A, B, N, T0)
-    maxIter = 100;    
+    maxIter = 200;
     % Solve for pose using our algorithm
     T = T0;
     xo = zeros(6,1);
     for i=1:maxIter      % Gauss-Newton iterations
         LHS = zeros(6);
         RHS = zeros(6,1);
-        
+
         for k=1:N
             [G,e] = eJSE3(A{k},B{k},T);
             LHS = LHS + G'*G;
