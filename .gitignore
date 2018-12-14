@@ -18,3 +18,6 @@ test_script/test_homo.m
 test_script/test_imu_gps_data.m
 hand_eye_calib/docs/figures/mit_ut_data_gen/3dterrain.fig
 hand_eye_calib/docs/figures/mit_ut_data_gen/circle_terrain.eps
+beautiful_plot/aboxplot/aboxplot.m
+beautiful_plot/aboxplot/colorgrad.m
+beautiful_plot/aboxplot/quartile.m
