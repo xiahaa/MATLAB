@@ -17,7 +17,7 @@ function varargout = sol_dual_quaternion(TA,TB,N)
         return;
     end
     
-    format short;
+    format long;
         
     Nv = 0;
     ids = [];
@@ -35,10 +35,15 @@ function varargout = sol_dual_quaternion(TA,TB,N)
         thetaas(i) = thetaa;das(i) = da;las(i,:) = la';mas(i,:) = ma';
         thetabs(i) = thetab;dbs(i) = db;lbs(i,:) = lb';mbs(i,:) = mb';
         
-        if abs(thetaa-thetab) < 0.15 && abs(da-db) < 0.15
+        if abs(thetaa-thetab) < 0.15 && isempty(find(isnan(la),1)) && isempty(find(isnan(ma),1))
             Nv = Nv + 1;
             ids = [ids;i];
         end
+    end
+    
+    if Nv < 2
+        varargout{1} = [];
+        return;
     end
         
     T = zeros(6*Nv, 8);
@@ -79,11 +84,11 @@ function varargout = sol_dual_quaternion(TA,TB,N)
     [U,S,V] = svd(T);
     s7 = S(7,7);
     s8 = S(8,8);
-    if abs(s7) > 0.3 || abs(s8) > 0.3
-        error('illness problem due to heavy noises!');
-        varargout{1} = [];
-        return;
-    end
+%     if abs(s7) > 0.5 && abs(s8) > 0.5
+%         warning('illness problem due to heavy noises 1!');
+%         varargout{1} = [];
+%         return;
+%     end
     v7 = V(:,7);
     v8 = V(:,8);
     
@@ -91,11 +96,11 @@ function varargout = sol_dual_quaternion(TA,TB,N)
     u1 = v7(1:4);v1 = v7(5:8);u2 = v8(1:4);v2 = v8(5:8);
     p2 = u1'*v1; p1 = u1'*v2+u2'*v1; p0 = u2'*v2;
     den = p1*p1 - 4*p0*p2;
-    if den < 0
-        error('illness problem due to heavy noises!');
-        varargout{1} = [];
-        return;
-    end
+%     if den < 0
+%         warning('illness problem due to heavy noises 2!');
+%         varargout{1} = [];
+%         return;
+%     end
     s1 = (-p1 + sqrt(den))/(2*p2);%% 
     s2 = (-p1 - sqrt(den))/(2*p2);
     
@@ -115,7 +120,7 @@ function varargout = sol_dual_quaternion(TA,TB,N)
     end
     
     q12 = sol(1:4);
-    q12 = q12 ./ norm(q12);%% in case of not unit quaternion
+%     q12 = q12 ./ norm(q12);%% in case of not unit quaternion
     q12d = sol(5:8);
     
     R12 = q2R(q12);
