@@ -20,7 +20,7 @@ validateattributes(vec,{'double'},{'size',[6,1]});
 rho = vec(1:3);
 phi = vec(4:6);
 
-ph = norm(phi);
+ph = norm(phi) + 1e-12;
 ph2 = ph*ph;
 ph3 = ph2*ph;
 ph4 = ph3*ph;

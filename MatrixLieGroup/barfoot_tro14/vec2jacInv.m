@@ -45,6 +45,8 @@ elseif size(vec,1) == 6
     if ph < tolerance;
         % If the angle is small, fall back on the series representation
         invJ = vec2jacInvSeries(phi,10);
+        Q = vec2Q( vec );
+        invJ = [ invJ -invJ*Q*invJ; zeros(3) invJ ];
     else
         invJsmall = vec2jacInv( phi );
         Q = vec2Q( vec );
