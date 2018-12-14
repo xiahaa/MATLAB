@@ -99,9 +99,15 @@ function varargout = sol_dphec(TA,TB,N)
     end
     fprintf(1, 'Running dqhec ...\n');
     exp = dqhec(exp);
-    R12 = exp.Rx_dqhec;
-    t12 = exp.tx_dqhec;
-   
+    
+    if exp.stat == 1
+        R12 = exp.Rx_dqhec;
+        t12 = exp.tx_dqhec;
+    else
+        varargout{1} = [];
+        return;
+    end
+    
     if dim == 4
         varargout{1} = [R12 t12;[0 0 0 1]];
     else
