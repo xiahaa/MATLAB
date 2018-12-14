@@ -12,7 +12,7 @@ function varargout = data_gen_ut()
     %% transformation matrix from s1 to s2
     sensor2_expressedIn_sensor1 = GetHomoTransform(trueCalib_euler);
     
-    motion = 3;
+    motion = 5;
     N = 51; % Num poses
     N_interp = 300;% interpolation for surface 
     if motion == 1
@@ -28,8 +28,7 @@ function varargout = data_gen_ut()
         %% line motion
         len = 20; theta = deg2rad(25);
         [x, y, z, dz_dx, dz_dy, XX, YY, Z] = random_smooth_traj1(N, len, N_interp, theta);
-        
-    else
+    elseif motion == 3
         %% pure rotation
         x = zeros(1,N);
         y = zeros(1,N);
@@ -38,9 +37,20 @@ function varargout = data_gen_ut()
         Y = linspace(min(y)-1.0, max(y)+1.0, N_interp);
         [XX,YY] = meshgrid(X,Y);
         Z = zeros(size(XX));
+    elseif motion == 4
+        N_modes = ceil(N/10);% perturbate modes
+        rad1 = 10;%% radius
+        amp_range = [0.0, 0.8];% amplitude
+        freq_range = [0.5, 1.5];% frequency
+       [x, y, z,dz_dx,dz_dy, XX, YY, Z] = random_smooth_traj2(N,rad1, N_interp, N_modes, ...
+                                        amp_range, freq_range);
+    elseif motion == 5
+        %% line motion
+        len = 20; theta = deg2rad(25);
+        [x, y, z, dz_dx, dz_dy, XX, YY, Z] = random_smooth_traj1(N, len, N_interp, theta);
     end
     
-    if motion == 1 || motion == 2
+    if motion == 1 || motion == 2 || motion == 4
         xaxis = [diff(x); diff(y); diff(z)];%% always forward
         yaxis = zeros(size(xaxis));
         zaxis = zeros(size(xaxis));
@@ -54,7 +64,7 @@ function varargout = data_gen_ut()
             zaxis(:,i) = cross ( xaxis(:,i), yaxis(:,i) );
             zaxis(:,i) = zaxis(:,i) /  norm(zaxis(:,i));
         end
-    else
+    elseif motion == 3
         xaxis = [diff(x); diff(y); diff(z)];%% always forward
         yaxis = zeros(size(xaxis));
         zaxis = zeros(size(xaxis));
@@ -71,6 +81,26 @@ function varargout = data_gen_ut()
             yaxis(:,i) = yaxis(:,i) /  norm(yaxis(:,i));
             zaxis(:,i) = cross ( xaxis(:,i), yaxis(:,i) );
             zaxis(:,i) = zaxis(:,i) /  norm(zaxis(:,i));
+        end
+    else
+        xaxis = [diff(x); diff(y); diff(z)];%% always forward
+        yaxis = zeros(size(xaxis));
+        zaxis = zeros(size(xaxis));
+        normal = zeros(size(xaxis));
+        scale = 0.1;
+        for i = 1:length(x)-1
+            normal(:,i) = cross( [1 0 dz_dx(i)], [0 1 dz_dy(i) ] );
+            normal(:,i) = normal(:,i) / norm(normal(:,i));
+            normal(:,i) = normal(:,i) + rand(3,1).*scale;normal(:,i) = normal(:,i) /  norm(normal(:,i));
+            
+            xaxis(:,i) = xaxis(:,i) /  norm(xaxis(:,i));
+            xaxis(:,i) = xaxis(:,i) + rand(3,1).*scale;xaxis(:,i) = xaxis(:,i) /  norm(xaxis(:,i));
+            
+            yaxis(:,i) = cross ( normal(:,i), xaxis(:,i) );
+            yaxis(:,i) = yaxis(:,i) /  norm(yaxis(:,i));
+            zaxis(:,i) = cross ( xaxis(:,i), yaxis(:,i) );
+            zaxis(:,i) = zaxis(:,i) /  norm(zaxis(:,i));
+            
         end
     end
 
@@ -167,10 +197,18 @@ function varargout = data_gen_ut()
         title('Line','Interpreter', 'latex','FontSize', font_size);
         print(['./docs/figures/mit_ut_data_gen/', 'line'],'-dpdf','-bestfit','-r300');
         save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/line.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
-    else
+    elseif motion == 3
         title('Pure Rotation','Interpreter', 'latex','FontSize', font_size);
         print(['./docs/figures/mit_ut_data_gen/', 'rotation'],'-dpdf','-bestfit','-r300');
         save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/rotation.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+    elseif motion == 4
+        title('$8-Shape$','Interpreter', 'latex','FontSize', font_size);
+        print(['./docs/figures/mit_ut_data_gen/', 'shape8'],'-dpdf','-bestfit','-r300');
+        save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/shape8.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+    elseif motion == 5
+        title('$Small Rotation$','Interpreter', 'latex','FontSize', font_size);
+        print(['./docs/figures/mit_ut_data_gen/', 'smallr'],'-dpdf','-bestfit','-r300');
+        save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/samllr.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
     end
 
     % generate random covariances
@@ -212,8 +250,12 @@ function varargout = data_gen_ut()
         save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/circle100_',num2str(std),'.mat'], 'run');
     elseif motion == 2
         save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/line100_',num2str(std),'.mat'],'run');
-    else
+    elseif motion == 3
         save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/rotation100_',num2str(std),'.mat'], 'run');
+    elseif motion == 4
+        save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/shape8100_',num2str(std),'.mat'], 'run');
+    elseif motion == 5
+        save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/smallr100_',num2str(std),'.mat'], 'run');
     end
 
 end
@@ -256,6 +298,57 @@ function [x, y, z, dz_dx, dz_dy, XX, YY, Z] = random_smooth_traj(N,rad1, rad2, N
 theta = linspace(0, 2*pi, N);
 x = cos(theta)*rad1; 
 y = sin(theta)*rad2;
+
+X = linspace(min(x)-1.0, max(x)+1.0, N_interp);
+Y = linspace(min(y)-1.0, max(y)+1.0, N_interp);
+[XX,YY] = meshgrid(X,Y);
+Z = zeros(size(XX));
+
+dz_dx = zeros(size(x));
+dz_dy = zeros(size(y));
+
+for idx=1:N_modes
+    phase = 2*rand*pi -pi;
+    amp = rand*(amp_range(2) - amp_range(1)) + amp_range(1);
+    freq = rand*(freq_range(2) - freq_range(1)) + freq_range(1);
+    mix = rand;
+    Z = Z + amp*cos((mix*XX + (1-mix)*YY)*freq + phase);
+    
+    dz_dx = dz_dx - amp*sin((mix*x + (1-mix)*y)*freq + phase)*freq*mix;
+    dz_dy = dz_dy - amp*sin((mix*x + (1-mix)*y)*freq + phase)*(1-mix)*freq;
+    
+    % Do it again for Y
+%     phase = 2*rand*pi -pi;
+%     amp = rand*(amp_range(2) - amp_range(1)) + amp_range(1);
+%     freq = rand*(freq_range(2) - freq_range(1)) + freq_range(1);
+%     Z = Z + amp*cos(YY*freq + phase);
+
+end
+
+z = interp2(XX,YY,Z,x,y);
+
+% figure;
+% surf(XX,YY,Z);
+end
+
+
+function [x, y, z, dz_dx, dz_dy, XX, YY, Z] = random_smooth_traj2(N,rad1, N_interp, N_modes, ...
+                                        amp_range, freq_range)
+%random_smooth_traj 
+hN1 = round(N/2);
+hN2 = N - hN1;
+theta1 = linspace(0, pi, hN1);
+theta2 = linspace(0, -pi, hN2);
+theta = [theta1 theta2];
+
+hN3 = round(hN1*0.5);
+hN4 = hN1 - hN3;
+hN5 = round(hN2*0.5);
+hN6 = hN2 - hN5;
+
+rho = [linspace(0.1, rad1, hN3) linspace(rad1, 0.1, hN4) linspace(0.1, rad1, hN5) linspace(rad1, 0.1, hN6)];
+x = cos(theta).*rho; 
+y = sin(theta).*rho;
 
 X = linspace(min(x)-1.0, max(x)+1.0, N_interp);
 Y = linspace(min(y)-1.0, max(y)+1.0, N_interp);
