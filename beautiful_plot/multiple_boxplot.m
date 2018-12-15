@@ -70,8 +70,8 @@ h = findobj(gca,'Tag','Box');
 for jj=1:length(h)
    patch(get(h(jj),'XData'),get(h(jj),'YData'),color(1:3,jj)','FaceAlpha',color(4,jj));
 end
-if nargin>=3
-    legend(fliplr(Mlab),'Interpreter','latex','FontSize',8,'Location', 'northeast');
+if nargin>=3 && ~isempty(Mlab)
+    legend(fliplr(Mlab),'Interpreter','latex','FontSize',8,'Location', 'northwest');
 end
 
 hpltall = get(gca,'children');   % the boxplot group
@@ -80,4 +80,11 @@ hall = get(hbxplt,'children');  % the individual components
 hsepln = hall(end-2+1:end);     % the separator lines
 delete(hsepln(1));
 
+hlw = findall(gca,'tag','Lower Whisker');
+huw = findall(gca,'tag','Upper Whisker');
+set(hlw,'linestyle','-');
+set(huw,'linestyle','-');
+hout = findall(gca,'tag','Outliers');
+% set(hout,'marker','.');
+delete(hout);
 end

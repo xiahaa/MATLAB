@@ -7,11 +7,12 @@ function main_sim_cmp_ut_mit
     addpath('../quaternion');
     addpath('./solver/atadq');
 
-    id = 5;
+    id = 1;
     prefix = 'C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/';
     name = {'circle100','line100','rotation100','shape8100','smallr100'};
     suffix = '.mat';
-    stds = [0 0.1 0.25 0.5 0.75 1];
+%     stds = [0 0.1 0.25 0.5 0.75 1];
+    stds = [0.05 0.15 0.25 0.35 0.45 0.55];
     
     truth = [0.9511    0.1409    0.1761    0.2113   -0.1109    0.2818    0.1074    0.2219];
     dq = truth(1:4)';
@@ -22,28 +23,40 @@ function main_sim_cmp_ut_mit
     Tt = [R t;[0 0 0 1]];
     
     
-    convSolver = {@sol_tsai_lenz, ...                       %% TSAI
-        @sol_park_martin, ...                               %% LIE
-        @sol_horaud, ...                                    %% QSEP
-        @sol_andreff, ...                                   %% KR
-        @sol_dual_quaternion, ...                           %% DQ
-        @sol_chou, ...                                      %% IDQ
-        @sol_adjoint_transformation_algo, ...               %% ATA
-        @sol_dphec, ...                                     %% GLOBAL_POLY
-        @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
-        @sol_cvx2, ...                                      %% SCF
-        @sol_manifold_opt_SE3, ...                          %% SE3OPT
-        @sol_cvx_sdp, ...                                   %% SDP
-        @sol_horaud_nlopt, ...                              %% NLOPT
-        @sol_cvx1, ...                                      %% SOCP
-        };
+%     convSolver = {@sol_tsai_lenz, ...                       %% TSAI
+%         @sol_park_martin, ...                               %% LIE
+%         @sol_horaud, ...                                    %% QSEP
+%         @sol_andreff, ...                                   %% KR
+%         @sol_dual_quaternion, ...                           %% DQ
+%         @sol_chou, ...                                      %% IDQ
+%         @sol_adjoint_transformation_algo, ...               %% ATA
+%         @sol_dphec, ...                                     %% GLOBAL_POLY
+%         @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
+%         @sol_cvx2, ...                                      %% SCF
+%         @sol_manifold_opt_SE3, ...                          %% SE3OPT
+%         @sol_cvx_sdp, ...                                   %% SDP
+%         @sol_horaud_nlopt, ...                              %% NLOPT
+%         @sol_cvx1, ...                                      %% SOCP
+%         };
     %     @HandEye_DQ, ...                                    %% DQ
     %     @sol_improved_dual_quaternion, ...                   %% IDQ
          
-    solver_name = {'TS','LIE','QS','KR','DQ','CHOU','ATA','GPOLY','DUAL','SCF','SE3','SDR','QNL','SOCP'};
+%     solver_name = {'TS','LIE','QS','KR','DQ','CHOU','ATA','GPOLY','DUAL','SCF','SE3','SDR','QNL','SOCP'};
+    
+    convSolver = {
+        @sol_andreff, ...                                   %% KR
+        @sol_adjoint_transformation_algo, ...               %% ATA
+        @sol_dphec, ...                                     %% GLOBAL_POLY
+        @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
+        @sol_cvx_sdp, ...                                   %% SDP
+        @sol_cvx1, ...                                      %% SOCP
+        };
+
+    solver_name = {'KR','ATA','GPOLY','DUAL','SDR','SOCP'};
+    
     usedsolver = convSolver;
     
-    for solver_id = 1:14
+    for solver_id = 1:size(solver_name,2)
         times = zeros(numel(stds),100);
         error_r = zeros(numel(stds),100);
         error_t = zeros(numel(stds),100);

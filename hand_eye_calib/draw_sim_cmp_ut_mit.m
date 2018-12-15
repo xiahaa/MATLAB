@@ -8,9 +8,15 @@ function draw_sim_cmp_ut_mit
     addpath('./solver/atadq');
     addpath('../beautiful_plot/aboxplot');
 
-    id = 4;
+    id = 1;
     name = {'circle100','line100','rotation100','shape8100','smallr100'};
-    stds = [0 0.1 0.25 0.5 0.75 1];    
+%     stds = [0 0.1 0.25 0.5 0.75 1];    
+%     stds = [0 0.1 0.25 0.5 0.75 1];   
+%     stds = [0 0.1 0.25 0.5];   
+    stds = [0.05 0.15 0.25 0.35 0.45 0.55];
+    xlabels = categorical(convertStringsToChars(string(stds)));
+    box_labels = convertStringsToChars(string(stds));
+
 %     truth = [0.9511    0.1409    0.1761    0.2113   -0.1109    0.2818    0.1074    0.2219];
 %     dq = truth(1:4)';
 %     dqd = truth(5:8)';
@@ -38,9 +44,13 @@ function draw_sim_cmp_ut_mit
 %     %     @sol_improved_dual_quaternion, ...                   %% IDQ
          
     solver_name = {'TS','LIE','QS','KR','DQ','CHOU','ATA','GPOLY','DUAL','SCF','SDR','QNL','SOCP','SE3'};
+    solver_name1 = {'QS','KR','DQ','ATA','GPOLY','QNL','SOCP','SE3'};
+    solver_name2 = {'KR','SOCP','ATA','GPOLY','DUAL','SDR'};
+    
+    plot_case = solver_name2;
     
     numstd = size(stds,2);
-    numsolver = size(solver_name,2);
+    numsolver = size(plot_case,2);
     
     res_error_r = cell(numstd,numsolver);%, 100);
     res_error_t = cell(numstd,numsolver);%, 100);
@@ -57,9 +67,9 @@ function draw_sim_cmp_ut_mit
 %     lblcl2 = nominal(holder,{'2'});
     for solver_id = 1:numsolver
         clear res;
-        res = load(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/ut_mit_sim/',name{id},'_',solver_name{solver_id},'.mat'),'res');
-        
-        runtimes(solver_id,:) = mean(res.res.times,2)';
+        res = load(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/ut_mit_sim/',name{id},'_',plot_case{solver_id},'.mat'),'res');
+        meantime = mean(res.res.times,2)';
+        runtimes(solver_id,:) = meantime(1:numstd);
         for j = 1:numstd
 %             ids = (solver_id-1)*(numstd*100) + (j-1)*100;
 %             res_error_r(ids+1:ids+100) = res.res.error_r(j,:);
@@ -73,49 +83,52 @@ function draw_sim_cmp_ut_mit
         end
     end
     
-    xlabels = categorical({'0','0.1','0.25','0.5','0.75','1'});
     fig = figure();
-    cmap = jet(numsolver);
+    dtugrey = [0.94 0.94 0.94];
+%     set(gca,'Color',[dtugrey 0.2]);
+    cmap = lines(numsolver);
+    cmapalpha = [cmap 0.8*ones(size(cmap,1),1)];
     for solver_id = 1:numsolver 
-        plot(xlabels, runtimes(solver_id,:),'-o', 'Color', cmap(solver_id,:),'LineWidth', 2.5);hold on;
+        plot(xlabels, runtimes(solver_id,:),'-o', 'Color', cmapalpha(solver_id,:),'LineWidth', 2.5);hold on;
     end
-    cmapalpha = [cmap 0.2*ones(size(cmap,1),1)];
     fontsize = 12;
-    xlabel('$std\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
-    ylabel('$(s)$','Interpreter','latex','FontSize',fontsize);
-    legend(solver_name,'Interpreter','latex','FontSize',fontsize,'Location', 'northeast');
+    xlabel('$Standard\ deviation\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
+    ylabel('$Time: (s)$','Interpreter','latex','FontSize',fontsize);
+    legend(plot_case,'Interpreter','latex','FontSize',fontsize,'Location', 'northwest');
     title('Runtime\ Comparison','Interpreter','latex','FontSize',fontsize);
+    grid on;
+%     set(gca,'Color',[dtugrey 0.2]);
     
     %% R
+    cmapalpha = [cmap 0.3*ones(size(cmap,1),1)];
     fig = figure();
 %      lbl = [lblcl1,lblcl2];
 %      hierarchicalBoxplotSimple(res_error_r,lbl);
-    box_labels = {'0','0.1','0.25','0.5','0.75','1'};
-    multiple_boxplot(res_error_r, box_labels, solver_name, cmapalpha');
+    multiple_boxplot(res_error_r, box_labels, plot_case, cmapalpha');
     fontsize = 12;
-    xlabel('$std\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
+    xlabel('$Standard\ deviation\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
     ylabel('$E_{\mathbf{R}}$','Interpreter','latex','FontSize',fontsize);
 %     legend(solver_name,'Interpreter','latex','FontSize',8,'Location', 'northeast');
     title('Rotation Error\ Comparison','Interpreter','latex','FontSize',fontsize);
-    ylim([0,5]);
+    ylim([0,2]);
     %% t
     figure();
-    multiple_boxplot(res_error_t, box_labels, solver_name, cmapalpha');
+    multiple_boxplot(res_error_t, box_labels, plot_case, cmapalpha');
     fontsize = 12;
-    xlabel('$std\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
+    xlabel('$Standard\ deviation\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
     ylabel('$E_{\mathbf{t}}$','Interpreter','latex','FontSize',fontsize);
 %     legend(solver_name,'Interpreter','latex','FontSize',8,'Location', 'northeast');
     title('Translation Error\ Comparison','Interpreter','latex','FontSize',fontsize);
-    ylim([0,15]);
+    ylim([0,3]);
     %% T
     figure();
-    multiple_boxplot(res_error_T, box_labels, solver_name, cmapalpha');
+    multiple_boxplot(res_error_T, box_labels, plot_case, cmapalpha');
     fontsize = 12;
-    xlabel('$std\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
+    xlabel('$Standard\ deviation\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
     ylabel('$E_{\mathbf{T}}$','Interpreter','latex','FontSize',fontsize);
 %     legend(solver_name,'Interpreter','latex','FontSize',8,'Location', 'northeast');
     title('Total Error\ Comparison','Interpreter','latex','FontSize',fontsize);
-    ylim([0,15]);
+    ylim([0,3]);
     
 %     fig = figure();
 %     h = boxplot2(res_error_T, x);

@@ -12,7 +12,7 @@ function varargout = data_gen_ut()
     %% transformation matrix from s1 to s2
     sensor2_expressedIn_sensor1 = GetHomoTransform(trueCalib_euler);
     
-    motion = 5;
+    motion = 1;
     N = 51; % Num poses
     N_interp = 300;% interpolation for surface 
     if motion == 1
@@ -213,7 +213,7 @@ function varargout = data_gen_ut()
 
     % generate random covariances
     %RandStream.setDefaultStream(RandStream('mt19937ar','seed',0)); % set the random seed so we always get the same random values
-    std = 0.0;%0.25;%0.5 0.75 1
+    std = 0.55;%0.25;%0.5 0.75 1
     tstd = std*ones(1,3);
     tstr = std*ones(1,3);
     
