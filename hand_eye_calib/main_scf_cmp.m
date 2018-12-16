@@ -1,3 +1,4 @@
+% main entry for comparing 4 SCF methods.
 clc
 clear all
 close all

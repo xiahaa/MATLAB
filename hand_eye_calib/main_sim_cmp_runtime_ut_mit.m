@@ -1,4 +1,6 @@
 function main_sim_cmp_runtime_ut_mit
+% main entry for comparing the runtimes for a series of hand eye
+% calibration methods by varing the number of available motion samples.
     clc;clear all;close all;
     addpath('../3rdparty/mit3dslam');
     addpath('../beautiful_plot');

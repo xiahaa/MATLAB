@@ -1,4 +1,5 @@
 function main_sim_cmp_ut_mit
+% main entry for comparing hand eye calibration methods on MIT dataset.
     clc;clear all;close all;
     addpath('../3rdparty/mit3dslam');
     addpath('../beautiful_plot');

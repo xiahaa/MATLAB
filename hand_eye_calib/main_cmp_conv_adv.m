@@ -1,3 +1,5 @@
+% load the same data and draw plots for comparing traditional and advanced
+% hand eye calibration methods.
 clc;
 close all;
 clear all;

@@ -1,3 +1,5 @@
+% run as series of hand eye calibration methods on the RGB dataset from MIT
+% and save the results.
 clc;
 close all;
 clear all;
@@ -58,20 +60,21 @@ for i = 1:num
     T2(i,1:4,1:4) = [R t;[0 0 0 1]];
 end
 
+%     @sol_horaud, ...                                    %% QSEP
+%     @sol_horaud_nlopt, ...                     %% NLOPT
+%     @sol_andreff, ...                                   %% KR
 
 
-convSolver = {@sol_tsai_lenz, ...                       %% TSAI
+convSolver = { ...                       %% TSAI
     @sol_park_martin, ...                               %% LIE
-    @sol_horaud, ...                                    %% QSEP
-    @sol_andreff, ...                                   %% KR
     @sol_dual_quaternion, ...                           %% DQ
     @sol_chou, ...                                      %% IDQ
-    @sol_horaud_nlopt, ...                     %% NLOPT
-    @sol_cvx1, ...                             %% SOCP
+    @sol_adjoint_transformation_algo, ...
     @sol_dphec, ...                            %% GLOBAL_POLY
     @sol_dual_sdp_cvx, ...                     %% DUAL_SDP
     @sol_cvx2, ...                             %% SCF
     @sol_manifold_opt_SE3, ...                    %% SE3OPT
+    @sol_cvx_sdp, ...
     };
  
  convSolver1 = {@sol_tsai_lenz, ...                       %% TSAI
@@ -89,9 +92,18 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
              @sol_dphec, ...                            %% GLOBAL_POLY
              @sol_dual_sdp_cvx, ...                     %% DUAL_SDP
              @sol_cvx2, ...                             %% SCF
-             @sol_manifold_opt_SE3};                    %% SE3OPT
+             @sol_cvx_sdp};                    %% SE3OPT
 
- usedsolver = advSolver;
+     convSolver1 = {
+        @sol_andreff, ...                                   %% KR
+        @sol_cvx1, ...                                      %% SOCP
+        @sol_adjoint_transformation_algo, ...               %% ATA
+        @sol_dphec, ...                                     %% GLOBAL_POLY
+        @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
+        @sol_cvx_sdp, ...                                   %% SDP
+        };
+         
+ usedsolver = convSolver1;
      
 
 for kk = 1:size(usedsolver, 2)
@@ -106,6 +118,7 @@ for kk = 1:size(usedsolver, 2)
         flag(kk) = 0;
     end
 end
+ts = [3.797894 tsol];
 %% compared with truth
 err_with_truth = zeros(size(usedsolver, 2)+1,3);
 [err1,err2,err3] = errors2(Tmit, Tt);
@@ -115,26 +128,42 @@ for kk = 1:size(usedsolver, 2)
     [err1,err2,err3] = errors2(X, Tt);
     err_with_truth(kk+1,:) = [err1,err2,err3];
 end
-
+% 'KR',
 % convSols = {'MIT', 'TSAI', 'LIE', 'QSEP', 'KR', 'DQ', 'CHOU', 'IDQ'};
-convSols = {'MIT', 'ATA', 'NLOPT', 'SOCP', 'GPOLY', 'DUAL', 'SCF', 'SE3OPT'};
+% convSols = {'MIT', 'LIE',  'DQ', 'CHOU', 'ATA', 'GPOLY', 'DUAL', 'SCF', 'SE3OPT', 'SDP'};
+convSols = {'BL','KR','SOCP','ATA','GPOLY','DUAL','SDR'};
 
 red_color = [153 0 0]/255;
-font_size = 12;
+red_color = [red_color 0.5];
+font_size = 15;
+
+fig = figure();
+set(fig,'defaulttextinterpreter','latex');
+box_labels = categorical(convSols);
+box_labels = reordercats(box_labels,convSols);
+subplot(3,1,1);plot(box_labels, err_with_truth(:,1)', '-o', 'LineWidth', 2.5, 'Color', red_color);grid on;ylabel('$E_{\mathbf{R}}$','Interpreter','latex');
+title('$RGB-D\ Camera\ Dataset$','FontSize', font_size,'Interpreter','latex');set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
+
+subplot(3,1,2);plot(box_labels, err_with_truth(:,2)', '-o', 'LineWidth', 2.5, 'Color', red_color);grid on;ylabel('$E_{\mathbf{t}}$','Interpreter','latex');
+set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
+
+subplot(3,1,3);plot(box_labels, ts, '-d', 'LineWidth', 2.5, 'Color', red_color);grid on;ylabel('$Time:\ (s)$','Interpreter','latex');
+set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
+% print(['./docs/figures/eth_asl/advResult_', 'MIT_Dataset'],'-dpdf','-bestfit','-r300');
 
 fig = figure();
 set(fig,'defaulttextinterpreter','latex');
 box_labels = categorical(convSols);
 box_labels = reordercats(box_labels,convSols);
 subplot(3,1,1);plot(box_labels, err_with_truth(:,1)', '-o', 'LineWidth', 3, 'Color', red_color);grid on;ylabel('$E_{\mathbf{R}}$','Interpreter','latex');
-title(['MIT_Dataset']);set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
+title('$RGB-D\ Camera\ Dataset$','FontSize', font_size,'Interpreter','latex');set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
 
-subplot(3,1,2);plot(box_labels, err_with_truth(:,2)', '-o', 'LineWidth', 3, 'Color', red_color);grid on;ylabel('$E_{\mathbf{R}}$','Interpreter','latex');
+subplot(3,1,2);plot(box_labels, err_with_truth(:,2)', '-o', 'LineWidth', 3, 'Color', red_color);grid on;ylabel('$E_{\mathbf{t}}$','Interpreter','latex');
 set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
 
-subplot(3,1,3);plot(box_labels, err_with_truth(:,3)', '-o', 'LineWidth', 3, 'Color', red_color);grid on;ylabel('$E_{\mathbf{R}}$','Interpreter','latex');
+subplot(3,1,3);plot(box_labels, err_with_truth(:,3)', '-o', 'LineWidth', 3, 'Color', red_color);grid on;ylabel('$E_{\mathbf{T}}$','Interpreter','latex');
 set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
-print(['./docs/figures/eth_asl/advResult_', 'MIT_Dataset'],'-dpdf','-bestfit','-r300');
+% print(['./docs/figures/eth_asl/advResult_', 'MIT_Dataset'],'-dpdf','-bestfit','-r300');
 
 %% compute RMSE
 errcs1 = zeros(size(usedsolver, 2),num);
@@ -154,7 +183,7 @@ for kk = 1:size(usedsolver, 2)
     errcs2(kk,:) = errs(:,2)';
     errcs3(kk,:) = errs(:,3)';
 end
-convSols = {'TSAI', 'LIE', 'QSEP', 'KR', 'DQ', 'chou', 'nlopt','socp','gpoly','dual','scf','se3'};
+convSols = {'KR','SOCP','ATA','GPOLY','DUAL','SDR'};
 
 RMSE_R = mean(errcs1,2);
 RMSE_t = mean(errcs2,2);

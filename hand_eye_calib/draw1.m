@@ -1,30 +1,42 @@
+% draw plots for comparing traditional hand eye calibration methods.
 clc;
 close all;
 clear all;
 
 addpath('../beautiful_plot/');
 
-naaray = [10 20 30 40 50 60 70 80 90 100];
+% naaray = [10 20 30 40 50 60 70 80 90 100];
+% naaray = [10 20 40 60 80 100];
+naaray = [10 20 30 40];
+
 
 nstd = [0 0.01 0.05 0.1 0.2 0.5 0.8 1];  %Gaussian Noise standard deviation Range
 nstd1 = [0 0.01 0.05 0.1 0.2 0.5 0.8 1];  %Gaussian Noise standard deviation Range
+% nstd2 = [0 0.05 0.1 0.2 0.5 1];
+nstd2 = [0.1 0.2 0.3 0.4 0.5 1];
 
-prefix = 'data/convCmp';
+usedstd = nstd2;
+
+prefix = 'data/conv/convCmp';
 
 convSols = {'TSAI', 'LIE', 'QSEP', 'KR', 'DQ', 'IDQ'};
+nnn = {'5', '10', '20', '40'};
+
+% convSols = {'DQATA', 'DQME'};
+
 nsols = size(convSols, 2);
-N = 100; % Times of simulation
+N = 50; % Times of simulation
 
 ts = zeros(numel(naaray),nsols);
 
 rotErrors = cell(numel(nstd1), numel(naaray));
 tranErrors = cell(numel(nstd1), numel(naaray));
 
-if 0
-    for j = 1:numel(nstd1)
+if 1
+    for j = 1:numel(usedstd)
         for i =  1:numel(naaray)
             numPair = naaray(i);
-            noisylv = num2str(nstd(j));
+            noisylv = num2str(usedstd(j));
             noisylv = replace(noisylv,'.','_');
             filename = strcat(prefix,'_',num2str(numPair), '_', noisylv, '.mat');
             dat = load(filename);
@@ -55,178 +67,216 @@ else
 end
 
 cc = jet(6);
-mm = ['-o','-*','-s','-d','-x','-+','-^'];
+mm = {'-o','-*','-s','-d','-x','-+','-^'};
 
 font_size = 16;
-bar_labels = categorical({'$10$', '$20$', '$30$', '$40$', '$50$', '$60$', '$70$', '$80$', '$90$', '$100$'});
-bar_labels = reordercats(bar_labels,{'$10$', '$20$', '$30$', '$40$', '$50$', '$60$', '$70$', '$80$', '$90$', '$100$'});
-line_width = 2.5;
-subplot_margin = 0.12;
-subplot_spacing = 0.16;
+bar_labels = categorical(nnn);
+bar_labels = reordercats(bar_labels,nnn);
 fig = figure();
 set(fig,'defaulttextinterpreter','latex');
 
-title('Runtime');
 for i = 1:nsols
-    h(i)=plot(bar_labels, ts(:,i)', 'LineWidth',2,...
+    h(i)=plot(bar_labels, ts(:,i)', mm{i}, 'LineWidth',2,...
     'MarkerEdgeColor',cc(i,:),...
     'MarkerFaceColor',cc(i,:),...
-    'MarkerSize',10);hold on;
+    'MarkerSize',5);hold on;
 end
+title('Runtime');
 grid on;
 xlabel('Number of Measurements','FontSize', font_size, 'Interpreter', 'latex');
 ylabel('Time: (s)','FontSize', font_size, 'Interpreter', 'latex');
-legend('TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ','Interpreter','latex');
+% legend('DQATA', 'DQME');
+legend('TSAI', 'LIE', 'QSEP', 'KR', 'DQ', 'IDQ','Interpreter','latex');
+
 set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
 %% bar plot of error
-
-bar_labels = categorical({'$10$', '$20$', '$30$', '$40$', '$50$', '$60$', '$70$', '$80$', '$90$', '$100$'});
-bar_labels = reordercats(bar_labels,{'$10$', '$20$', '$30$', '$40$', '$50$', '$60$', '$70$', '$80$', '$90$', '$100$'});
 font_size = 16;
 line_width = 2.5;
 subplot_margin = 0.12;
-subplot_spacing = 0.05;
+subplot_spacing = 0.1;
 fig = figure();
 set(fig,'defaulttextinterpreter','latex');
-subaxis(8,1,1, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{1,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,1, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{1,end};
+box_labels = categorical(convSols);
+box_labels = reordercats(box_labels,convSols);
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.0)')
+title('$\sigma$: (0.0), N = 100')
 ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
 
-subaxis(8,1,2, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{2,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,2, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{2,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.01)')
+title('$\sigma$: (0.01), N = 100')
 ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
 
-subaxis(8,1,3, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{3,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,3, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{3,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.05)')
+title('$\sigma$: (0.1), N = 100')
 ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
 
-subaxis(8,1,4, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{4,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,4, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{4,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.1)')
+title('$\sigma$: (0.2), N = 100')
 ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
 
-subaxis(8,1,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{5,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{5,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.2)')
+title('$\sigma$: (0.5), N = 100')
 ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
 
-subaxis(8,1,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{6,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{6,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.5)')
+title('$\sigma$: (1), N = 100')
 ylabel('$E_{R_X}$','Interpreter','latex');
-
-subaxis(8,1,7, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{7,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.8)')
-ylabel('$E_{R_X}$','Interpreter','latex');
-
-subaxis(8,1,8, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = rotErrors{8,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (1)')
-ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
 
 % legend('TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ','Interpreter','latex');
+fig = figure();
+set(fig,'defaulttextinterpreter','latex');
+subaxis(3,2,1, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{3,1};
+boxplot(boxdata,box_labels);
+title('$\sigma$: (0.1), N = 10')
+ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
 
+subaxis(3,2,2, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{3,2};
+boxplot(boxdata,box_labels);
+title('$\sigma$: (0.1), N = 20')
+ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
+
+subaxis(3,2,3, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{3,3};
+boxplot(boxdata,box_labels);
+title('$\sigma$: (0.1), N = 40')
+ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
+
+subaxis(3,2,4, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = rotErrors{3,4};
+boxplot(boxdata,box_labels);
+title('$\sigma$: (0.1), N = 60')
+ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
+
+if size(naaray,2) > 4
+    subaxis(3,2,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+    boxdata = rotErrors{3,5};
+    boxplot(boxdata,box_labels);
+    title('$\sigma$: (0.1), N = 80')
+    ylabel('$E_{R_X}$','Interpreter','latex');
+    grid on;
+
+    subaxis(3,2,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+    boxdata = rotErrors{3,6};
+    boxplot(boxdata,box_labels);
+    title('$\sigma$: (0.1), N = 100')
+    ylabel('$E_{R_X}$','Interpreter','latex');
+    grid on;
+end
 
 %% t error
-bar_labels = categorical({'$10$', '$20$', '$30$', '$40$', '$50$', '$60$', '$70$', '$80$', '$90$', '$100$'});
-bar_labels = reordercats(bar_labels,{'$10$', '$20$', '$30$', '$40$', '$50$', '$60$', '$70$', '$80$', '$90$', '$100$'});
 font_size = 16;
 line_width = 2.5;
 subplot_margin = 0.12;
-subplot_spacing = 0.05;
+subplot_spacing = 0.1;
 fig = figure();
 set(fig,'defaulttextinterpreter','latex');
-subaxis(8,1,1, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{1,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,1, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{1,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.0)')
+title('$\sigma$: (0.0), N = 100')
 ylabel('$E_{t_X}$: (m)','Interpreter','latex');
+grid on;
 
-subaxis(8,1,2, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{2,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,2, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{2,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.01)')
+title('$\sigma$: (0.05), N = 100')
 ylabel('$E_{t_X}$: (m)','Interpreter','latex');
+grid on;
 
-subaxis(8,1,3, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{3,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,3, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{3,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.05)')
+title('$\sigma$: (0.1), N = 100')
 ylabel('$E_{t_X}$: (m)','Interpreter','latex');
+grid on;
 
-subaxis(8,1,4, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{4,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,4, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{4,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.1)')
+title('$\sigma$: (0.2), N = 100')
 ylabel('$E_{t_X}$: (m)','Interpreter','latex');
+grid on;
 
-subaxis(8,1,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{5,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{5,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.2)')
+title('$\sigma$: (0.5), N = 100')
 ylabel('$E_{t_X}$: (m)','Interpreter','latex');
+grid on;
 
-
-subaxis(8,1,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{6,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{6,end};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.5)')
+title('$\sigma$: (1), N = 100')
 ylabel('$E_{t_X}$: (m)','Interpreter','latex');
+grid on;
 
-
-subaxis(8,1,7, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{7,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+fig = figure();
+set(fig,'defaulttextinterpreter','latex');
+subaxis(3,2,1, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{3,1};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (0.8)')
-ylabel('$E_{t_X}$: (m)','Interpreter','latex');
+title('$\sigma$: (0.1), N = 10')
+ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
 
-
-subaxis(8,1,8, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
-boxdata = tranErrors{8,10};
-box_labels = categorical({'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
-box_labels = reordercats(box_labels,{'TSAI', 'LIE', 'QSEP', 'KRSEP', 'DQ', 'IDQ'});
+subaxis(3,2,2, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{3,2};
 boxplot(boxdata,box_labels);
-title('Gaussian Noise standard deviation: (1)')
-ylabel('$E_{t_X}$: (m)','Interpreter','latex');
+title('$\sigma$: (0.1), N = 20')
+ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
+
+subaxis(3,2,3, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{3,3};
+boxplot(boxdata,box_labels);
+title('$\sigma$: (0.1), N = 40')
+ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
+
+subaxis(3,2,4, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+boxdata = tranErrors{3,4};
+boxplot(boxdata,box_labels);
+title('$\sigma$: (0.1), N = 60')
+ylabel('$E_{R_X}$','Interpreter','latex');
+grid on;
+if size(naaray,2) > 4
+    subaxis(3,2,5, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+    boxdata = tranErrors{3,5};
+    boxplot(boxdata,box_labels);
+    title('$\sigma$: (0.1), N = 80')
+    ylabel('$E_{R_X}$','Interpreter','latex');
+    grid on;
+
+    subaxis(3,2,6, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
+    boxdata = tranErrors{3,6};
+    boxplot(boxdata,box_labels);
+    title('$\sigma$: (0.1), N = 100')
+    ylabel('$E_{R_X}$','Interpreter','latex');
+    grid on;
+end

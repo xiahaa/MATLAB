@@ -1,3 +1,5 @@
+% run a series of hand eye calibration methods on the ETH-ASL datasets and
+% save the result.
 clc;
 close all;
 clear all;
@@ -87,9 +89,21 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
              @sol_dphec, ...                            %% GLOBAL_POLY
              @sol_dual_sdp_cvx, ...                     %% DUAL_SDP
              @sol_cvx2, ...                             %% SCF
-             @sol_manifold_opt_SE3};                    %% SE3OPT
+             @sol_cvx_sdp};                    %% SE3OPT
 
- usedsolver = advSolver;
+    convSolver1 = {
+        @sol_andreff, ...                                   %% KR
+        @sol_cvx1, ...                                      %% SOCP
+        @sol_adjoint_transformation_algo, ...               %% ATA
+        @sol_dphec, ...                                     %% GLOBAL_POLY
+        @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
+        @sol_cvx_sdp, ...                                   %% SDP
+        };
+
+    solver_name = {'KR','SOCP','ATA','GPOLY','DUAL','SDR'};
+         
+         
+ usedsolver = convSolver1;
 
 for kk = 1:size(usedsolver, 2)
     handle_sol = usedsolver{kk};
@@ -103,7 +117,6 @@ for kk = 1:size(usedsolver, 2)
         flag(kk) = 0;
     end
 end
-
 
 %% compute RMSE
 errcs1 = zeros(size(usedsolver, 2),nsam);
@@ -124,7 +137,7 @@ for kk = 1:size(usedsolver, 2)
     errcs3(kk,:) = errs(:,3)';
 end
 % convSols = {'TSAI', 'LIE', 'QSEP', 'KR', 'DQ', 'CHOU', 'IDQ'};
-convSols = {'ATA', 'NLOPT', 'SOCP', 'GPOLY', 'DUAL', 'SCF', 'SE3OPT'};
+convSols = solver_name;
 
 red_color = [153 0 0]/255;
 font_size = 12;
@@ -142,13 +155,19 @@ subplot(3,1,2);plot(box_labels, RMSE_t', '-o', 'LineWidth', 3, 'Color', red_colo
 set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
 subplot(3,1,3);plot(box_labels, RMSE_T', '-o', 'LineWidth', 3, 'Color', red_color);grid on;ylabel('$E_{\mathbf{T}}$','Interpreter','latex');
 set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
-print(['./docs/figures/eth_asl/adv_Result_', 'Prime_', num2str(id)],'-dpdf','-bestfit','-r300');
+% print(['./docs/figures/eth_asl/adv_Result_', 'Prime_', num2str(id)],'-dpdf','-bestfit','-r300');
+
+save(strcat('./data/sdp/','prime_', num2str(id),'_res','.mat'),'errcs1','errcs2','errcs3','convSols','tsol');
 
 %% bar plot of error
-font_size = 16;
-line_width = 2.5;
-subplot_margin = 0.12;
-subplot_spacing = 0.1;
+fontsize = 12;
+xlabel('$Standard\ deviation\ of\ added\ noise$','Interpreter','latex','FontSize',fontsize);
+ylabel('$E_{\mathbf{R}}$','Interpreter','latex','FontSize',fontsize);
+%     legend(solver_name,'Interpreter','latex','FontSize',8,'Location', 'northeast');
+title('Rotation Error\ Comparison','Interpreter','latex','FontSize',fontsize);
+ylim([0,2]);
+
+font_size = 12;
 %% compare different noise level
 fig = figure();
 set(fig,'defaulttextinterpreter','latex');

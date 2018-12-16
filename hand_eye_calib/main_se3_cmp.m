@@ -1,3 +1,5 @@
+% main entry for comparing 4 initialization methods for SE3 opt based hand
+% eye calibration.
 clc
 clear all
 close all
