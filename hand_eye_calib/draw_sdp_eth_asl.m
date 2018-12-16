@@ -1,3 +1,10 @@
+%% this file draw the results sdp solution on ETH asl dataset.
+% box plot compares 6 hand eye calibration methods on 4 datasets:
+% 1. primesense_1; 
+% 2. primesense_2;
+% 3. robotarm;
+% 4. robotarm_sim
+
 clc;clear all;close all;
 addpath('../3rdparty/mit3dslam');
 addpath('../beautiful_plot');
@@ -14,15 +21,7 @@ for id = 1:4
     convSols = dat(id).convSols;
     
 end
-% res_error_r = cell(1,numCls);
-% res_error_t = cell(1,numCls);
-% res_error_T = cell(1,numCls);
-% 
-% for i = 1:numCls
-%     res_error_r{1,i} = errcs1(i,:);
-%     res_error_t{1,i} = errcs2(i,:);
-%     res_error_T{1,i} = errcs3(i,:);
-% end
+
 cmap = lines(numCls);
 cmapalpha = [cmap 0.2*ones(size(cmap,1),1)];
     

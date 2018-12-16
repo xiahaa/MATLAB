@@ -1,3 +1,10 @@
+%% this file draw the results 4 different initialization solutions for SE3 manifold optimization:
+% 1. no initial guess;
+% 2. use kronecker;
+% 3. use park_martin; 
+% 4. use dual quaternion;
+% alomost no varies on the final result, but use initizalition may improve
+% the convergence speed.
 clc;
 close all;
 clear all;

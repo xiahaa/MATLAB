@@ -1,4 +1,6 @@
 function draw_sim_cmp_ut_mit
+% this functionality will draw results on simulated data by using the
+% generator given in the MIT folder.
     clc;clear all;close all;
     addpath('../3rdparty/mit3dslam');
     addpath('../beautiful_plot');
