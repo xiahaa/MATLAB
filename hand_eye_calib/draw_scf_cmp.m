@@ -1,3 +1,10 @@
+%% this file draw the results 4 different solutions:
+% 1. safe convex feasibility set on dual quaternion;
+% 2. sequencial quadratic programming on dual quaternion;
+% 3. safe convex feasibility set on kronecker product;
+% 4. sequencial quadratic programming on kronecker product;
+% generally speaking, they all perform very well, and their performance
+% depends on how the noise is added and motion.
 clc;
 close all;
 clear all;
