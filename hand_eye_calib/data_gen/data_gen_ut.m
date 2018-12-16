@@ -4,17 +4,17 @@ function varargout = data_gen_ut()
 
     close all; clear all; clc;
     rand('seed', 1);
-    
+
     %% from rot vec to quar, then to euler angles
     [r,p,w]=bot_quat_to_roll_pitch_yaw(bot_angle_axis_to_quat(pi/5,[.4 .5 .6]));
     trueCalib_euler = [0.6 0.3 0.4 r p w ];
     calib_dq = EulerStateToDualQuat(trueCalib_euler);
     %% transformation matrix from s1 to s2
     sensor2_expressedIn_sensor1 = GetHomoTransform(trueCalib_euler);
-    
+
     motion = 1;
     N = 51; % Num poses
-    N_interp = 300;% interpolation for surface 
+    N_interp = 300;% interpolation for surface
     if motion == 1
         N_modes = ceil(N/10);% perturbate modes
         rad1 = 10;%% radius
@@ -49,7 +49,7 @@ function varargout = data_gen_ut()
         len = 20; theta = deg2rad(25);
         [x, y, z, dz_dx, dz_dy, XX, YY, Z] = random_smooth_traj1(N, len, N_interp, theta);
     end
-    
+
     if motion == 1 || motion == 2 || motion == 4
         xaxis = [diff(x); diff(y); diff(z)];%% always forward
         yaxis = zeros(size(xaxis));
@@ -58,7 +58,7 @@ function varargout = data_gen_ut()
         for i = 1:length(x)-1
             normal(:,i) = cross( [1 0 dz_dx(i)], [0 1 dz_dy(i) ] );
             normal(:,i) = normal(:,i) / norm(normal(:,i));
-            xaxis(:,i) = xaxis(:,i) /  norm(xaxis(:,i));        
+            xaxis(:,i) = xaxis(:,i) /  norm(xaxis(:,i));
             yaxis(:,i) = cross ( normal(:,i), xaxis(:,i) );
             yaxis(:,i) = yaxis(:,i) /  norm(yaxis(:,i));
             zaxis(:,i) = cross ( xaxis(:,i), yaxis(:,i) );
@@ -92,15 +92,15 @@ function varargout = data_gen_ut()
             normal(:,i) = cross( [1 0 dz_dx(i)], [0 1 dz_dy(i) ] );
             normal(:,i) = normal(:,i) / norm(normal(:,i));
             normal(:,i) = normal(:,i) + rand(3,1).*scale;normal(:,i) = normal(:,i) /  norm(normal(:,i));
-            
+
             xaxis(:,i) = xaxis(:,i) /  norm(xaxis(:,i));
             xaxis(:,i) = xaxis(:,i) + rand(3,1).*scale;xaxis(:,i) = xaxis(:,i) /  norm(xaxis(:,i));
-            
+
             yaxis(:,i) = cross ( normal(:,i), xaxis(:,i) );
             yaxis(:,i) = yaxis(:,i) /  norm(yaxis(:,i));
             zaxis(:,i) = cross ( xaxis(:,i), yaxis(:,i) );
             zaxis(:,i) = zaxis(:,i) /  norm(zaxis(:,i));
-            
+
         end
     end
 
@@ -123,7 +123,7 @@ function varargout = data_gen_ut()
         sensor2_expressedIn_world(i,:) = GetState(T * sensor2_expressedIn_sensor1);
     end
     sensor2_expressedIn_world(end,:) = sensor2_expressedIn_world(1,:);
-    
+
     x2 = zeros(size(x));
     y2 = zeros(size(y));
     z2 = zeros(size(z));
@@ -156,19 +156,19 @@ function varargout = data_gen_ut()
     grid on;
     title('Simulation Data in 3D','Interpreter', 'latex','FontSize', font_size);
 %     print(['./docs/figures/mit_ut_data_gen/', 'circle_terrain'],'-dpdf','-bestfit','-r300');
-    
+
     sensor1_expressedIn_prevSensor1 = MakeRelState(sensor1_expressedIn_world);
     sensor2_expressedIn_prevSensor2 = TransformDiffHomo( sensor2_expressedIn_sensor1, sensor1_expressedIn_prevSensor1 );
-    
+
     sensor2Initial_expressedIn_world = GetState(GetHomoTransform(sensor1_expressedIn_world(1,:)) * sensor2_expressedIn_sensor1);
     [~,sensor1check_expressedIn_world] = MakeAbsStates(sensor1_expressedIn_world(1,:), [], sensor1_expressedIn_prevSensor1, []);
     [~,sensor2check_expressedIn_world] = MakeAbsStates(sensor2Initial_expressedIn_world, [], sensor2_expressedIn_prevSensor2, []);
-    
+
     font_size = 14;
     blue_color = [0 116 186]/255;
     red_color = [153 0 0]/255;
     figure(2);
-    
+
     h4=plot3(sensor1check_expressedIn_world(1:end-1,1),sensor1check_expressedIn_world(1:end-1,2),sensor1check_expressedIn_world(1:end-1,3),'LineWidth', 2.5, 'Color', blue_color);hold on;
     h5=plot3(sensor2check_expressedIn_world(1:end-1,1),sensor2check_expressedIn_world(1:end-1,2),sensor2check_expressedIn_world(1:end-1,3),'LineWidth', 2.5, 'Color', red_color);
     axis equal;
@@ -179,6 +179,11 @@ function varargout = data_gen_ut()
         DrawAxis(T1, 0.2, 'r', 'g', 'b');
         T2 = GetHomoTransform(sensor2check_expressedIn_world(i,:));
         DrawAxis(T2, 0.2, 'r', 'g', 'b');
+        p1 = T1(1:3,4);
+        p2 = T2(1:3,4);
+        p = [p1 p2];
+        disp(["baseline: ",num2str(norm(p1-p2))]);
+        plot3(p(1,:),p(2,:),p(3,:),'k-','LineWidth',2);
     end
     hold off;
     lgnd2 = legend([h4,h5],{'Sensor $a$','Sensor $b$'}, 'Location', 'NorthWest');
@@ -188,7 +193,7 @@ function varargout = data_gen_ut()
     ylabel('$y$ (m)','FontSize', font_size, 'Interpreter', 'latex');
     zlabel('$z$ (m)','FontSize', font_size, 'Interpreter', 'latex');
     set(gca,'TickLabelInterpreter','latex');
-    
+
     if motion == 1
         title('Circle','Interpreter', 'latex','FontSize', font_size);
         print(['./docs/figures/mit_ut_data_gen/', 'circle'],'-dpdf','-bestfit','-r300');
@@ -213,17 +218,17 @@ function varargout = data_gen_ut()
 
     % generate random covariances
     %RandStream.setDefaultStream(RandStream('mt19937ar','seed',0)); % set the random seed so we always get the same random values
-    std = 0.55;%0.25;%0.5 0.75 1
+    std = 0.15;%0.25;%0.5 0.75 1
     tstd = std*ones(1,3);
     tstr = std*ones(1,3);
-    
+
     std_sensor1_per_unit = [tstd tstr];
     std_sensor2_per_unit = [tstd tstr];
-    
+
     cov1 = zeros(size(sensor1_expressedIn_prevSensor1,1), 36);
     cov2 = zeros(size(sensor1_expressedIn_prevSensor1,1), 36);
     for i = 1:size(sensor1_expressedIn_prevSensor1,1)
-        motion1 = abs(sensor1_expressedIn_prevSensor1(i,:));       
+        motion1 = abs(sensor1_expressedIn_prevSensor1(i,:));
         motion2 = abs(sensor2_expressedIn_prevSensor2(i,:));
         S1 = diag((motion1 .* std_sensor1_per_unit).^2+(1e-20)^2);% + randn(6)*(1e-3)^2;
         S2 = diag((motion2 .* std_sensor2_per_unit).^2+(1e-20)^2);% + randn(6)*(1e-3)^2;
@@ -232,7 +237,7 @@ function varargout = data_gen_ut()
         cov1(i,:) = reshape(S1,1,[]);
         cov2(i,:) = reshape(S2,1,[]);
     end
-    
+
     numberOfRuns = 100;
     run.true.sensor1_expressedIn_prevSensor1 = sensor1_expressedIn_prevSensor1;
     run.true.sensor2_expressedIn_prevSensor2 = sensor2_expressedIn_prevSensor2;
@@ -245,7 +250,7 @@ function varargout = data_gen_ut()
         run.observations{i}.sensor1_expressedIn_prevSensor1 = SampleVelocitiesWithCovariance(run.true.sensor1_expressedIn_prevSensor1, run.true.cov1);
         run.observations{i}.sensor2_expressedIn_prevSensor2 = SampleVelocitiesWithCovariance(run.true.sensor2_expressedIn_prevSensor2, run.true.cov2);
     end
-    
+
     if motion == 1
         save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/circle100_',num2str(std),'.mat'], 'run');
     elseif motion == 2
@@ -264,12 +269,12 @@ function observed_pos_expressedIn_prevPos = SampleVelocitiesWithCovariance(true_
     observed_pos_expressedIn_prevPos = zeros(size(true_pos_expressedIn_prevPos));
     for i = 1:size(observed_pos_expressedIn_prevPos,1)
         c = reshape(true_pos_expressedIn_prevPos_cov(i,:),6,6);
-        observed_pos_expressedIn_prevPos(i,:) = mgd(1, 6, true_pos_expressedIn_prevPos(i,:), c);        
+        observed_pos_expressedIn_prevPos(i,:) = mgd(1, 6, true_pos_expressedIn_prevPos(i,:), c);
     end
 end
 
 function [x, y, z, dz_dx, dz_dy, XX, YY, Z] = random_smooth_traj1(N, len, N_interp, theta)
-%random_smooth_traj 
+%random_smooth_traj
 
 xg = linspace(0,len,N);
 yg = zeros(1,N);
@@ -293,10 +298,10 @@ end
 
 function [x, y, z, dz_dx, dz_dy, XX, YY, Z] = random_smooth_traj(N,rad1, rad2, N_interp, N_modes, ...
                                         amp_range, freq_range)
-%random_smooth_traj 
+%random_smooth_traj
 
 theta = linspace(0, 2*pi, N);
-x = cos(theta)*rad1; 
+x = cos(theta)*rad1;
 y = sin(theta)*rad2;
 
 X = linspace(min(x)-1.0, max(x)+1.0, N_interp);
@@ -313,10 +318,10 @@ for idx=1:N_modes
     freq = rand*(freq_range(2) - freq_range(1)) + freq_range(1);
     mix = rand;
     Z = Z + amp*cos((mix*XX + (1-mix)*YY)*freq + phase);
-    
+
     dz_dx = dz_dx - amp*sin((mix*x + (1-mix)*y)*freq + phase)*freq*mix;
     dz_dy = dz_dy - amp*sin((mix*x + (1-mix)*y)*freq + phase)*(1-mix)*freq;
-    
+
     % Do it again for Y
 %     phase = 2*rand*pi -pi;
 %     amp = rand*(amp_range(2) - amp_range(1)) + amp_range(1);
@@ -334,7 +339,7 @@ end
 
 function [x, y, z, dz_dx, dz_dy, XX, YY, Z] = random_smooth_traj2(N,rad1, N_interp, N_modes, ...
                                         amp_range, freq_range)
-%random_smooth_traj 
+%random_smooth_traj
 hN1 = round(N/2);
 hN2 = N - hN1;
 theta1 = linspace(0, pi, hN1);
@@ -347,7 +352,7 @@ hN5 = round(hN2*0.5);
 hN6 = hN2 - hN5;
 
 rho = [linspace(0.1, rad1, hN3) linspace(rad1, 0.1, hN4) linspace(0.1, rad1, hN5) linspace(rad1, 0.1, hN6)];
-x = cos(theta).*rho; 
+x = cos(theta).*rho;
 y = sin(theta).*rho;
 
 X = linspace(min(x)-1.0, max(x)+1.0, N_interp);
@@ -364,10 +369,10 @@ for idx=1:N_modes
     freq = rand*(freq_range(2) - freq_range(1)) + freq_range(1);
     mix = rand;
     Z = Z + amp*cos((mix*XX + (1-mix)*YY)*freq + phase);
-    
+
     dz_dx = dz_dx - amp*sin((mix*x + (1-mix)*y)*freq + phase)*freq*mix;
     dz_dy = dz_dy - amp*sin((mix*x + (1-mix)*y)*freq + phase)*(1-mix)*freq;
-    
+
     % Do it again for Y
 %     phase = 2*rand*pi -pi;
 %     amp = rand*(amp_range(2) - amp_range(1)) + amp_range(1);
