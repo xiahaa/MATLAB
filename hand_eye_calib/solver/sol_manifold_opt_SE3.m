@@ -25,18 +25,37 @@ function dTopt = se3optimization(A, B, N, T0)
     % Solve for pose using our algorithm
     T = T0;
     xo = zeros(6,1);
+    
+    %% some precompute values
+    se31 = zeros(6,N);
+    e1 = zeros(6,N);
+    for k=1:N
+        se31(:,k) = tran2vec(B{k});
+        e1(:,k) = tran2vec(inv(A{k}));
+    end
+    
     for i=1:maxIter      % Gauss-Newton iterations
         LHS = zeros(6);
         RHS = zeros(6,1);
-
+        
+        AdT = tranAd(T);
+        se32 = AdT * se31;
+        es = e1 + se32;
         for k=1:N
-            [G,e] = eJSE3(A{k},B{k},T);
+            [G] = eJSE3fast(se32(:,k));
             LHS = LHS + G'*G;
-            RHS = RHS + G'*e;
+            RHS = RHS + G'*es(:,k);
         end
-        xi = -LHS \ RHS;
+%         tic
+%         xi = -LHS \ RHS;
+%         toc
+%         tic
+        R = chol(LHS);
+        xi = -R\(R'\RHS);
+%         t1 = toc;
+%         disp(['chol ',num2str(t1)]);
         T = vec2tran( xi ) * T;
-        if norm(xi-xo) < 1e-15
+        if norm(xi-xo) < 1e-6
             break;
         end
         xo = xi;
@@ -45,16 +64,13 @@ function dTopt = se3optimization(A, B, N, T0)
     disp(['iter: ', num2str(i)]);
 end
 
-function [G,e] = eJSE3(A,B,T)
-    se31 = tran2vec(B);
-    AdT = tranAd(T);
-    se32 = AdT*se31;
+function [G] = eJSE3fast(se32)
+%     se32 = AdT*se31;
     invJ = vec2jacInv( se32 );
     That = vec2tran(se32);
     %% jacobian
-    G = invJ * (eye(6) - tranAd(That));
+%     G = invJ * (eye(6) - tranAd(That));
+    G = invJ - invJ * tranAd(That);
     %% residual
-    e1 = tran2vec(inv(A));
-    e2 = tran2vec(B);
-    e = e1 + AdT * e2;
+%     e = e1 + AdT * se31;
 end
