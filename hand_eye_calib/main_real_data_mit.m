@@ -102,6 +102,15 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
         @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
         @sol_cvx_sdp, ...                                   %% SDP
         };
+    
+    convSolver1 = {
+        @sol_andreff, ...                                   %% KR
+        @sol_horaud_nlopt, ...                              %% DUAL_SDP
+        @sol_cvx1, ...                                      %% SOCP
+        @sol_adjoint_transformation_algo, ...               %% ATA
+        @sol_dphec, ...                                     %% GLOBAL_POLY
+        @sol_manifold_opt_SE3, ...                                   %% SDP
+        };
          
  usedsolver = convSolver1;
      
@@ -131,7 +140,9 @@ end
 % 'KR',
 % convSols = {'MIT', 'TSAI', 'LIE', 'QSEP', 'KR', 'DQ', 'CHOU', 'IDQ'};
 % convSols = {'MIT', 'LIE',  'DQ', 'CHOU', 'ATA', 'GPOLY', 'DUAL', 'SCF', 'SE3OPT', 'SDP'};
-convSols = {'BL','KR','SOCP','ATA','GPOLY','DUAL','SDR'};
+% convSols = {'BL','KR','SOCP','ATA','GPOLY','DUAL','SDR'};
+    convSols = {'BL','KR','NLQ','SOCP','ATA','GPOLY','SE3'};
+
 
 red_color = [153 0 0]/255;
 red_color = [red_color 0.5];

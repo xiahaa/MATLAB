@@ -14,9 +14,12 @@ addpath('../quaternion');
 addpath('./solver/atadq');
 addpath('../beautiful_plot/aboxplot');
 
+% prefix = './data/sdp/';
+prefix = './data/SE3/';
+
 for id = 1:4
 %     clear dat;
-    dat(id) = load(strcat('./data/sdp/','prime_', num2str(id),'_res','.mat'));
+    dat(id) = load(strcat(prefix,'prime_', num2str(id),'_res','.mat'));
     numCls = numel(dat(id).tsol);
     convSols = dat(id).convSols;
     

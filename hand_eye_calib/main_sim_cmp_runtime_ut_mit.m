@@ -45,16 +45,30 @@ function main_sim_cmp_runtime_ut_mit
          
 %     solver_name = {'TS','LIE','QS','KR','DQ','CHOU','ATA','GPOLY','DUAL','SCF','SE3','SDR','QNL','SOCP'};
     
+%     convSolver = {
+%         @sol_andreff, ...                                   %% KR
+%         @sol_adjoint_transformation_algo, ...               %% ATA
+%         @sol_dphec, ...                                     %% GLOBAL_POLY
+%         @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
+%         @sol_cvx_sdp, ...                                   %% SDP
+%         @sol_cvx1, ...                                      %% SOCP
+%         sol_manifold_opt_SE3, ...                           %% SE3
+%         };
+% 
+%     solver_name = {'KR','ATA','GPOLY','DUAL','SDR','SOCP','SE3'};
+%   mapping_id = [1,2,6,3,4,5];
+
     convSolver = {
         @sol_andreff, ...                                   %% KR
+        @sol_horaud_nlopt, ...                              %% NLOPT
+        @sol_cvx1, ...                                      %% SOCP
         @sol_adjoint_transformation_algo, ...               %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
-        @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
-        @sol_cvx_sdp, ...                                   %% SDP
-        @sol_cvx1, ...                                      %% SOCP
+        @sol_manifold_opt_SE3, ...                           %% SE3
         };
 
-    solver_name = {'KR','ATA','GPOLY','DUAL','SDR','SOCP'};
+    solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};%,'DUAL','SDR'
+    mapping_id = [1,2,6,4,3,6];
     
     usedsolver = convSolver;
     numSam = [20 40 60 80 100 120 140 160 180];
@@ -111,18 +125,18 @@ function main_sim_cmp_runtime_ut_mit
     else
         for solver_id = 1:size(solver_name,2)
             dat(solver_id) = load(strcat('./data/sdp/','runtime_',solver_name{solver_id},'_res','.mat'));
-            times(:, solver_id, :) = dat(solver_id).times(:,solver_id,:);
+            times(:, solver_id, :) = dat(solver_id).times(:,mapping_id(solver_id),:);
             valid_id(:, solver_id, :) = dat(solver_id).valid_id(:,solver_id,:);
         end
         
-        tmp = times(:,6,:);
-        times(:,3:6,:) = times(:,2:5,:);
-        times(:,2,:) = tmp;
-        tmp1 = solver_name{6};
-        for i = 6:-1:3
-            solver_name{i} = solver_name{i-1};
-        end
-        solver_name{2} = tmp1;
+%         tmp = times(:,6,:);
+%         times(:,3:6,:) = times(:,2:5,:);
+%         times(:,2,:) = tmp;
+%         tmp1 = solver_name{6};
+%         for i = 6:-1:3
+%             solver_name{i} = solver_name{i-1};
+%         end
+%         solver_name{2} = tmp1;
         
         %% compute mean time
         meantimes = zeros(numel(numSam), size(solver_name,2));

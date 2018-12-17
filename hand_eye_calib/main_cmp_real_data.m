@@ -13,7 +13,7 @@ addpath('./solver/atadq');
 %% dataset path
 addpath('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/eth_asl_real/');
 
-id = 4;
+id = 1;
 
 load(strcat('prime_', num2str(id),'.mat'));
 
@@ -93,14 +93,14 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
 
     convSolver1 = {
         @sol_andreff, ...                                   %% KR
+        @sol_horaud_nlopt, ...                              %% DUAL_SDP
         @sol_cvx1, ...                                      %% SOCP
         @sol_adjoint_transformation_algo, ...               %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
-        @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
-        @sol_cvx_sdp, ...                                   %% SDP
+        @sol_manifold_opt_SE3, ...                                   %% SDP
         };
 
-    solver_name = {'KR','SOCP','ATA','GPOLY','DUAL','SDR'};
+    solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};
          
          
  usedsolver = convSolver1;
@@ -157,7 +157,7 @@ subplot(3,1,3);plot(box_labels, RMSE_T', '-o', 'LineWidth', 3, 'Color', red_colo
 set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
 % print(['./docs/figures/eth_asl/adv_Result_', 'Prime_', num2str(id)],'-dpdf','-bestfit','-r300');
 
-save(strcat('./data/sdp/','prime_', num2str(id),'_res','.mat'),'errcs1','errcs2','errcs3','convSols','tsol');
+save(strcat('./data/SE3/','prime_', num2str(id),'_res','.mat'),'errcs1','errcs2','errcs3','convSols','tsol');
 
 %% bar plot of error
 fontsize = 12;

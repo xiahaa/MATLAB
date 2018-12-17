@@ -8,7 +8,7 @@ function main_sim_cmp_ut_mit
     addpath('../quaternion');
     addpath('./solver/atadq');
 
-    id = 1;
+    id = 3;
     prefix = 'C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/';
     name = {'circle100','line100','rotation100','shape8100','smallr100'};
     suffix = '.mat';
@@ -44,16 +44,26 @@ function main_sim_cmp_ut_mit
          
 %     solver_name = {'TS','LIE','QS','KR','DQ','CHOU','ATA','GPOLY','DUAL','SCF','SE3','SDR','QNL','SOCP'};
     
+%     convSolver = {
+%         @sol_andreff, ...                                   %% KR
+%         @sol_adjoint_transformation_algo, ...               %% ATA
+%         @sol_dphec, ...                                     %% GLOBAL_POLY
+%         @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
+%         @sol_cvx_sdp, ...                                   %% SDP
+%         @sol_cvx1, ...                                      %% SOCP
+%         };
+%         solver_name = {'KR','ATA','GPOLY','DUAL','SDR','SOCP'};
+
     convSolver = {
         @sol_andreff, ...                                   %% KR
+        @sol_horaud_nlopt, ...                              %% NLOPT
+        @sol_cvx1, ...                                      %% SOCP
         @sol_adjoint_transformation_algo, ...               %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
-        @sol_dual_sdp_cvx, ...                              %% DUAL_SDP
-        @sol_cvx_sdp, ...                                   %% SDP
-        @sol_cvx1, ...                                      %% SOCP
-        };
-
-    solver_name = {'KR','ATA','GPOLY','DUAL','SDR','SOCP'};
+        @sol_manifold_opt_SE3, ...                          %% SE3OPT
+%         @sol_cvx1, ...               %% ATA
+    };
+    solver_name = {'KR','QNL','SOCP','ATA','GPOLY','SE3'};
     
     usedsolver = convSolver;
     
