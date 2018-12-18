@@ -67,7 +67,9 @@ function main_sim_cmp_runtime_ut_mit
         @sol_manifold_opt_SE3, ...                           %% SE3
         };
 
+%     solver_name = {'KR','SOCP','ATA','GPOLY','DUAL','SDR'};%,'DUAL','SDR'
     solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};%,'DUAL','SDR'
+%     mapping_id = [1,6,4,3,4,5];
     mapping_id = [1,2,6,4,3,6];
     
     usedsolver = convSolver;
