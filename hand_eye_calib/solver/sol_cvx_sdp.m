@@ -12,13 +12,107 @@ function varargout = sol_cvx_sdp(TA,TB,N)
         
     Asq = preprocessing_q(TA,TB,N);
     x0q = [1 0 0 0 1 0 0 0]';
-    
+    [Ask,x0k] = preprocessing_kron(TA,TB,N);
     [T, time2] = solve_SDP(x0q, Asq);
-    
+    [T, time4] = solve_SDP_kron(x0k,Ask);
 
     varargout{1} = T;
 %     varargout{5} = time2;
 end
+
+function [As,x0] = preprocessing_kron(TA,TB,N)
+    dim = size(TA,2);
+    C = zeros(N*12,13);
+    As2 = zeros(13,13);
+    for i = 1:N
+        T1 = TA(i,:,:);T1 = reshape(T1,dim,dim,1);
+        T2 = TB(i,:,:);T2 = reshape(T2,dim,dim,1);
+        Ra = T2(1:3,1:3);ta = T2(1:3,4);
+        Rb = T1(1:3,1:3);tb = T1(1:3,4);
+
+        id = (i-1)*12;
+        C(id+1:id+12,:) = [kron(eye(3),Ra)-kron(Rb',eye(3)) zeros(9,3) zeros(9,1); ...
+                           kron(tb', eye(3)) eye(3)-Ra -ta];
+       As2 = As2 + C(id+1:id+12,:)'*C(id+1:id+12,:);
+    end
+%         As = C'*C;
+    As = (As2+As2')/2;
+    %% vector to optimize
+    %     x0 = C\d;
+    x0 = [1 0 0 0 1 0 0 0 1 0 0 0 1]';
+    
+end
+% 
+% f1 = @(x) (x(1)*x(4)+x(2)*x(5)+x(3)*x(6));
+%     f2 = @(x) (x(1)*x(7)+x(2)*x(8)+x(3)*x(9));
+%     f3 = @(x) (x(4)*x(7)+x(5)*x(8)+x(6)*x(9));
+%     f4 = @(x) (x(1)*x(1)+x(2)*x(2)+x(3)*x(3));
+%     f5 = @(x) (x(4)*x(4)+x(5)*x(5)+x(6)*x(6));
+%     f6 = @(x) (x(7)*x(7)+x(8)*x(8)+x(9)*x(9));
+function [T, time] = solve_SDP_kron(x0, As)
+    AA = As;
+    n = size(x0,1);
+    K = 3*n;
+    
+    A1 = zeros(n,n);
+    A1(1,4) = 1;A1(2,5) = 1;A1(3,6) = 1;
+    A2 = zeros(n,n);
+    A2(1,7) = 1;A2(2,8) = 1;A2(3,9) = 1;
+    A3 = zeros(n,n);
+    A2(4,7) = 1;A2(5,8) = 1;A2(6,9) = 1;
+    A4 = zeros(n,n);
+    A4(1,1) = 1;A4(2,2) = 1;A4(3,3) = 1;
+    A5 = zeros(n,n);
+    A5(4,4) = 1;A5(5,5) = 1;A5(6,6) = 1;
+    A6 = zeros(n,n);
+    A6(7,7) = 1;A6(8,8) = 1;A6(9,9) = 1;
+    A7 = zeros(n,n);
+    A7(n,n) = 1;
+    tic
+    cvx_begin quiet
+        variable X(n, n) symmetric
+        minimize ( trace(AA*X) )
+        subject to
+            X == semidefinite(n);
+            trace(A1*X) == 0;
+            trace(A2*X) == 0;
+            trace(A3*X) == 0;
+            trace(A4*X) == 1;
+            trace(A5*X) == 1;
+            trace(A6*X) == 1;
+            trace(A7*X) == 1;
+    cvx_end
+    lb = cvx_optval;
+    X = (X + X')/2; % Force symmetry
+    % Randomized algorithm
+    mu = zeros(n,1); Sigma = X;
+    % Using eigenvalue decomposition because chol() complains about
+    % near-zero negative eigenvalues
+    [V, D] = eig(Sigma);
+    A = V*sqrt(max(D, 0));    
+    ub = 1e6; xhat = zeros(n, 1);
+    for k = 1:K
+        xf = (mulrandn_cached(mu, A));
+        xf = make_feasible(xf, 4, A4, A5, A6, A7);
+        val = xf'*AA*xf;
+%         [xf, val] = ONEOPT(xf, AA);
+        if ub > val
+            ub = val; xhat = xf;
+        end
+    end
+    xstar = xhat;
+    
+    time = toc;
+    x = xstar;
+    disp(['SDP + randomization :',num2str(time)]);
+    R12 = [x(1) x(4) x(7); ...
+           x(2) x(5) x(8); ...
+           x(3) x(6) x(9)];
+    t12 = x(10:12);
+    R12 = R12*inv(sqrtm(R12'*R12));
+    T = [R12 t12;[0 0 0 1]];
+end
+
 
 function As = preprocessing_q(TA,TB,N)
     dim = size(TA,2);
