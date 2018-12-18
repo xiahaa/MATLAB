@@ -55,7 +55,7 @@ function dTopt = se3optimization(A, B, N, T0)
 %         t1 = toc;
 %         disp(['chol ',num2str(t1)]);
         T = vec2tran( xi ) * T;
-        if norm(xi-xo) < 1e-6
+        if norm(xi-xo) < 1e-12
             break;
         end
         xo = xi;
