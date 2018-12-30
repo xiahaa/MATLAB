@@ -13,7 +13,7 @@ addpath('./solver/atadq');
 %% dataset path
 addpath('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/eth_asl_real/');
 
-id = 1;
+id = 3;
 
 load(strcat('prime_', num2str(id),'.mat'));
 
@@ -94,22 +94,31 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
     convSolver1 = {
         @sol_andreff, ...                                   %% KR
         @sol_horaud_nlopt, ...                              %% DUAL_SDP
-        @sol_cvx1, ...                                      %% SOCP
         @sol_adjoint_transformation_algo, ...               %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
         @sol_manifold_opt_SE3, ...                                   %% SDP
+        @sol_dual_sdp_cvx, ...
+        @sol_cvx_sdp, ...
         };
+%         @sol_cvx1, ...                                      %% SOCP
 
-    solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};
+    solver_name = {'KR','NLQ','ATA','GPOLY','SE3','DUAL','SDR'};%'SOCP',
+%     solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};
          
          
  usedsolver = convSolver1;
 
 for kk = 1:size(usedsolver, 2)
     handle_sol = usedsolver{kk};
-    tic
-    TX = handle_sol(T1,T2,nsam);
-    tsol(kk) = toc;
+    if kk ~= 7
+        tic
+        TX = handle_sol(T1,T2,nsam);
+        tsol(kk) = toc;
+    else
+        tic
+        TX = handle_sol(T1,T2,nsam, Th0(1:3,1));
+        tsol(kk) = toc;
+    end
     if isempty(TX) == false
         xsol(1:4,1:4,kk) = TX;
         flag(kk) = 1;

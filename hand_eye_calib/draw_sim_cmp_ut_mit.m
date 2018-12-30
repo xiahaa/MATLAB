@@ -10,12 +10,12 @@ function draw_sim_cmp_ut_mit
     addpath('./solver/atadq');
     addpath('../beautiful_plot/aboxplot');
 
-    id = 3;
+    id = 4;
     name = {'circle100','line100','rotation100','shape8100','smallr100'};
 %     stds = [0 0.1 0.25 0.5 0.75 1];    
 %     stds = [0 0.1 0.25 0.5 0.75 1];   
-    stds = [0 0.1 0.25 0.5];   
-%     stds = [0.05 0.15 0.25 0.35 0.45 0.55];
+%     stds = [0 0.1 0.25 0.5];   
+    stds = [0.05 0.15 0.25 0.35 0.45 0.55];
     xlabels = categorical(convertStringsToChars(string(stds)));
     box_labels = convertStringsToChars(string(stds));
 
@@ -48,7 +48,7 @@ function draw_sim_cmp_ut_mit
     solver_name = {'TS','LIE','QS','KR','DQ','CHOU','ATA','GPOLY','DUAL','SCF','SDR','QNL','SOCP','SE3'};
     solver_name1 = {'QS','KR','DQ','ATA','GPOLY','QNL','SOCP','SE3'};
     solver_name2 = {'KR','SOCP','ATA','GPOLY','DUAL','SDR'};
-    solver_name2 = {'KR','QNL','SOCP','ATA','GPOLY','SE3'};
+    solver_name2 = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};
     plot_case = solver_name2;
     
     numstd = size(stds,2);

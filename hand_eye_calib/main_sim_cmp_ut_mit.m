@@ -8,7 +8,7 @@ function main_sim_cmp_ut_mit
     addpath('../quaternion');
     addpath('./solver/atadq');
 
-    id = 3;
+    id = 4;
     prefix = 'C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/';
     name = {'circle100','line100','rotation100','shape8100','smallr100'};
     suffix = '.mat';
@@ -63,11 +63,11 @@ function main_sim_cmp_ut_mit
         @sol_manifold_opt_SE3, ...                          %% SE3OPT
 %         @sol_cvx1, ...               %% ATA
     };
-    solver_name = {'KR','QNL','SOCP','ATA','GPOLY','SE3'};
+    solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};
     
     usedsolver = convSolver;
     
-    for solver_id = 1:size(solver_name,2)
+    for solver_id = 6%1:size(solver_name,2)
         times = zeros(numel(stds),100);
         error_r = zeros(numel(stds),100);
         error_t = zeros(numel(stds),100);
