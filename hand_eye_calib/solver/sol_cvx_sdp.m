@@ -1,4 +1,4 @@
-function varargout = sol_cvx_sdp(TA,TB,N)
+function varargout = sol_cvx_sdp(TA,TB,N, varargin)
 %% solving hand eye calibration using SDP
 %% Author: xiahaa@space.dtu.dk
     addpath('./solver/sdp');
@@ -13,8 +13,16 @@ function varargout = sol_cvx_sdp(TA,TB,N)
     Asq = preprocessing_q(TA,TB,N);
     x0q = [1 0 0 0 1 0 0 0]';
     [Ask,x0k] = preprocessing_kron(TA,TB,N);
-    [T, time2] = solve_SDP(x0q, Asq);
-    [T, time4] = solve_SDP_kron(x0k,Ask);
+        [T, time2] = solve_SDP(x0q, Asq);
+
+%     if nargin == 4
+%         va = varargin{1};
+% %         vb = varargin{2};
+%         [T, time4] = solve_SDP_kron(x0k, Ask, va);
+%     else
+%         [T, time4] = solve_SDP_kron(x0k, Ask);
+%     end
+    
 
     varargout{1} = T;
 %     varargout{5} = time2;
@@ -49,7 +57,7 @@ end
 %     f4 = @(x) (x(1)*x(1)+x(2)*x(2)+x(3)*x(3));
 %     f5 = @(x) (x(4)*x(4)+x(5)*x(5)+x(6)*x(6));
 %     f6 = @(x) (x(7)*x(7)+x(8)*x(8)+x(9)*x(9));
-function [T, time] = solve_SDP_kron(x0, As)
+function [T, time] = solve_SDP_kron(x0, As, varargin)
     AA = As;
     n = size(x0,1);
     K = 3*n;
@@ -68,6 +76,14 @@ function [T, time] = solve_SDP_kron(x0, As)
     A6(7,7) = 1;A6(8,8) = 1;A6(9,9) = 1;
     A7 = zeros(n,n);
     A7(n,n) = 1;
+    
+    ext = 0;
+    if nargin == 3
+        va = varargin{1};
+        Aext = zeros(n,n); Aext(1,13) = va(1);Aext(2,13) = va(2);Aext(3,13) = va(3);
+    end
+    
+    
     tic
     cvx_begin quiet
         variable X(n, n) symmetric
@@ -81,6 +97,9 @@ function [T, time] = solve_SDP_kron(x0, As)
             trace(A5*X) == 1;
             trace(A6*X) == 1;
             trace(A7*X) == 1;
+            if ext == 1
+                trace(Aext*X) > 0;
+            end
     cvx_end
     lb = cvx_optval;
     X = (X + X')/2; % Force symmetry
@@ -109,7 +128,7 @@ function [T, time] = solve_SDP_kron(x0, As)
            x(2) x(5) x(8); ...
            x(3) x(6) x(9)];
     t12 = x(10:12);
-    R12 = R12*inv(sqrtm(R12'*R12));
+%     R12 = R12*inv(sqrtm(R12'*R12));
     T = [R12 t12;[0 0 0 1]];
 end
 
@@ -168,7 +187,7 @@ end
 function [T, time] = solve_SDP(x0, As)
     AA = As;
     n = size(x0,1);
-    K = 3*n;
+    K = 5*n;
     A1 = blkdiag(eye(4),zeros(4));
     A2 = zeros(8);A2(1,5)=1;A2(2,6)=1;A2(3,7)=1;A2(4,8)=1;
     tic
