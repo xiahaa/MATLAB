@@ -29,9 +29,11 @@ function dTopt = se3optimization(A, B, N, T0)
     %% some precompute values
     se31 = zeros(6,N);
     e1 = zeros(6,N);
+    curlya = zeros(6, 6, N);
     for k=1:N
         se31(:,k) = tran2vec(B{k});
         e1(:,k) = tran2vec(inv(A{k}));
+        curlya(:,:,k) = curlyhat(e1(:,k)); 
     end
     
     for i=1:maxIter      % Gauss-Newton iterations
@@ -43,8 +45,10 @@ function dTopt = se3optimization(A, B, N, T0)
         es = e1 + se32;
         for k=1:N
             [G] = eJSE3fast(se32(:,k));
-            LHS = LHS + G'*G;
-            RHS = RHS + G'*es(:,k);
+            G2 = (eye(6)-0.5.*curlya(:,:,k))*G;
+            e2 = es(:,k) - 0.5.*(curlya(:,:,k)*se32(:,k));
+            LHS = LHS + G2'*G2;
+            RHS = RHS + G2'*e2;
         end
 %         tic
 %         xi = -LHS \ RHS;
