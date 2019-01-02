@@ -13,10 +13,10 @@ function dT = sol_manifold_opt_SE3(TA, TB, N)
         B = TB;
     end
     T0 = [eye(3) [0;0;0];0 0 0 1];
-    T1 = sol_park_martin(TA, TB, N);%sol_dual_quaternion
-    if ~isempty(T1)
-        T0 = T1;
-    end
+%     T1 = sol_horaud(TA, TB, N);%sol_dual_quaternion
+%     if ~isempty(T1)
+%         T0 = T1;
+%     end
     dT = se3optimization(A, B, N, T0);
 end
 
@@ -32,7 +32,7 @@ function dTopt = se3optimization(A, B, N, T0)
     curlya = zeros(6, 6, N);
     for k=1:N
         se31(:,k) = tran2vec(B{k});
-        e1(:,k) = tran2vec(inv(A{k}));
+        e1(:,k) = tran2vec((A{k}));
         curlya(:,:,k) = curlyhat(e1(:,k)); 
     end
     
@@ -42,20 +42,20 @@ function dTopt = se3optimization(A, B, N, T0)
         
         AdT = tranAd(T);
         se32 = AdT * se31;
-        es = e1 + se32;
+        es = -e1 + se32;
         for k=1:N
             [G] = eJSE3fast(se32(:,k));
-            G2 = (eye(6)-0.5.*curlya(:,:,k))*G;
+            G2 = (eye(6)- 0.5.*curlya(:,:,k))*G;
             e2 = es(:,k) - 0.5.*(curlya(:,:,k)*se32(:,k));
             LHS = LHS + G2'*G2;
             RHS = RHS + G2'*e2;
         end
 %         tic
-%         xi = -LHS \ RHS;
+        xi = -LHS \ RHS;
 %         toc
 %         tic
-        R = chol(LHS);
-        xi = -R\(R'\RHS);
+%         R = chol(LHS);
+%         xi = -R\(R'\RHS);
 %         t1 = toc;
 %         disp(['chol ',num2str(t1)]);
         T = vec2tran( xi ) * T;
