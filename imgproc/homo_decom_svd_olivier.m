@@ -19,6 +19,9 @@ function varargout = homo_decom_svd_olivier(varargin)
             xsol(:,4) = [-c1;0;-c2];
             %% case 1
             [Rd, td, nd] = case1(xsol, d1, d2, d3);
+            dsols = zeros(1,size(td,2));
+            dsols(1:4) = s * d2;
+            dsols(5:8) = -s * d2;
         else
             if abs(d1-d2) < 1e-6
                 %% case 2
@@ -33,6 +36,9 @@ function varargout = homo_decom_svd_olivier(varargin)
                 xsol(:,2) = [-1;0;0];
                 [Rd, td, nd] = case2(xsol, d1, d2, d3, 2);
             end
+            dsols = zeros(1,size(td,2));
+            dsols(1:2) = s * d2;
+            dsols(3:4) = -s * d2;
         end
         [R,t,n] = final_sol(Rd, td, nd, U, V, s);
     else
@@ -45,10 +51,32 @@ function varargout = homo_decom_svd_olivier(varargin)
 %         t = td;
         nd = zeros(3,1);%% undefined
         [R,t,n] = final_sol(Rd, td, nd, U, V, s);
+        dsols = zeros(1,size(td,2));
+        dsols(1) = s * d2;
+        dsols(2) = -s * d2;
     end
-    varargout{1} = R;
-    varargout{2} = t;
-    varargout{3} = n;
+
+    
+    %% ambiguity removing
+    m1 = varargin{2};
+    num1 = H(3,1)*m1(1,1) + H(3,2)*m1(2,1) + H(3,3);
+    valid1 = zeros(1,size(t,2));
+    for i = 1:size(t,2)
+        if (num1)/dsols(i) > 0
+            if n(:,i)'*m1(:,1)/dsols(i) > 0
+                valid1(i) = 1;
+            end
+        end
+    end
+    valid1 = valid1 == 1;
+    Rf = R(:,:,valid1);
+    tf = t(:,valid1);
+    nf = n(:,valid1);
+    
+    
+    varargout{1} = Rf;
+    varargout{2} = tf;
+    varargout{3} = nf;
 end
 
 function varargout = final_sol(Rd, td, nd, U, V, s)

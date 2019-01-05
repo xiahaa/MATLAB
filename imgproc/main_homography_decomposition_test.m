@@ -50,9 +50,13 @@ close all;
     d = dot(ps1,n);
 %     d2 = dot(-ps2,n);
     
-    H1 = homography_est(uv1(:,matching), uv2(:,matching));
-%     H1 = H1./H1(3,3);
-%     H1 = inv(K)*H1*K;
+    uv1n = inv(K)*uv1(:,matching);
+    uv2n = inv(K)*uv2(:,matching);
+    H1 = homography_est(uv1n, uv2n);
+    H1 = H1./H1(3,3);
+    [R,t,n] = homo_decom_svd_olivier(H1, uv1n);
+%     
+%     
 end
 
 function T = fakeRT()
