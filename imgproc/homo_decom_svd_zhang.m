@@ -22,19 +22,22 @@ function varargout = homo_decom_svd_zhang(varargin)
         
         k = rho2 - rho3;p = rho2*rho3 - 1;
         
-        c1 = k*k+4*(p+1);
+        c1 = sqrt(k*k+4*(p+1));
         c2 = 2*k*(p+1);
         gamma = (-k+c1)/c2;
         theta = (-k-c1)/c2;
         
-        c3 = gamma - theta;
-        t0(:,1) = (u2-u3)./c3;
-        t0(:,2) = -(u2-u3)./c3;
-        t0(:,3) = (u2+u3)./c3;
-        t0(:,4) = -(u2+u3)./c3;
+        miu = sqrt(gamma*gamma*k*k+2*gamma*p+1);
+        sigma = sqrt(theta*theta*k*k+2*theta*p+1);
         
-        cv1 = gamma * u3 - theta*u2;
-        cv2 = gamma * u3 + theta*u2;
+        c3 = gamma - theta;
+        t0(:,1) = (miu*u2-sigma*u3)./c3;
+        t0(:,2) = -(miu*u2-sigma*u3)./c3;
+        t0(:,3) = (miu*u2+sigma*u3)./c3;
+        t0(:,4) = -(miu*u2+sigma*u3)./c3;
+        
+        cv1 = gamma * sigma * u3 - theta*miu*u2;
+        cv2 = gamma * sigma * u3 + theta*miu*u2;
         
         n(:,1) = cv1./c3;
         n(:,2) = -cv1./c3;
