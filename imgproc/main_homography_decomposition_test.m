@@ -54,8 +54,11 @@ close all;
     uv2n = inv(K)*uv2(:,matching);
     H1 = homography_est(uv1n, uv2n);
     H1 = H1./H1(3,3);
+    H1 = normalizeHomography(H1);
     [R1,t1,n1] = homo_decom_svd_olivier(H1, uv1n);
-    [R2,t2,n2] = homo_decom_svd_zhang(H1, uv1n);
+    [R2,t2,n2] = homo_decom_malis(H1, uv1n);
+    [R3,t3,n3] = homo_decom_malis_t(H1, uv1n);
+    
 %     
 %     
 end

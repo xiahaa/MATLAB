@@ -15,36 +15,35 @@ function varargout = homo_decom_svd_zhang(varargin)
     
     if abs(lambda2-lambda1) > 1e-6 && abs(lambda1 - lambda3) > 1e-6
         %% case 1
-        %% scale
-        l = 1 ./ rho1;
-        rho2 = rho2 * l;
-        rho3 = rho3 * l;
+        l2l3 = lambda2 * lambda3;
+        l2_l3 = lambda2 - lambda3;
         
-        k = rho2 - rho3;p = rho2*rho3 - 1;
+        c1 = 1/l2l3;
+        c2 = sqrt(1 + 4*l2l3/((l2_l3)^2));
+        xi_2 = 0.5 * c1 * (-1 + c2);
+        xi_3 = 0.5 * c1 * (-1 - c2);
         
-        c1 = sqrt(k*k+4*(p+1));
-        c2 = 2*k*(p+1);
-        gamma = (-k+c1)/c2;
-        theta = (-k-c1)/c2;
+        v2_norm = xi_2^2*l2_l3^2+2*xi_2*(l2l3-1)+1;
+        v3_norm = xi_3^2*l2_l3^2+2*xi_3*(l2l3-1)+1;
+
+        v2d = v2_norm * v2;
+        v3d = v3_norm * v3;
         
-        miu = sqrt(gamma*gamma*k*k+2*gamma*p+1);
-        sigma = sqrt(theta*theta*k*k+2*theta*p+1);
+        c3 = xi_2-xi_3;
         
-        c3 = gamma - theta;
-        t0(:,1) = (miu*u2-sigma*u3)./c3;
-        t0(:,2) = -(miu*u2-sigma*u3)./c3;
-        t0(:,3) = (miu*u2+sigma*u3)./c3;
-        t0(:,4) = -(miu*u2+sigma*u3)./c3;
+        t0(:,1) = (v2d-v3d)./c3;
+        t0(:,2) = -(v2d-v3d)./c3;
+        t0(:,3) = (v2d+v3d)./c3;
+        t0(:,4) = -(v2d+v3d)./c3;
         
-        cv1 = gamma * sigma * u3 - theta*miu*u2;
-        cv2 = gamma * sigma * u3 + theta*miu*u2;
+        cv1 = xi_2*v3d-xi_3*v2d;
+        cv2 = xi_2*v3d+xi_3*v2d;
         
         n(:,1) = cv1./c3;
         n(:,2) = -cv1./c3;
         n(:,3) = cv2./c3;
         n(:,4) = -cv2./c3;
         
-       
     elseif abs(lambda1 - lambda3) < 1e-6
         k = rho2 - 1;
 %         p = k;
