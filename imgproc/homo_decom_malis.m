@@ -63,21 +63,41 @@ function varargout = homo_decom_malis(varargin)
         error('no solution');
     end
     
-    t = [tas tbs];
+    
     n = [na nb];
     R(:,:,1) = H*(eye(3)-2/vscalar*tas*na');
     R(:,:,2) = H*(eye(3)-2/vscalar*tbs*nb');
     
-        
+    t(:,1) = R(:,:,1)*tas;
+    t(:,2) = R(:,:,2)*tbs;
+    
+    n = [n -na -nb];
+    R(:,:,3) = R(:,:,1);
+    R(:,:,4) = R(:,:,2);
+    
+    t(:,3) = -t(:,1);
+    t(:,4) = -t(:,2);
+    
+    m1 = varargin{2};
+    valid1 = zeros(1,size(t,2));
+    for i = 1:size(t,2)
+        if n(:,i)'*m1(:,1) > 0
+            valid1(i) = 1;
+        end
+    end
+    valid1 = valid1 == 1;
+    Rf = R(:,:,valid1);
+    tf = t(:,valid1);
+    nf = n(:,valid1);
 %         za1 = s12+sqrt(Ms33)/s22; zb1 = s12-sqrt(Ms33)/s22;
 %         za3 = s23-epsilon13*sqrt(Ms11)/s22;zb3 = s23+epsilon13*sqrt(Ms11)/s22;
 %         aa = 1 + za1*za1+za3*za3;
 %         ab = 1 + zb1*zb1+zb3*zb3;
 %         b = 2+trace(S);    
     
-    varargout{1} = R;
-    varargout{2} = t;
-    varargout{3} = n;
+    varargout{1} = Rf;
+    varargout{2} = tf;
+    varargout{3} = nf;
 end
 
 function s = signc(a)
