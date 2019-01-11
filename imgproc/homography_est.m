@@ -56,14 +56,14 @@ function varargout = homography_est(varargin)
            end
            
            %% 
-           inlier_error = error(inlier);
+           inlier_error = reprojerror(inlier);
            avg_err = sum(inlier_error)/ length(inlier_error);
 
            %% update
            if (avg_err < bestCost)
                bestCost = avg_err;
                bestInlier = inlier;
-               maxRANSACCnt = log(0.01) / log(1-(numel(inlier_error)/numel(error))^sampleNum);
+               maxRANSACCnt = log(0.01) / log(1-(numel(inlier_error)/numel(reprojerror))^sampleNum);
            end
            cnt = cnt + 1; 
         end
