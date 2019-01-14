@@ -60,18 +60,32 @@ function varargout = xyzest(Agj)
 %     tic
 %     detB = z334(B{1,1},B{2,2},B{3,3}) + z334(B{1,2},B{3,1},B{2,3}) + z334(B{3,2},B{2,1},B{1,3}) ...
 %          - z334(B{3,1},B{2,2},B{1,3}) - z334(B{1,2},B{2,1},B{3,3}) - z334(B{1,1},B{3,2},B{2,3});
-%     toc
+% %     toc
 %     zs = roots(detB); 
-    
+%     N = numel(find(abs(imag(zs)) < 1e-8));
+%     xyz = zeros(3,N);
+%     k = 1;
+%     for i = 1:10
+%         if abs(imag(zs(i))) < 1e-8
+%             %% real root
+%             z = real(zs(i));
+%             A = [peval(B{1,1},z),peval(B{1,2},z),peval(B{1,3},z); ...
+%                  peval(B{2,1},z),peval(B{2,2},z),peval(B{2,3},z); ...
+%                  peval(B{3,1},z),peval(B{3,2},z),peval(B{3,3},z)];
+%             [~,~,V] = svd(A);
+%             sol = V(:,end);
+%             xyz(:,k) = [sol(1)/sol(3);sol(2)/sol(3);z];
+%             k = k + 1;
+%         end
+%     end
+%     toc
     %% method 2
 %     tic
     p1 = z3z4(B{1,2},B{2,3}) - z3z4(B{1,3},B{2,2});
     p2 = z3z4(B{1,3},B{2,1}) - z3z4(B{1,1},B{2,3});
     p3 = z3z3(B{1,1},B{2,2}) - z3z3(B{1,2},B{2,1});
     detB = z7z3(p1,B{3,1}) + z7z3(p2,B{3,2}) + z6z4(p3,B{3,3});
-%     toc
     zs = roots(detB); 
-    
     N = numel(find(abs(imag(zs)) < 1e-8));
     xyz = zeros(3,N);
     k = 1;
@@ -86,6 +100,7 @@ function varargout = xyzest(Agj)
             k = k + 1;
         end
     end
+%     toc
     
     varargout{1} = xyz;
 end
