@@ -1,49 +1,5 @@
 function varargout = Essential_est_five_point(varargin)
-
-%     clear;
-%     clc;
-%     randn('seed',0);
-%     R = [0.4120    0.1411    0.9002;
-%         0.7969   -0.5349   -0.2808;
-%         0.4419    0.8330   -0.3328];
-%     tran = [1 2 3]';
-%     Etruth = [0 -3 2;
-%               3 0 -1;
-%               -2 1 0]*R;
-%     Etruth = Etruth/Etruth(3,3)
-% 
-%     p1a = randn(3,1);
-%     p1b = R*p1a+tran;
-%     p1a = p1a/p1a(3);
-%     p1b = p1b/p1b(3);
-% 
-%     p2a = randn(3,1);
-%     p2b = R*p2a+tran;
-%     p2a = p2a/p2a(3);
-%     p2b = p2b/p2b(3);
-% 
-%     p3a = randn(3,1);
-%     p3b = R*p3a+tran;
-%     p3a = p3a/p3a(3);
-%     p3b = p3b/p3b(3);
-% 
-%     p4a = randn(3,1);
-%     p4b = R*p4a+tran;
-%     p4a = p4a/p4a(3);
-%     p4b = p4b/p4b(3);
-% 
-%     p5a = randn(3,1);
-%     p5b = R*p5a+tran;
-%     p5a = p5a/p5a(3);
-%     p5b = p5b/p5b(3);
-% 
-%     p6a = randn(3,1);
-%     p6b = R*p6a+tran;
-%     p6a = p6a/p6a(3);
-%     p6b = p6b/p6b(3);
-% 
-%     p1 = [p1a p2a p3a p4a p5a];
-%     p2 = [p1b p2b p3b p4b p5b];
+%% This file estimate the essential matrix with the help of the matlab symbolic toolbox
     
     p1 = varargin{1};
     p2 = varargin{2};
@@ -102,4 +58,5 @@ function varargout = Essential_est_five_point(varargin)
         Efinal(:,:,i) = Efinal(:,:,i) ./ Efinal(3,3,i); 
 %         diag(p2'*Efinal(:,:,i)*p1)
     end
+    varargout{1} = Efinal;
 end
