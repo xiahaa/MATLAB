@@ -4,6 +4,14 @@ function varargout = Essential_est_five_point(varargin)
     p1 = varargin{1};
     p2 = varargin{2};
     
+    if size(p1,1) == 5 && size(p1,2) == 3
+        p1 = p1';
+    end
+    
+    if size(p2,1) == 5 && size(p2,2) == 3
+        p2 = p2';
+    end
+    
     if size(p1,2) ~= 5
         error('5 points !!');
     end

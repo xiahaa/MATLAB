@@ -4,17 +4,30 @@ function E = Essential_est_5point(varargin)
 % estimation problem. IEEE PAMI.
     p1 = varargin{1};
     p2 = varargin{2};
-    K = varargin{3};
-    Kinv = inv(K);
-    p1n = Kinv*p1;
-    p2n = Kinv*p2;
+    if nargin > 2
+        K = varargin{3};
+        Kinv = inv(K);
+        p1n = Kinv*p1;
+        p2n = Kinv*p2;
+    else
+        p1n = p1;
+        p2n = p2;
+    end
+    
+    if size(p1n,1) == 5 && size(p1n,2) == 3
+        p1n = p1n';
+    end
+    
+    if size(p2n,1) == 5 && size(p2n,2) == 3
+        p2n = p2n';
+    end
     
     A = zeros(5,9);
-    A(1,:) = [p1n(:,1)'*p2n(1,1) p1n(:,1)'*p2n(2,1) p1(:,1)'*p2n(3,1)];
-    A(2,:) = [p1n(:,2)'*p2n(1,2) p1n(:,2)'*p2n(2,2) p1(:,2)'*p2n(3,2)];
-    A(3,:) = [p1n(:,3)'*p2n(1,3) p1n(:,3)'*p2n(2,3) p1(:,3)'*p2n(3,3)];
-    A(4,:) = [p1n(:,4)'*p2n(1,4) p1n(:,4)'*p2n(2,4) p1(:,4)'*p2n(3,4)];
-    A(5,:) = [p1n(:,5)'*p2n(1,5) p1n(:,5)'*p2n(2,5) p1(:,5)'*p2n(3,5)];
+    A(1,:) = [p1n(:,1)'*p2n(1,1) p1n(:,1)'*p2n(2,1) p1n(:,1)'*p2n(3,1)];
+    A(2,:) = [p1n(:,2)'*p2n(1,2) p1n(:,2)'*p2n(2,2) p1n(:,2)'*p2n(3,2)];
+    A(3,:) = [p1n(:,3)'*p2n(1,3) p1n(:,3)'*p2n(2,3) p1n(:,3)'*p2n(3,3)];
+    A(4,:) = [p1n(:,4)'*p2n(1,4) p1n(:,4)'*p2n(2,4) p1n(:,4)'*p2n(3,4)];
+    A(5,:) = [p1n(:,5)'*p2n(1,5) p1n(:,5)'*p2n(2,5) p1n(:,5)'*p2n(3,5)];
     [~,~,V] = svd(A);
     mask = [1 2 3;4 5 6;7 8 9];
     X = V(:,end-3);
