@@ -96,18 +96,97 @@ function [R, t] = p3p_fisch(P, q, K)
         a = turple(i,2);
         b = turple(i,3);
         c = turple(i,4);
-        v1 = qn(:,1);
-        v2 = qn(:,2);
-        v3 = qn(:,3);
-        v1 = v1 ./ norm(v1);
-        v2 = v2 ./ norm(v2);
-        v3 = v3 ./ norm(v3);
-        Q = [v1*a v2*b v3*c];
-        [Ropt,topt] = svd_3d23d(P, Q);
+%         v1 = qn(:,1);
+%         v2 = qn(:,2);
+%         v3 = qn(:,3);
+        
+        [Ropt,topt] = postprocess(P(:,1), P(:,2), P(:,3), ...
+                                  a, b, c, Rab, Rac, qn(:,1), qn(:,2), qn(:,3));
+        
+%         v1 = v1 ./ norm(v1);
+%         v2 = v2 ./ norm(v2);
+%         v3 = v3 ./ norm(v3);
+%         Q = [v1*a v2*b v3*c];
+%         [Ropt,topt] = svd_3d23d(P, Q);
         R(:,:,i) = Ropt;
         t(:,:,i) = topt;
     end
     
+end
+
+function cosa = coseqn(A,B,C)
+    cosa = (A^2+B^2-C^2)/(2*A*B);
+end
+
+function varargout = postprocess(A, B, C, a, b, c, ab, ac, ia, ib, ic)
+    coslab = coseqn(a,ab,b);
+    vecAB = B-A;
+    v1 = vecAB./ab;
+    Q = A + v1 * coslab * a;
+    %% plane 1
+    n1 = v1;
+    d1 = -n1'*Q;
+    plane1 = [n1;d1];
+    
+    coslac = coseqn(a,ac,c);
+    vecAC = C-A;
+    v2 = vecAC./ac;
+    QQ = A + v2 * coslac * a;
+    %% plane 1
+    n2 = v2;
+    d2 = -n2'*QQ;
+    plane2 = [n2;d2];
+    
+    %% plane 3
+    n3 = cross(v1, v2);
+    n3 = n3 ./ norm(n3);
+    d3 = -n3'*A;
+    plane3 = [n3;d3];
+    
+    %% intersect point
+    A = [plane1(1:3)';plane2(1:3)';plane3(1:3)'];
+    b = [-plane1(4);-plane2(4);-plane3(4)];
+    R = A\b;
+    
+    %% AR
+    ar = norm(R-A);
+    rl = sqrt(a^2 - ar^2);
+    
+    L = n3.*rl;
+    
+    %% 3 rays
+    LA = A - L;vla = LA./a;
+    LB = B - L;vlb = LB./b;
+    LC = C - L;vlc = LC./c;
+    
+    %% image
+    nia = sqrt(ia^2+1);nib = sqrt(ib^2+1);nic = sqrt(ic^2+1);
+    
+    iag = L+vla.*nia;
+    ibg = L+vlb.*nib;
+    icg = L+vlc.*nic;
+    
+    %% norm image plane
+    nimage = cross(ibg-iag,icg-iag);
+    nimage = nimage./norm(nimage);
+    
+    %% principle point
+    pp = L-nimage;
+    vpp2iag = iag - pp;
+    
+    vi1 = vpp2iag./norm(vpp2iag);
+    vi2 = ia ./ norm(ia);
+    angle = acos(vi2'*vi1);
+    
+    vx = [cos(angle) sin(angle) 0;-sin(angle) cos(angle) 0;0 0 1] * [1;0;0];
+    vz = -niamge;
+    vy = cross(vz, vx);
+    
+    R = [vx vy vz];
+    t = R'*L;
+
+    varargout{1} = R;
+    varargout{2} = t;
 end
 
 function [Ropt,topt] = svd_3d23d(ptsrc, ptdst)
