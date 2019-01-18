@@ -77,14 +77,20 @@ function [R, t] = p3p_fisch(P, q, K)
             cc1 = c5+((Rac)^2-a^2)/(a^2);
             y(1) = c4 + sqrt(cc1);
             y(2) = c4 - sqrt(cc1);
+            
+            for j = 1:numel(y)
+                if y(j) > 0 && isreal(y(j)) == 1
+                    c = y(j)*a;
+                    cond1 = b^2+c^2-2*b*c*c1 - Rbc^2;
+                    if abs(cond1) < 1e-6
+                        turple = [turple;[x(i) a b c y(j)]];
+                    end
+                end
+            end
         else
             y = (p2*q1-p1*q2)/den;
-        end
-        for j = 1:numel(y)
-            if y(j) > 0 && isreal(y(j)) == 1
-                c = y(j)*a;
-                turple = [turple;[x(i) a b c y(j)]];
-            end
+            c = y*a;
+            turple = [turple;[x(i) a b c y]];
         end
     end
     
@@ -138,21 +144,27 @@ function varargout = postprocess(A, B, C, a, b, c, ab, ac, ia, ib, ic)
     plane2 = [n2;d2];
     
     %% plane 3
-    n3 = cross(v1, v2);
+    n3 = cross(v2, v1);
     n3 = n3 ./ norm(n3);
     d3 = -n3'*A;
     plane3 = [n3;d3];
     
     %% intersect point
-    A = [plane1(1:3)';plane2(1:3)';plane3(1:3)'];
-    b = [-plane1(4);-plane2(4);-plane3(4)];
-    R = A\b;
+    A1 = [plane1(1:3)';plane2(1:3)';plane3(1:3)'];
+    b1 = [-plane1(4);-plane2(4);-plane3(4)];
+    R = A1\b1;
     
     %% AR
     ar = norm(R-A);
     rl = sqrt(a^2 - ar^2);
     
-    L = n3.*rl;
+    L = R + n3.*rl;
+    
+    VX = B - A;VX = VX./norm(VX);
+    VY = C - A;VY = VY./norm(VY);
+    VZ = cross(VX, VY);VZ = VZ./norm(VZ);
+    VY = cross(VZ, VX);VY = VY./norm(VY);
+    RW = [VX VY VZ];
     
     %% 3 rays
     LA = A - L;vla = LA./a;
@@ -160,29 +172,40 @@ function varargout = postprocess(A, B, C, a, b, c, ab, ac, ia, ib, ic)
     LC = C - L;vlc = LC./c;
     
     %% image
-    nia = sqrt(ia^2+1);nib = sqrt(ib^2+1);nic = sqrt(ic^2+1);
+    nia = sqrt(norm(ia)^2);nib = sqrt(norm(ib)^2);nic = sqrt(norm(ic)^2);
     
     iag = L+vla.*nia;
     ibg = L+vlb.*nib;
     icg = L+vlc.*nic;
     
     %% norm image plane
-    nimage = cross(ibg-iag,icg-iag);
-    nimage = nimage./norm(nimage);
+%     nimage = cross(ibg-iag,icg-iag);
+%     nimage = nimage./norm(nimage);
     
     %% principle point
-    pp = L-nimage;
-    vpp2iag = iag - pp;
+    vx = ibg - iag;vx = vx ./ norm(vx);
+    vy = icg - iag;vy = vy ./ norm(vy);
+    vz = cross(vx,vy);vz = vz ./ norm(vz);
+    vy = cross(vz,vx);vy = vy ./ norm(vy);
+    Rimg = [vx vy vz];
+%     pp = L-nimage;
+%     vpp2iag = iag - pp;
+%     vpp2ibg = ibg - pp;
+%     vpp2icg = icg - pp;
+%     
+% %     vi1 = vpp2iag./norm(vpp2iag);
+% %     vi2 = ia ./ norm(ia);
+% %     angle = acos(vi2'*vi1);
+% %     
+% %     vx = [cos(angle) sin(angle) 0;-sin(angle) cos(angle) 0;0 0 1] * [1;0;0];
+% %     vz = -niamge;
+% %     vy = cross(vz, vx);
+%     AA = [vpp2iag';vpp2ibg';vpp2icg';];
+%     bb = [ia(1);ib(1);ic(1)];
+%     vx = AA\bb;
+%     vy = cross(vz, vx);
     
-    vi1 = vpp2iag./norm(vpp2iag);
-    vi2 = ia ./ norm(ia);
-    angle = acos(vi2'*vi1);
-    
-    vx = [cos(angle) sin(angle) 0;-sin(angle) cos(angle) 0;0 0 1] * [1;0;0];
-    vz = -niamge;
-    vy = cross(vz, vx);
-    
-    R = [vx vy vz];
+    R = Rimg*RW';
     t = R'*L;
 
     varargout{1} = R;

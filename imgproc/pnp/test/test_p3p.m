@@ -15,7 +15,7 @@
     p(1,:) = p(1,:);
     p(2,:) = p(2,:);
     
-    K = [200 0 160;0 200 120;0 0 1];
+    K = [1 0 0;0 1 0;0 0 1];
     
     [uv1, in1] = proj(T1, p, K);
     im = zeros(240,320);
@@ -26,9 +26,10 @@
     pr = T1(1:3,1:3)*p + repmat(T1(1:3,4),1,N);
     pr = pr(:,in1);
     
-    id = [1 80 160];
+    id = randperm(size(q1,2),3);
     pr(:,id)
-    [R, t] = p3p_fisch(P(:,id), q1(:,id), K);
+    T1
+    [R, t] = posit_algo(P(:,:), q1(:,:), K);
     
     minerr = 1e6;
     minid = 0;
@@ -44,10 +45,10 @@
             minid = i;
         end
     end
-    R(:,:,minid);
-    t(:,:,minid);
+    R(:,:,minid)
+    t(:,:,minid)
     
-    T1
+    
     
 
     

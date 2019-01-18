@@ -23,3 +23,4 @@ beautiful_plot/aboxplot/colorgrad.m
 beautiful_plot/aboxplot/quartile.m
 test_script/*
 *.rar
+imgproc/pnp/3rdparty/*

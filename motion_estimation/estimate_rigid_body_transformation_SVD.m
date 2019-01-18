@@ -1,8 +1,8 @@
 function [Ropt,topt] = estimate_rigid_body_transformation_SVD(ptsrc, ptdst)
 %% SVD 
 
-ptsrcmean = mean(ptsrc')';
-ptdstmean = mean(ptdst')';
+ptsrcmean = mean(ptsrc,2);
+ptdstmean = mean(ptdst,2);
 
 ptsrcrefine = ptsrc - repmat(ptsrcmean, 1, size(ptsrc,2));
 ptdstrefine = ptdst - repmat(ptdstmean, 1, size(ptsrc,2));

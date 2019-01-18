@@ -3,7 +3,7 @@ function test_on_horn_1987
     i = findstr(path,'\');
     folder = path(1:i(end));
     cd(folder);
-    ptsrc = rand(3,1000).*10 - 5;
+    ptsrc = rand(3,3).*10 - 5;
     yaw = 57 * pi / 180.0;
     pitch = 60 * pi / 180.0;
     roll = -30 * pi / 180.0;
