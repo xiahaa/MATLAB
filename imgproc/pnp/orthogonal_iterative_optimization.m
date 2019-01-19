@@ -94,6 +94,7 @@ function varargout = orthogonal_iterative_optimization(varargin)
         imgerr = qproj - vi;
         sumerr = sum(diag(imgerr'*imgerr));
         imgerravg = sqrt(sumerr) / N;
+        varargout{5} = imgerravg;
     end
     topt = topt - Ropt * pmean;
     
@@ -101,7 +102,6 @@ function varargout = orthogonal_iterative_optimization(varargin)
     varargout{2} = topt;
     varargout{3} = iter;
     varargout{4} = objerr;
-    varargout{5} = imgerravg;
 end
 
 function qhat = prepareq(V, q)
@@ -123,7 +123,7 @@ end
 function topt = optimize_t(Fi, p, R, C2)
     ps = R * p;
     s = zeros(3,1);
-    for i = 1:N
+    for i = 1:size(Fi,3)
         s = s + Fi(:,:,i) * ps(:,i); 
     end
     topt = C2 * s;
@@ -134,10 +134,12 @@ function [Ropt] = svd_3d23d(ptsrc, ptdst)
     ptsrcmean = mean(ptsrc,2);
     ptdstmean = mean(ptdst,2);
 
-    P = ptsrc - repmat(ptsrcmean, 1, size(ptsrc,2));
-    Q = ptdst - repmat(ptdstmean, 1, size(ptsrc,2));
-    
-    S = Q*P';
+    ptsrcrefine = ptsrc - repmat(ptsrcmean, 1, size(ptsrc,2));
+    ptdstrefine = ptdst - repmat(ptdstmean, 1, size(ptsrc,2));
+
+    Y = ptdstrefine';
+    X = ptsrcrefine;
+    S = X*Y;
     [U,~,V] = svd(S);
 
     D = V*U';

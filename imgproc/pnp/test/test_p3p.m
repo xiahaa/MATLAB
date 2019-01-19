@@ -29,7 +29,11 @@
     id = randperm(size(q1,2),3);
     pr(:,id)
     T1
-    [R, t] = posit_algo(P(:,:), q1(:,:), K);
+    
+    q1n = K\q1;
+    
+    [R, t] = p3p_kneip(P(:,:), q1, K);
+%     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
     
     minerr = 1e6;
     minid = 0;
