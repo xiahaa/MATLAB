@@ -31,9 +31,14 @@
     T1
     
     q1n = K\q1;
-    
-    [R, t] = p3p_kneip(P(:,:), q1, K);
+
+    [R, t] = p3p(P(:,:), q1, K);
+%     [R, t] = p3p_kneip(P(:,:), q1, K);
 %     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
+
+    % ppnp
+%     q1n = K\q1;
+%     [R, t] = ppnp(q1n', P', 1e-6);
     
     minerr = 1e6;
     minid = 0;
