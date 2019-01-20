@@ -3,13 +3,13 @@
     clear all;
 
     %% simulation of homography decomposition
-    addpath('../MatrixLieGroup');
-    addpath('../quaternion');
-    addpath('../beautiful_plot');
+    addpath('../../../MatrixLieGroup');
+    addpath('../../../quaternion');
+    addpath('../../../beautiful_plot');
     addpath('../');
     T1 = fakeRT();
     
-    N = 200;
+    N = 50;
     p = rand([3,N]) * 5 - 2.5;
     p(3,:) = 5;
     p(1,:) = p(1,:);
@@ -31,8 +31,9 @@
     T1
     
     q1n = K\q1;
-
-    [R, t] = p3p(P(:,:), q1, K);
+    
+    [R, t] = pnp_ak(P(:,:), q1, K);
+%     [R, t] = p3p(P(:,:), q1, K);
 %     [R, t] = p3p_kneip(P(:,:), q1, K);
 %     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
 
