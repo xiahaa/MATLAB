@@ -24,3 +24,5 @@ beautiful_plot/aboxplot/quartile.m
 test_script/*
 *.rar
 imgproc/pnp/3rdparty/*
+
+imgproc/pnp/test/test1.m
