@@ -32,8 +32,8 @@
     
     q1n = K\q1;
     
-    [R, t] = pnp_ak(P(:,:), q1, K, pr);
-%     [R, t] = p3p(P(:,:), q1, K);
+%     [R, t] = pnp_ak(P(:,:), q1, K, pr);
+    [R, t] = p3p(P(:,:), q1, K);
 %     [R, t] = p3p_kneip(P(:,:), q1, K);
 %     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
 
