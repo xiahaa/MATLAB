@@ -9,9 +9,9 @@
     addpath('../');
     T1 = fakeRT();
     
-    N = 30;
+    N = 10;
     p = rand([3,N]) * 5 - 2.5;
-%     p(3,:) = 5;% + rand(1);
+    p(3,:) = 5;% + rand(1)*3 + 2;
     p(1,:) = p(1,:);
     p(2,:) = p(2,:);
     
@@ -32,7 +32,7 @@
     
     q1n = K\q1;
     
-    [R,t] = pnp_gOp(P, q1, K);
+    [R,t] = pnp_without_correspondance(P, q1, K, T1(1:3,1:3));
 %     [R,t] = pnp_sdr(P, q1, K, T1(1:3,1:3), T1(1:3,4));
 %     [R, t] = pnp_ak(P(:,:), q1, K, pr);
 %     [R, t] = p3p(P(:,:), q1, K);
