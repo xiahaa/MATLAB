@@ -15,8 +15,10 @@ function Sigma = cov_SE3(MX, X, order)
         %% do first order approximation
         for i = 1:n
             X_i = X(:,4*(i-1)+1:4*i);
-            P = (MX\X_i - eye(4));
-            Sigma = Sigma + se3_vec(P)*se3_vec(P)';
+%             P = (MX\X_i - eye(4));
+%             Sigma = Sigma + se3_vec(P)*se3_vec(P)';
+              P = MX\X_i;
+              Sigma = Sigma + se3_vec(logm(P))*se3_vec(logm(P))';
         end
     end
     Sigma = Sigma ./ n;

@@ -2,7 +2,10 @@ function [ X, MeanA, MeanB, SigA, SigB, t_error ] = batchSolveNew(A, B, opt)
     %% Mixed version for solving AX = XB
     %%
     [a1,a2,a3]  = size(A);
-
+    
+    A_mex = reshape(A, a1, a2*a3);
+    B_mex = reshape(B, a1, a2*a3);
+        
     n_search = int16(2*10^2);
 
     if opt == 1
@@ -15,21 +18,14 @@ function [ X, MeanA, MeanB, SigA, SigB, t_error ] = batchSolveNew(A, B, opt)
         [ MeanA, ~ ] = distibutionPropsMex( A );
         [ MeanB, ~ ] = distibutionPropsMex( B );
     elseif opt == 4
-        MeanA = mean_Taylor_2nd_adv_recursive( A, 1, n_search ); 
-        MeanB = mean_Taylor_2nd_adv_recursive( B, 1, n_search ); 
+        MeanA = mean_Taylor_2nd_adv_recursive( A_mex, 1, n_search ); 
+        MeanB = mean_Taylor_2nd_adv_recursive( B_mex, 1, n_search ); 
     end
     
     SigA = zeros(6,6);
     SigB = zeros(6,6);
-    SigA = cov_SE3(MeanA, A, 1);
-    SigB = cov_SE3(MeanB, B, 1);
-
-%     for i = 1:size(A,3)
-%         SigA = SigA + se3_vec(logm(MeanA^(-1)*A(:,:,i)))*se3_vec(logm(MeanA^(-1)*A(:,:,i)))';
-%         SigB = SigB + se3_vec(logm(MeanB^(-1)*B(:,:,i)))*se3_vec(logm(MeanB^(-1)*B(:,:,i)))';
-%     end
-%     SigA = SigA*(1/size(A,3));
-%     SigB = SigB*(1/size(B,3));
+    SigA = cov_SE3(MeanA, A_mex, 1);
+    SigB = cov_SE3(MeanB, B_mex, 1);
 
     [ VA, ~ ] = eig( SigA(1:3,1:3) );
     [ VB, ~ ] = eig( SigB(1:3,1:3) );

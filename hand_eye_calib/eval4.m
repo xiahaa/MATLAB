@@ -25,7 +25,8 @@ ElipseParam = [10, 10, 10];
 trials = 1;
 
 % ------------------------------------------------------
-
+addpath ./stochastics/utils/
+addpath ./data_gen/
 x = randn(6,1); X = expm(se3_vec(x));   %Generate a Random X
 
 
@@ -69,11 +70,12 @@ for i=1:length(noise)
         A = sensorNoise(A,[0;0;0;0;0;0],noise(i),1);
         
         [a1,a2,a3]  = size(A);
-        A_noise_mex = reshape(A, a1, a2*a3);
-        B_mex = reshape(B, a1, a2*a3);
+%         A_noise_mex = reshape(A, a1, a2*a3);
+%         B_mex = reshape(B, a1, a2*a3);
 
-        [X_solved, MA, MB, SigA, SigB] = batchEDSolve_mex(A_noise_mex, B_mex);
-        
+        [X_solved, MA, MB, SigA, SigB] = batchSolveNew(A, B, 2);
+        X_solved
+        X
         X_roterror(k,i) = roterror(X_solved,X);
         X_tranerror(k,i) = tranerror(X_solved,X);
         
