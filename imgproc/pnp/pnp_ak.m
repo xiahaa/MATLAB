@@ -173,7 +173,7 @@ function [R,t] = pnp_ak(P, q, K, Q)%
     end    
     
     %% potential an error when xsol(end) == 0
-    if ~isempty(ti) && ~isempty(find(isnan(ti),1))
+    if ~isempty(ti) && isempty(find(isnan(ti),1))
         Qr = qn.*ti';
         [R,t] = svd_3d23d(P, Qr);
     else
