@@ -26,3 +26,4 @@ test_script/*
 imgproc/pnp/3rdparty/*
 
 imgproc/pnp/test/test1.m
+hand_eye_calib/stochastics/test/test.m
