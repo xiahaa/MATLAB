@@ -1,19 +1,26 @@
-function res = sylvester_resultant_x1x2(d, theta)
-%% this function calcs the sylvecter resultant of two bivariant polynomial
-% it is assumed that higher order coefficient stores at first.
-    if size(d,1) ~= 3 || size(theta,1)~=3
-        error('Wrong input');
-    end
-    d12 = d(1);
-    d13 = d(2);
-    d23 = d(3);
-    a12 = theta(1);
-    a13 = theta(1);
-    a23 = theta(1);
-    
-    c1 = cos(a12)^2 + cos(a13)^2 + cos(a23)^2 - 2*cos(a12)*cos(a13)*cos(a23) - 1;
-    
-16*(c1)^2
-(d12^4 - 2*cos(2*a23)*d12^2*d13^2 - 2*d12^2*d23^2 + d13^4 - 2*d13^2*d23^2 + d23^4)^2
+function out = sylvester_resultant_22(p1, p2)
+    a1 = p1(1);
+    a2 = p1(2);
+    a3 = p1(3);
+    a4 = p1(4);
 
+    b1 = p2(1);
+    b2 = p2(2);
+    b3 = p2(3);
+    b4 = p2(4);
+
+    %% precompute
+    a1a2 = a1*a2;
+    b1b2 = b1*b2;
+
+    %% output: x^4, x^3*y, x^2*y^2, x^2, x*y^3, x*y, y^4, y^2, 1
+    out = [ a1^2*b2^2, ... 
+           -a1*a3*b2*b3, ...
+            b1b2*a3^2 + a1a2*b3^2 - 2*a1a2*b1b2, ...
+            b4*a3^2*b2 + 2*a1*a4*b2^2 - 2*a1a2*b4*b2, ...
+            -a2*a3*b1*b3, ...
+            -a2*a3*b3*b4 - a3*a4*b2*b3, ...
+            a2^2*b1^2, ...
+            2*b1*b4*a2^2 + a4*a2*b3^2 - 2*a4*b1b2*a2, ...
+            a2^2*b4^2 - 2*a2*a4*b2*b4 + a4^2*b2^2];
 end

@@ -29,13 +29,14 @@
     id = randperm(size(q1,2),3);
     pr(:,id)
     T1
+%     pr(:,:)
     
     q1n = K\q1;
     
-    [R,t] = pnp_gOp(P, q1, K);
+%     [R,t] = pnp_long(P(:,1:4), q1(:,1:4), K);
 %     [R,t] = pnp_sdr(P, q1, K, T1(1:3,1:3), T1(1:3,4));
 %     [R, t] = pnp_ak(P(:,:), q1, K, pr);
-%     [R, t] = p3p(P(:,:), q1, K);
+    [R, t] = p3p(P(:,:), q1, K);
 %     [R, t] = p3p_kneip(P(:,:), q1, K);
 %     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
 
