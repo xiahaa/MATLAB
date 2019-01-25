@@ -5,3 +5,10 @@ For some algorithms, I re-implemented them, while for others, I just write a war
 PnP toolbox: 
 1. https://github.com/haoyinzhou/PnP_Toolbox
 2. https://github.com/urbste/MLPnP_matlab_toolbox
+
+## Not yet read:
+1. AsPnP;
+2. CEPPnP;
+3. MLPnP;
+4. REPnP;
+5. R1PnP;https://github.com/haoyinzhou/PnP_Toolbox
