@@ -9,13 +9,13 @@
     addpath('../');
     T1 = fakeRT();
     
-    N = 20;
+    N = 100;
     p = rand([3,N]) * 5 - 2.5;
 %     p(3,:) = 5;% + rand(1);
     p(1,:) = p(1,:);
     p(2,:) = p(2,:);
     
-    K = [1 0 0;0 1 0;0 0 1];
+    K = [100 0 0;0 100 0;0 0 1];
     
     [uv1, in1] = proj(T1, p, K);
     im = zeros(240,320);
@@ -36,7 +36,7 @@
 %     [R,t] = pnp_long(P(:,1:4), q1(:,1:4), K);
 %     [R,t] = pnp_sdr(P, q1, K, T1(1:3,1:3), T1(1:3,4));
 %     [R, t] = pnp_ak(P(:,:), q1, K, pr);
-    [R, t] = p3p_pst(P(:,1:3), q1(:,1:3), K);
+    [R, t] = pnp_robust(P(:,:), q1(:,:), K);
 %     [R, t] = p3p_kneip(P(:,:), q1, K);
 %     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
     R
