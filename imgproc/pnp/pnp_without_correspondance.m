@@ -23,10 +23,10 @@ function [R,t] = pnp_without_correspondance(P, q, K, Rx)
     raw_SO3_q = forme_relative_SO3(SO3_q);
     raw_SO3_p = forme_relative_SO3(SO3_p);
     
-%     relative_SO3_q = rankingSO3(raw_SO3_q);
-%     relative_SO3_p = rankingSO3(raw_SO3_p);
-    relative_SO3_q = raw_SO3_q;
-    relative_SO3_p = raw_SO3_p;
+    relative_SO3_q = rankingSO3(raw_SO3_q);
+    relative_SO3_p = rankingSO3(raw_SO3_p);
+%     relative_SO3_q = raw_SO3_q;
+%     relative_SO3_p = raw_SO3_p;
     
     %% just for debug
     for i = 1:1:size(relative_SO3_q,3)
