@@ -18,8 +18,8 @@ function Sigma = cov_SE3(MX, X, order)
 %             P = (MX\X_i - eye(4));
 %             Sigma = Sigma + se3_vec(P)*se3_vec(P)';
               P = MX\X_i;
-%               Sigma = Sigma + se3_vec(logm(P))*se3_vec(logm(P))';
-              Sigma = Sigma + tran2vec(P)*tran2vec(P)';
+              Sigma = Sigma + se3_vec(logm(P))*se3_vec(logm(P))';
+%               Sigma = Sigma + tran2vec(P)*tran2vec(P)';
         end
     end
     Sigma = Sigma ./ n;

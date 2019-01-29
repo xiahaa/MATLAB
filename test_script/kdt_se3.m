@@ -2,6 +2,14 @@ clc;
 close all;
 clear all;
 
+x = sym('x',[3,1],'real');
+y = sym('y',[3,1],'real');
+
+lie_vee(lie_bracket(lie_hat(x),lie_hat(y)))
+-lie_hat(y)*x
+lie_hat(x)*y
+
+
 % x = sym('x',[6,1],'real');
 % y = sym('y',[6,1],'real');
 N = 1000;

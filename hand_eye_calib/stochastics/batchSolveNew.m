@@ -12,8 +12,8 @@ function [ X, MeanA, MeanB, SigA, SigB, t_error ] = batchSolveNew(A, B, opt)
         [MeanA, ~] = mean_Taylor_1st( A ); %_mex
         [MeanB, ~] = mean_Taylor_1st( B ); %_mex
     elseif opt == 2
-        MeanA = mean_Taylor_2nd( A, 0, n_search ); %_mex
-        MeanB = mean_Taylor_2nd( B, 0, n_search ); %_mex
+        MeanA = mean_Taylor_2nd( A, 1, n_search ); %_mex
+        MeanB = mean_Taylor_2nd( B, 1, n_search ); %_mex
     elseif opt == 3
         [ MeanA, ~ ] = distibutionPropsMex( A );
         [ MeanB, ~ ] = distibutionPropsMex( B );
@@ -54,6 +54,7 @@ function [ X, MeanA, MeanB, SigA, SigB, t_error ] = batchSolveNew(A, B, opt)
     
     %% traverse the 8 sols and find the minimum
     min = inf;
+    Rx = Rx_solved(:,:,1);
     for i = 1:8
         if (abs(det(Rx_solved(:,:,i))-1)<0.001) && (norm(na-Rx_solved(1:3,1:3,i)*nb) < min)
             min = norm(na-Rx_solved(1:3,1:3,i)*nb);
