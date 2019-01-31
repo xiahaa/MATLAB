@@ -26,8 +26,9 @@ function [R, t] = epnp_re(p,q,K)
     end
     
     %% deomposition, 
-    [ev,ee] = eig(M'*M);
-    V = ev(:,4:-1:1);
+%     [ev,ee] = eig(M'*M);
+%     V = ev(:,4:-1:1);
+    [~,~,V] = svd(M);
     
     %% l1*V1+l2*V2+l3*V3+l4*V4 = solution
     v1 = V(:,end);%% >= 6 points
