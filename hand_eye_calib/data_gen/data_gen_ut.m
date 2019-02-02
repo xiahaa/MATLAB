@@ -1,5 +1,11 @@
 function varargout = data_gen_ut()
-    addpath('../3rdparty/mit3dslam');
+    if ismac
+        addpath('/Users/xiaohu/Documents/MATLAB/3rdparty/3dcalib/3dslam');
+        addpath('/Users/xiaohu/Documents/MATLAB/3rdparty/3dcalib/3d-dualquat');
+        addpath('/Users/xiaohu/Documents/MATLAB/3rdparty/3dcalib/3d-euler');
+    else
+        addpath('../3rdparty/mit3dslam');
+    end
     addpath('../beautiful_plot');
 
     close all; clear all; clc;
@@ -12,7 +18,7 @@ function varargout = data_gen_ut()
     %% transformation matrix from s1 to s2
     sensor2_expressedIn_sensor1 = GetHomoTransform(trueCalib_euler);
 
-    motion = 3;
+    motion = 4;
     N = 51; % Num poses
     N_interp = 300;% interpolation for surface
     if motion == 1
@@ -194,31 +200,42 @@ function varargout = data_gen_ut()
     zlabel('$z$ (m)','FontSize', font_size, 'Interpreter', 'latex');
     set(gca,'TickLabelInterpreter','latex');
 
+    if ismac
+        basedir = '/Users/xiaohu/Documents/MATLAB/MATLAB/hand_eye_calib/data_gen/data/';
+    else
+        basedir = 'C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/';
+    end
+    
     if motion == 1
+        filename = strcat(basedir, 'circle.mat');
         title('Circle','Interpreter', 'latex','FontSize', font_size);
-        print(['./docs/figures/mit_ut_data_gen/', 'circle'],'-dpdf','-bestfit','-r300');
-        save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/circle.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+%         print(['./docs/figures/mit_ut_data_gen/', 'circle'],'-dpdf','-bestfit','-r300');
+        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
     elseif motion == 2
+        filename = strcat(basedir, 'line.mat');
         title('Line','Interpreter', 'latex','FontSize', font_size);
-        print(['./docs/figures/mit_ut_data_gen/', 'line'],'-dpdf','-bestfit','-r300');
-        save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/line.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+%         print(['./docs/figures/mit_ut_data_gen/', 'line'],'-dpdf','-bestfit','-r300');
+        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
     elseif motion == 3
+        filename = strcat(basedir, 'rotation.mat');
         title('Pure Rotation','Interpreter', 'latex','FontSize', font_size);
-        print(['./docs/figures/mit_ut_data_gen/', 'rotation'],'-dpdf','-bestfit','-r300');
-        save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/rotation.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+%         print(['./docs/figures/mit_ut_data_gen/', 'rotation'],'-dpdf','-bestfit','-r300');
+        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
     elseif motion == 4
+        filename = strcat(basedir, 'shape8.mat');
         title('$8-Shape$','Interpreter', 'latex','FontSize', font_size);
-        print(['./docs/figures/mit_ut_data_gen/', 'shape8'],'-dpdf','-bestfit','-r300');
-        save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/shape8.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+%         print(['./docs/figures/mit_ut_data_gen/', 'shape8'],'-dpdf','-bestfit','-r300');
+        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
     elseif motion == 5
+        filename = strcat(basedir, 'samllr.mat');
         title('$Small Rotation$','Interpreter', 'latex','FontSize', font_size);
-        print(['./docs/figures/mit_ut_data_gen/', 'smallr'],'-dpdf','-bestfit','-r300');
-        save('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/samllr.mat','sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+%         print(['./docs/figures/mit_ut_data_gen/', 'smallr'],'-dpdf','-bestfit','-r300');
+        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
     end
 
     % generate random covariances
     %RandStream.setDefaultStream(RandStream('mt19937ar','seed',0)); % set the random seed so we always get the same random values
-    std = 0.55;%0.25;%0.5 0.75 1
+    std = 0.1;%0.25;%0.5 0.75 1
     tstd = std*ones(1,3);
     tstr = std*ones(1,3);
 
@@ -238,7 +255,7 @@ function varargout = data_gen_ut()
         cov2(i,:) = reshape(S2,1,[]);
     end
 
-    numberOfRuns = 100;
+    numberOfRuns = 5;
     run.true.sensor1_expressedIn_prevSensor1 = sensor1_expressedIn_prevSensor1;
     run.true.sensor2_expressedIn_prevSensor2 = sensor2_expressedIn_prevSensor2;
     run.true.sensor1_expressedIn_world = sensor1_expressedIn_world;
@@ -250,19 +267,16 @@ function varargout = data_gen_ut()
         run.observations{i}.sensor1_expressedIn_prevSensor1 = SampleVelocitiesWithCovariance(run.true.sensor1_expressedIn_prevSensor1, run.true.cov1);
         run.observations{i}.sensor2_expressedIn_prevSensor2 = SampleVelocitiesWithCovariance(run.true.sensor2_expressedIn_prevSensor2, run.true.cov2);
     end
-
-    if motion == 1
-        save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/circle100_',num2str(std),'.mat'], 'run');
-    elseif motion == 2
-        save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/line100_',num2str(std),'.mat'],'run');
-    elseif motion == 3
-        save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/rotation100_',num2str(std),'.mat'], 'run');
-    elseif motion == 4
-        save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/shape8100_',num2str(std),'.mat'], 'run');
-    elseif motion == 5
-        save(['C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/smallr100_',num2str(std),'.mat'], 'run');
+    
+    if ismac
+        basedir = '/Users/xiaohu/Documents/MATLAB/MATLAB/hand_eye_calib/data_gen/data/';
+    else
+        basedir = 'C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/';
     end
-
+    
+    type = {'circle','line','rotation','shape8','smallr'};
+    filename = strcat(basedir, (type{motion}),'_', num2str(numberOfRuns), '_', num2str(std), '.mat');
+    save(filename, 'run');
 end
 
 function observed_pos_expressedIn_prevPos = SampleVelocitiesWithCovariance(true_pos_expressedIn_prevPos, true_pos_expressedIn_prevPos_cov)
