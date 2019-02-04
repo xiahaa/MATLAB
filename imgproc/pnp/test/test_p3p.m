@@ -7,6 +7,8 @@
     addpath('../../../quaternion');
     addpath('../../../beautiful_plot');
     addpath('../');
+    addpath ../3rdparty/OPnP_Toolbox_Original/OPnP/
+    
     T1 = fakeRT();
     
     N = 20;
@@ -41,14 +43,15 @@
 %             0.2305    0.3077    0.1587    0.0938    0.2051; ...
 %     0.2742    0.2255    0.5951    0.4374    0.4888; ...
 %     1.0000    1.0000    1.0000    1.0000    1.0000];
-    
+%     K = eye(3);
+%     q1n = K\q1;
 %     [R,t] = pnp_long(P(:,1:4), q1(:,1:4), K);
-    [R, t] = epnp_re(P, q1, K);
+%     [R, t] = OPnP(P, q1n, K);
 %     [R,t] = pnp_gOp(P, q1, K);
 %     [R,t] = pnp_sdr(P, q1, K, T1(1:3,1:3), T1(1:3,4));
 %     [R, t] = pnp_ak(P(:,:), q1, K, pr);
 %     [R, t] = epnp_original(P(:,:), q1(:,:), K);
-%     [R, t] = p3p_kneip(P(:,:), q1, K);
+%     [R, t] = opnp_trial(P(:,:), q1, K);
 %     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
     R
     % ppnp
