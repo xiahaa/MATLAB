@@ -17,6 +17,14 @@ For some algorithms, I re-implemented them, while for others, I just write a war
 3. RPnP: .
 4. AsPnP: AsPnP seems to be predecessor of OPnP since they share a similar cost function and general framework. However, AsPnP divides into four different cases and extract answer from the 4 cases, then return them ranked by algebraic error. OPnP summaries those 4 cases as a uniform solver.
 5. DLS
+6. UPnP: 
+
+## MLEstimator variant:
+1. CEPPnP: basically EEPnP + Prior covriance = setup likelihood function, and then use a Gauss-Newton-liked routine to iteratively optimize.
+
+## PnP tightly coupled with RANSAC:
+1. REEPnP: EPnP variance with RANSAC coupled. Normal treatement of adding RANSAC is after the estimation. Here, RANSAC is placed just after the computation of the virtual 4 control points. So a speed-up can be achieved.
+
 
 ## Useful links:
 PnP toolbox: 
@@ -24,6 +32,4 @@ PnP toolbox:
 2. https://github.com/urbste/MLPnP_matlab_toolbox
 
 ## Not yet read:
-2. CEPPnP;
-4. REPnP;
 5. R1PnP;https://github.com/haoyinzhou/PnP_Toolbox
