@@ -52,17 +52,18 @@ function [Rot,trans] = opnp_trial(p,q,K)
     M2 = C4+C5+C6;
     M = M1'*M1 + M2'*M2;
     
-%     C7 = (u' - repmat(ubar,n,1)).*(uptilde - repmat(mupt,1,n))'*A3 + ...
-%          (u' - repmat(ubar,n,1)).*(-ptilde)'*A1 + ...
-%          (v' - repmat(vbar,n,1)).*(vptilde - repmat(mvpt,1,n))'*A2 + ...
-%          (v' - repmat(vbar,n,1)).*(-ptilde)'*A1;
-%      
-%     C8 = sum(C7);
+    C7 = (u' - repmat(ubar,n,1)).*(uptilde - repmat(mupt,1,n))'*A3 + ...
+         (u' - repmat(ubar,n,1)).*(-ptilde)'*A1 + ...
+         (v' - repmat(vbar,n,1)).*(vptilde - repmat(mvpt,1,n))'*A2 + ...
+         (v' - repmat(vbar,n,1)).*(-ptilde)'*A1;
+     
+    C8 = sum(C7);
     
     [cp1,cp2,cp3,cp4] = poly_coeffs(M);
     
-%     [e1,e2,e3,e4] = der_coeffs(C8);
-    [xx,yy,zz,tt] = solver_opnp(cp1,cp2,cp3,cp4);
+    [e1,e2,e3,e4] = der_coeffs(C8);
+%     [xx,yy,zz,tt] = solver_opnp(cp1,cp2,cp3,cp4);
+    [xx,yy,zz,tt,ll] = solver_opnp2(cp1,cp2,cp3,cp4);
     [xx,yy,zz,tt] = PnP_FilterOutRepetitive(xx,yy,zz,tt);
     
     %3D points after translation to centroid
@@ -122,6 +123,139 @@ function [Rot,trans] = opnp_trial(p,q,K)
     end
 end
 
+% Generated using GBSolver generator Copyright Martin Bujnak,
+% Zuzana Kukelova, Tomas Pajdla CTU Prague 2008.
+% 
+% Please refer to the following paper, when using this code :
+%     Kukelova Z., Bujnak M., Pajdla T., Automatic Generator of Minimal Problem Solvers,
+%     ECCV 2008, Marseille, France, October 12-18, 2008
+
+function [a, b, c, d, l] = solver_opnp2(g11, g21, g31, g41)
+
+	% precalculate polynomial equations coefficients
+	c(1) = g11(5);
+	c(2) = g11(4);
+	c(3) = g11(3);
+	c(4) = g11(2);
+	c(5) = g11(1);
+	c(6) = g21(5);
+	c(7) = g21(4);
+	c(8) = g21(3);
+	c(9) = g21(2);
+	c(10) = g21(1);
+	c(11) = g31(5);
+	c(12) = g31(4);
+	c(13) = g31(3);
+	c(14) = g31(2);
+	c(15) = g31(1);
+	c(16) = g41(5);
+	c(17) = g41(4);
+	c(18) = g41(3);
+	c(19) = g41(2);
+	c(20) = g41(1);
+	c(21) = 1;
+	c(22) = 1;
+	c(23) = 1;
+	c(24) = 1;
+	c(25) = -1;
+
+	M = zeros(15, 17);
+	ci = [196, 212];
+	M(ci) = c(1);
+
+	ci = [136, 197];
+	M(ci) = c(2);
+
+	ci = [121, 182];
+	M(ci) = c(3);
+
+	ci = [106, 167];
+	M(ci) = c(4);
+
+	ci = [91, 152];
+	M(ci) = c(5);
+
+	ci = [183, 199, 215];
+	M(ci) = c(6);
+
+	ci = [123, 139, 200];
+	M(ci) = c(7);
+
+	ci = [78, 124, 185];
+	M(ci) = c(8);
+
+	ci = [63, 109, 170];
+	M(ci) = c(9);
+
+	ci = [48, 94, 155];
+	M(ci) = c(10);
+
+	ci = [171, 187, 203, 219];
+	M(ci) = c(11);
+
+	ci = [111, 127, 143, 204];
+	M(ci) = c(12);
+
+	ci = [66, 82, 128, 189];
+	M(ci) = c(13);
+
+	ci = [36, 67, 113, 174];
+	M(ci) = c(14);
+
+	ci = [21, 52, 98, 159];
+	M(ci) = c(15);
+
+	ci = [160, 176, 192, 208, 224];
+	M(ci) = c(16);
+
+	ci = [100, 116, 132, 148, 209];
+	M(ci) = c(17);
+
+	ci = [55, 71, 87, 133, 194];
+	M(ci) = c(18);
+
+	ci = [25, 41, 72, 118, 179];
+	M(ci) = c(19);
+
+	ci = [10, 26, 57, 103, 164];
+	M(ci) = c(20);
+
+	M(150) = c(21);
+	M(90) = c(22);
+	M(45) = c(23);
+	M(15) = c(24);
+	M(255) = c(25);
+
+	M = rref(M);
+
+	A = zeros(2);
+	amcols = [17 16];
+	A(1, 2) = 1;
+	A(2, :) = -M(15, amcols);
+
+	[V D] = eig(A);
+	sol =  V([2],:)./(ones(1, 1)*V(1,:));
+
+	if (find(isnan(sol(:))) > 0)
+		
+		a = zeros(1, 0);
+		b = zeros(1, 0);
+		c = zeros(1, 0);
+		d = zeros(1, 0);
+		l = zeros(1, 0);
+	else
+		
+% 		WARNING: cannot extract all unknowns at once. A back-substitution required (not implemented/automatized)
+		ev  = diag(D);
+		I = find(not(imag( sol(1,:) )) & not(imag( ev )'));
+% 		WARNING: one or more unknowns could not be extracted.
+% 		WARNING: one or more unknowns could not be extracted.
+% 		WARNING: one or more unknowns could not be extracted.
+% 		WARNING: one or more unknowns could not be extracted.
+		l = sol(1,I);
+	end
+end
+
 
 function [xx, yy, zz, tt] = PnP_FilterOutRepetitive(xx,yy,zz,tt)
 for i = 1:length(xx)
@@ -153,10 +287,10 @@ function [e1,e2,e3,e4] = der_coeffs(A)
     A10 = A(10);
     A11 = A(11);
     
-    e1 = [ 2*A2, A3, A4, A5];
-    e2 = [ A3, 2*A6, A7, A8];
-    e3 = [ A4, A7, 2*A9, A10];
-    e4 = [ A5, A8, A10, 2*A11];
+    e1 = [ 2, 2*A2, A3, A4, A5];
+    e2 = [ A3, 2, 2*A6, A7, A8]; 
+    e3 = [ A4, A7, 2, 2*A9, A10];
+    e4 = [ A5, A8, A10, 2, 2*A11];
 
 end
 

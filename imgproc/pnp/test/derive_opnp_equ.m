@@ -19,14 +19,15 @@ f4 = alpha'*M*dd;
 [t3,c3]=coeffs(f3,[a b c d]);
 [t4,c4]=coeffs(f4,[a b c d]);
 
+syms l real
 A = sym('A',[1,11],'real');
-f5 = A*da;
-f6 = A*db;
-f7 = A*dc;
-f8 = A*dd;
+f5 = A*da + 2*a*l;
+f6 = A*db + 2*b*l;
+f7 = A*dc + 2*c*l;
+f8 = A*dd + 2*d*l;
 
 
-[t5,c5]=coeffs(f5,[a b c d]);
-[t6,c6]=coeffs(f6,[a b c d]);
-[t7,c7]=coeffs(f7,[a b c d]);
-[t8,c8]=coeffs(f8,[a b c d]);
+[t5,c5]=coeffs(f5,[a b c d l]);
+[t6,c6]=coeffs(f6,[a b c d l]);
+[t7,c7]=coeffs(f7,[a b c d l]);
+[t8,c8]=coeffs(f8,[a b c d l]);

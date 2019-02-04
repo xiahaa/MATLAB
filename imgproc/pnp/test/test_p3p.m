@@ -51,7 +51,7 @@
 %     [R,t] = pnp_sdr(P, q1, K, T1(1:3,1:3), T1(1:3,4));
 %     [R, t] = pnp_ak(P(:,:), q1, K, pr);
 %     [R, t] = epnp_original(P(:,:), q1(:,:), K);
-%     [R, t] = opnp_trial(P(:,:), q1, K);
+    [R, t] = opnp_trial(P(:,:), q1, K);
 %     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
     R
     % ppnp
