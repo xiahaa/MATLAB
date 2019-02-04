@@ -13,6 +13,8 @@ For some algorithms, I re-implemented them, while for others, I just write a war
 
 ## use only Warpper to call 3rdparty implementation:
 1. MLPnP: MLPnP may not be a good choice in my opinion: 1) extensive null vector computation for each 2D points; 2) ordinary case needs at least 6 points; 3) omit the constraint imposed by R; 4) use all 3D points for GN optimization.
+2. OPnP: I do implement a OPnP trial in order to see if I understand how to use the Automatic Minimal Solver correctly. It works well as in the OPnP_trial.m, however, it is pretty slow compared with the original OPnP solution. 
+3. RPnP: .
 
 ## Useful links:
 PnP toolbox: 
