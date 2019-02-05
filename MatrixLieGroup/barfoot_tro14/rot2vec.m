@@ -22,17 +22,29 @@ function [ phi ] = rot2vec( C )
 rotValidate(C);
 phi = [1;0;0];
 [v,d]=eig(C);
-for i=1:3
-   if abs(d(i,i)-1) < 1e-10
-      a = v(:,i);
-      a = a/sqrt(a'*a);
-      phim = acos((trace(C)-1)/2);
-      phi = phim*a;
 
-      if abs(trace(vec2rot( phi )'*C)-3) > 1e-14
-         phi = -phi;
-      end
-   end
+cond = (trace(C)-1)/2;
+if abs(cond+1) > 1e-10
+    for i=1:3
+       if abs(d(i,i)-1) < 1e-10
+          a = v(:,i);
+          a = a/sqrt(a'*a);
+          phim = acos((trace(C)-1)/2);
+          phi = phim*a;
+
+          if abs(trace(vec2rot( phi )'*C)-3) > 1e-14
+             phi = -phi;
+          end
+       end
+    end
+else
+    logA = zeros(3,3);
+    for i = 1:2
+        logA = logA + (-1)^(i-1)/i.*(C-eye(3))^(i);
+    end
+    %% project to so3
+    logA = 0.5.*(logA-logA');
+    phi = [-logA(2,3);logA(1,3);-logA(1,2)];
 end
 
 end
