@@ -10,42 +10,41 @@ addpath('../');
 T1 = fakeRT();
 tform = affine3d(T1');
 % ptCloud = pcread('teapot.ply');
-ptCloud = pcread('C:\Users\xiahaa\3rdparty\opencv-3.1.0\samples\cpp\tutorial_code\viz\bunny.ply');
-gridStep = 0.02;
-ptCloud = pcdownsample(ptCloud,'gridAverage',gridStep);
-ptCloudTformed = pctransform(ptCloud,tform);
-figure
-pcshow(ptCloud); hold on;
-pcshow(ptCloudTformed); 
-tic
-tform1 = pcregistericp(ptCloudTformed,ptCloud,'Extrapolate',true);
-toc
-tform2 = invert(tform1);
-disp(tform2.T);
+% ptCloud = pcread('C:\Users\xiahaa\3rdparty\opencv-3.1.0\samples\cpp\tutorial_code\viz\bunny.ply');
+% gridStep = 0.02;
+% ptCloud = pcdownsample(ptCloud,'gridAverage',gridStep);
+% ptCloudTformed = pctransform(ptCloud,tform);
+% figure
+% pcshow(ptCloud); hold on;
+% pcshow(ptCloudTformed); 
+% tic
+% tform1 = pcregistericp(ptCloudTformed,ptCloud,'Extrapolate',true);
+% toc
+% tform2 = invert(tform1);
+% disp(tform2.T);
+% p = ptCloud.Location;
+% q = ptCloudTformed.Location;
+% p = p';
+% q = q';
 
-p = ptCloud.Location;
-q = ptCloudTformed.Location;
-p = p';
-q = q';
-
-% N = 50;
-% p = rand([3,N]) * 5 - 2.5;
+N = 50;
+p = rand([3,N]) * 5 - 2.5;
 % p(3,:) = 5;%p(3,:);
-% p(1,:) = p(1,:);
-% p(2,:) = p(2,:);
-% s = 1;
-% q = s.*(T1(1:3,1:3)*p + repmat(T1(1:3,4),1,N));
-% q = q(:,1:N) + rand([3,N]).*0.5;
+p(1,:) = p(1,:);
+p(2,:) = p(2,:);
+s = 1;
+q = s.*(T1(1:3,1:3)*p + repmat(T1(1:3,4),1,N));
+q = q(:,1:N) + rand([3,N]).*0.1;
 
-% font_size = 14;
-% blue_color = [0 116 186]/255;
-% orange_color = [223 80 35]/255;
-% plot3(q(1,:),q(2,:),q(3,:),'o','MarkerSize',5,'MarkerEdgeColor',orange_color,'MarkerFaceColor',orange_color)
-% hold on;
-% plot3(p(1,:),p(2,:),p(3,:),'o','MarkerSize',5,'MarkerEdgeColor',blue_color,'MarkerFaceColor',blue_color)
-% xlabel('$x$','Interpreter','latex')
-% ylabel('$y$','Interpreter','latex')
-% zlabel('$z$','Interpreter','latex')
+font_size = 14;
+blue_color = [0 116 186]/255;
+orange_color = [223 80 35]/255;
+plot3(q(1,:),q(2,:),q(3,:),'o','MarkerSize',5,'MarkerEdgeColor',orange_color,'MarkerFaceColor',orange_color)
+hold on;
+plot3(p(1,:),p(2,:),p(3,:),'o','MarkerSize',5,'MarkerEdgeColor',blue_color,'MarkerFaceColor',blue_color)
+xlabel('$x$','Interpreter','latex')
+ylabel('$y$','Interpreter','latex')
+zlabel('$z$','Interpreter','latex')
 
 disp(T1)
 
@@ -67,13 +66,16 @@ tic
     SO3_p1 = SO3_p;
     
     Mq1 = mean_1st_order(SO3_q);
-    Mq = mean_iterative(SO3_q,Mq1);
+    Mq2 = mean_iterative(SO3_q,Mq1);
+    Mq3 = FNS_iterative(SO3_q,Mq1);
 
     Mp1 = mean_1st_order(SO3_p1);
-    Mp = mean_iterative(SO3_p1,Mp1);
+    Mp2 = mean_iterative(SO3_p1,Mp1);
+    Mp3 = FNS_iterative(SO3_p1,Mp1);
     
-    R1 = Mq1*inv(Mp1);
-    R2 = Mq*inv(Mp);
+    R3 = Mq3*inv(Mp3)
+    R2 = Mq2*inv(Mp2)
+    R = Mq1*inv(Mp1)
     
 toc
 %     norm(logm(R2'*T1(1:3,1:3)),'fro')*57.3
@@ -169,6 +171,29 @@ function M = mean_iterative(SO3s,M_1st)
     [U, ~, V] = svd(M); 
     M = U*V';
     if det(M)<0, M = U*diag([1 1 -1])*V'; end 
+end
+
+function M = FNS_iterative(SO3s,M_1st)
+    M = M_1st;
+    iter = 1;
+    maxIter = 50;
+    
+    while iter < maxIter
+        Minv = (M)';
+        LHS = zeros(3,3);
+        RHS = zeros(3,1);
+        for k=1:size(SO3s,3)
+            v1 = rot2vec(Minv*SO3s(:,:,k));
+            RHS = RHS + v1;
+            LHS = LHS + vec2jacInv(v1);
+        end
+        xhat = LHS\RHS;
+        M = M*vec2rot(xhat);
+        if norm(xhat) < 1e-3
+            break;
+        end
+        iter = iter + 1;
+    end
 end
     
 function T = fakeRT()
