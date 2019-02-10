@@ -26,12 +26,13 @@ For some algorithms, I re-implemented them, while for others, I just write a war
 
 ## PnP tightly coupled with RANSAC:
 1. REEPnP: EPnP variance with RANSAC coupled. Normal treatement of adding RANSAC is after the estimation. Here, RANSAC is placed just after the computation of the virtual 4 control points. So a speed-up can be achieved.
-
+2. R1PnP;https://github.com/haoyinzhou/PnP_Toolbox: the one point ransac is achieved by random selecting the o point. However, each iteration it will use iterative optimization to obtain the R ant t. Theoratically, it would be slow. However, the implementation uses lots of vectorization which may boost its performance. 
 
 ## Useful links:
 PnP toolbox: 
 1. https://github.com/haoyinzhou/PnP_Toolbox
 2. https://github.com/urbste/MLPnP_matlab_toolbox
 
-## Not yet read:
-5. R1PnP;https://github.com/haoyinzhou/PnP_Toolbox
+## TODO: 
+1. summarize a report;
+2. tightly couple ransac and pnp
