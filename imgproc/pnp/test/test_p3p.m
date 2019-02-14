@@ -11,7 +11,7 @@
     
     T1 = fakeRT();
     
-    N = 20;
+    N = 100;
     p = rand([3,N]) * 5 - 2.5;
 %     p(3,:) = 5;% + rand(1);
     p(1,:) = p(1,:);
@@ -28,8 +28,8 @@
     pr = T1(1:3,1:3)*p + repmat(T1(1:3,4),1,N);
     pr = pr(:,in1);
     
-    id = randperm(size(q1,2),3);
-    pr(:,id)
+%     id = randperm(size(q1,2),3);
+%     pr(:,id)
     T1
 %     pr(:,:)
     
@@ -45,9 +45,10 @@
 %     1.0000    1.0000    1.0000    1.0000    1.0000];
 %     K = eye(3);
 %     q1n = K\q1;
+    [R,t] = p3p_fisch(P(:,1:4), q1(:,1:4), K);
 %     [R,t] = pnp_long(P(:,1:4), q1(:,1:4), K);
 %     [R, t] = OPnP(P, q1n, K);
-%     [R,t] = pnp_gOp(P, q1, K);
+%     [R,t] = RPnP_re(P, q1n(1:2,:));
 %     [R,t] = pnp_sdr(P, q1, K, T1(1:3,1:3), T1(1:3,4));
 %     [R, t] = pnp_ak(P(:,:), q1, K, pr);
 %     [R, t] = epnp_original(P(:,:), q1(:,:), K);
@@ -55,10 +56,11 @@
 %     [R, t] = orthogonal_iterative_optimization(P(:,:), q1n);
     params.beta0 = 2.0e-04;
     params.noise_std = 0;
-    [R,t,am] = soft_posit(P, q1, params, K)
+%     [R,t,am] = soft_posit(P, q1, params, K)
 
 
     R
+    t
     % ppnp
 %     q1n = K\q1;
 %     [R, t] = ppnp(q1n', P', 1e-6);
