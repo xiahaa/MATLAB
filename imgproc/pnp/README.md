@@ -34,6 +34,7 @@ For some algorithms, I re-implemented them, while for others, I just write a war
 PnP toolbox: 
 1. https://github.com/haoyinzhou/PnP_Toolbox
 2. https://github.com/urbste/MLPnP_matlab_toolbox
+3. https://github.com/madaiqian/PnP-camera-pose-estimation
 
 ## TODO: 
 1. summarize a report;
