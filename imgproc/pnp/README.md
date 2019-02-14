@@ -11,6 +11,8 @@ For some algorithms, I re-implemented them, while for others, I just write a war
 7. EPnP (intermediate result differs with the EPnP, but final result approaches with numerical error);
 8. POSIT;
 9. softPOSIT (not very stable, in some case fail to converge);
+10. P3P Fisch;
+11. OPnP (much slower than the original OPnP because of the elimination template), still working on this;
 
 ## use only Warpper to call 3rdparty implementation:
 ### MLEstimator variant:
