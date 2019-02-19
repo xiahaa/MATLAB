@@ -2,21 +2,57 @@ function varargout = pose_estimation_correspondence_free(p, q, varargin)
     nq = size(q,2);
     np = size(p,2);
     %% step 1: forme SO(3) for qn and P
-    set_q = nchoosek(1:nq,2);
-    set_p = nchoosek(1:np,2);
+%     set_q = nchoosek(1:nq,2);
+%     set_p = nchoosek(1:np,2);
 
-    SO3_q = formeSO3(q, set_q);
-    SO3_p = formeSO3(p, set_p);
+    SO3_q = formeSO3(q);
+    SO3_p = formeSO3(p);
 
     %     SO3_q = rankingSO3(SO3_q);
     %     SO3_p = rankingSO3(SO3_p);
-    Mq1 = mean_1st_order(SO3_q);
-%         Mq2 = mean_iterative_kron(SO3_q,Mq1);
-    Mq3 = FNS_iterative(SO3_q,Mq1);
+    
+    wp = ones(1,size(SO3_p,3))./size(SO3_p,3);
+    wq = ones(1,size(SO3_q,3))./size(SO3_q,3);
+    
+    maxiter = 50;
+    iter = 1;
+    while iter <= maxiter
+        Mq1 = mean_1st_order(SO3_q, wq);
+    %     Mq3 = mean_iterative_kron(SO3_q,Mq1);
+        Mp1 = mean_1st_order(SO3_p, wp);
+    %     Mp3 = mean_iterative_kron(SO3_p,Mp1);
+    
+        % update weight
+        R = Mq1*Mp1';
+        
+        oldwp = wp;
+        oldwq = wq;
 
-    Mp1 = mean_1st_order(SO3_p);
-%         Mp2 = mean_iterative_kron(SO3_p1,Mp1);
-    Mp3 = FNS_iterative(SO3_p,Mp1);
+        [wp,wq] = update_weight(SO3_p,SO3_q,R,wp,wq);
+        
+        if iter > 1
+            if norm(oldwp-wp) < 1e-6 && norm(oldwq-wq) < 1e-6
+                break;
+            end
+        end
+        
+        
+        iter = iter + 1;
+    end
+    
+    % outlier
+    outlierp = abs(wp-mean(wp))>1*sqrt(var(wp));
+    outlierq = abs(wp-mean(wq))>1*sqrt(var(wq));
+    SO3_q = SO3_q(:,:,~outlierq);
+    wq = wq(~outlierq);
+    SO3_p = SO3_p(:,:,~outlierp);
+    wp = wp(~outlierp);
+    % refine
+    Mq1 = mean_1st_order(SO3_q, wq);
+    Mp1 = mean_1st_order(SO3_p, wp);
+    
+    Mq3 = FNS_iterative(SO3_q,Mq1,wq);
+    Mp3 = FNS_iterative(SO3_p,Mp1,wp);
 
     R1 = Mq3*Mp3';
 %     R2 = Mq2*inv(Mp2)
@@ -36,6 +72,36 @@ function varargout = pose_estimation_correspondence_free(p, q, varargin)
     end
 end
     
+function [wp,wq] = update_weight(Rp,Rq,R,wp,wq)
+    m = size(Rp,3);
+    n = size(Rq,3);
+    
+    so3q = zeros(3,n);
+    for j = 1:n
+        so3q(:,j) = rot2vec(Rq(:,:,j));
+    end
+    l1 = 1/m;
+    l2 = 1/n;
+    dists = zeros(m,n);
+    for i = 1:m
+        so3p = Rp(:,:,i);
+        so3qp = rot2vec(R*so3p);
+        err = so3q - repmat(so3qp,1,n);
+        err = diag(err'*err);
+        dists(i,:) = err';
+    end
+    beta = 0.001;
+    alpha = 3*pi/180.0;
+    
+    min1 = min(dists,[],2);
+    wp = l1.*exp(-beta.*(min1-alpha))';
+    wp = wp ./ norm(wp);
+    
+    min2 = min(dists,[],1);
+    wq = l2.*exp(-beta.*(min2-alpha));
+    wq = wq ./ norm(wq);
+end
+
 function goodSO3s = rankingSO3(SO3s)
 % maybe it will be more robust to choose N salient orientation matrices
 % rather than work with the whole set.
