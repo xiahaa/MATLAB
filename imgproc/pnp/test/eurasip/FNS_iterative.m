@@ -16,8 +16,9 @@ function M = FNS_iterative(SO3s,M_1st,varargin)
         RHS = zeros(3,1);
         for k=1:size(SO3s,3)
             v1 = rot2vec(Minv*SO3s(:,:,k));
-            RHS = RHS + weight(k).*v1;
-            LHS = LHS + weight(k).*vec2jacInv(v1);
+            J = vec2jacInv(v1);
+            RHS = RHS + v1;
+            LHS = LHS + J;
         end
         xhat = LHS\RHS;
         M = M*vec2rot(xhat);
