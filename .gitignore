@@ -30,3 +30,4 @@ hand_eye_calib/stochastics/test/test.m
 imgproc/pnp/test/test_nargin.m
 imgproc/pnp/test/eurasip/data/data_100_0.01_10txt
 imgproc/pnp/test/eurasip/data/*
+imgproc/pnp/test/formeSO32.m

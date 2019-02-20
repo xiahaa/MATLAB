@@ -6,10 +6,10 @@ function SO3s = formeSO3(p)
     dist = p - repmat(center,1,np);
     dist = diag(dist'*dist);
     % sort
-    [~,sortid] = sort(dist);
+    [val,sortid] = sort(dist,'ascend');
     % select from 25%-75%
-    lowerbd = round(0.25*np);
-    upperbd = round(0.75*np);
+    lowerbd = round(0.1*np);
+    upperbd = round(0.9*np);
     % filtering
     filterid = sortid(lowerbd:upperbd);
     % cn2
@@ -29,7 +29,7 @@ function SO3s = formeSO3(p)
             tmp = v1;v1 = v2;v2 = tmp;
         end
          
-        if norm(v1) < 1e-3 || norm(v2) < 1e-3 
+        if norm(cross(v1,v2)) < 1e-3 || norm(v1) < 1e-3 || norm(v2) < 1e-3 
             continue;
         else
             %% case 1
