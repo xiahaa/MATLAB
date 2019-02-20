@@ -14,7 +14,7 @@ function varargout = pose_estimation_correspondence_free(p, q, varargin)
     wp = ones(1,size(SO3_p,3))./size(SO3_p,3);
     wq = ones(1,size(SO3_q,3))./size(SO3_q,3);
     
-    maxiter = 50;
+    maxiter = 30;
     iter = 1;
     while iter <= maxiter
         Mq1 = mean_1st_order(SO3_q, wq);
@@ -41,12 +41,12 @@ function varargout = pose_estimation_correspondence_free(p, q, varargin)
     end
     
     % outlier
-    outlierp = abs(wp-mean(wp))>1*sqrt(var(wp));
-    outlierq = abs(wp-mean(wq))>1*sqrt(var(wq));
-    SO3_q = SO3_q(:,:,~outlierq);
-    wq = wq(~outlierq);
-    SO3_p = SO3_p(:,:,~outlierp);
-    wp = wp(~outlierp);
+%     outlierp = abs(wp-mean(wp))>1*sqrt(var(wp));
+%     outlierq = abs(wp-mean(wq))>1*sqrt(var(wq));
+%     SO3_q = SO3_q(:,:,~outlierq);
+%     wq = wq(~outlierq);
+%     SO3_p = SO3_p(:,:,~outlierp);
+%     wp = wp(~outlierp);
     % refine
     Mq1 = mean_1st_order(SO3_q, wq);
     Mp1 = mean_1st_order(SO3_p, wp);
@@ -80,25 +80,33 @@ function [wp,wq] = update_weight(Rp,Rq,R,wp,wq)
     for j = 1:n
         so3q(:,j) = rot2vec(Rq(:,:,j));
     end
-    l1 = 1/m;
-    l2 = 1/n;
+
     dists = zeros(m,n);
     for i = 1:m
         so3p = Rp(:,:,i);
         so3qp = rot2vec(R*so3p);
         err = so3q - repmat(so3qp,1,n);
-        err = diag(err'*err);
+        err = sqrt(diag(err'*err));
         dists(i,:) = err';
     end
-    beta = 0.001;
-    alpha = 3*pi/180.0;
-    
-    min1 = min(dists,[],2);
-    wp = l1.*exp(-beta.*(min1-alpha))';
-    wp = wp ./ norm(wp);
-    
+    min1 = min(dists,[],2)';
     min2 = min(dists,[],1);
-    wq = l2.*exp(-beta.*(min2-alpha));
+    gamma = 0.0001;
+    min1(abs(min1) < 1e-6) = gamma;
+    min2(abs(min2) < 1e-6) = gamma;
+    
+    wp = 1 ./ min1;
+    wq = 1 ./ min2;
+%     l1 = 1/m;
+%     l2 = 1/n;
+%     
+%     beta = 0.001;
+%     alpha = 3*pi/180.0;
+%     
+%     wp = l1.*exp(-beta.*(min1-alpha))';
+    wp = wp ./ norm(wp);
+%     
+%     wq = l2.*exp(-beta.*(min2-alpha));
     wq = wq ./ norm(wq);
 end
 
