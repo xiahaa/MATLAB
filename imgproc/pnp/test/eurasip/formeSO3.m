@@ -29,9 +29,9 @@ function SO3s = formeSO3(p)
             tmp = v1;v1 = v2;v2 = tmp;
         end
          
-%         if norm(v1) < 1e-3 || norm(v2) < 1e-3 
-%             continue;
-%         else
+        if norm(v1) < 1e-3 || norm(v2) < 1e-3 
+            continue;
+        else
             %% case 1
             vn1 = v1./norm(v1);vn2 = v2./norm(v2);
             vn3 = cross(vn1,vn2);vn3 = vn3./norm(vn3);
@@ -45,6 +45,6 @@ function SO3s = formeSO3(p)
 %             SO3s(:,:,k) = [vn1 vn2 vn3];
 %             k = k + 1;
             
-%         end
+        end
     end
 end
