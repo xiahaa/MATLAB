@@ -9,6 +9,14 @@ for i=1:n
     xxv(:,i)= xxv(:,i)/norm(xxv(:,i));
 end
 
+[retinliers, cost, itercnt] = two_point_ransac_for_pnp(XXw,xxv);
+
+XX = XX(:,retinliers);
+xx = xx(:,retinliers);
+XXw= XX;
+xxv = xxv(:,retinliers);
+n= length(xx);
+
 % selecting an edge $P_{i1}P_{i2}$ by n random sampling
 i1= 1;
 i2= 2;
@@ -34,18 +42,18 @@ p1= XX(:,i1);
 p2= XX(:,i2);
 p0= (p1+p2)/2;
 x= p2-p0; x= x/norm(x);
-% if abs([0 1 0]*x) < abs([0 0 1]*x)
-%     z= xcross(x,[0; 1; 0]); z= z/norm(z);
-%     y= xcross(z, x); y= y/norm(y);
-% else
-%     y= xcross([0; 0; 1], x); y= y/norm(y);
-%     z= xcross(x,y); z= z/norm(z);
-% end
-% Ro= [x y z];
+if abs([0 1 0]*x) < abs([0 0 1]*x)
+    z= xcross(x,[0; 1; 0]); z= z/norm(z);
+    y= xcross(z, x); y= y/norm(y);
+else
+    y= xcross([0; 0; 1], x); y= y/norm(y);
+    z= xcross(x,y); z= z/norm(z);
+end
+Ro= [x y z];
 
-b = acos(dot(x,[1,0,0]));
-axis = cross([1,0,0]',x);axis = axis./norm(axis);
-Ro = vec2rot(b.*axis);
+% b = acos(dot(x,[1,0,0]));
+% axis = cross([1,0,0]',x);axis = axis./norm(axis);
+% Ro = vec2rot(b.*axis);
 
 % transforming the reference points form orignial object space 
 % to the new coordinate frame  $O_aX_aY_aZ_a$.
@@ -130,6 +138,8 @@ else % =======================================================================
 end
 
 % retriving the local minima of the cost function.
+try % try catch added by Luis Ferraz 
+    
 t2s= roots(D7);
 
 maxreal= max(abs(real(t2s)));
@@ -141,7 +151,12 @@ F6= polyval(D6,t2s);
 t2s(F6 <= 0)= [];
 
 if isempty(t2s)
-    fprintf('no solution!\n');
+    %fprintf('no solution!\n');
+    return
+end
+
+catch
+    %fprintf('no solution!\n');
     return
 end
 
