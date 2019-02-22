@@ -16,7 +16,7 @@
     p(2,:) = p(2,:);
     
     q = T1(1:3,1:3)*p + repmat(T1(1:3,4),1,N);
-    q = q(:,1:N);
+    q = q(:,1:N) + rand(3,N).*0.01;
     T1
     
     [R,t] = pose_est_without_correspondance(p, q, T1(1:3,1:3));
@@ -102,7 +102,7 @@ function [R,t] = pose_est_without_correspondance(p, q, Rx)
 %     A_noise_mex = reshape(SE3_q, a1, a2*a3);
 %     [a1,a2,a3]  = size(SE3_p);
 %     B_mex = reshape(SE3_p, a1, a2*a3);
-    opt = 2;
+    opt = 4;
     [X_solved, MA, MB, SigA, SigB] = batchSolveNew(SE3_q, SE3_p, opt);
 %     dT = sol_manifold_opt_SE3(SE3_q, SE3_p, size(SE3_q,1));
 %     X_solved

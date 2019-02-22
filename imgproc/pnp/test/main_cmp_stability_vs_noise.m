@@ -14,8 +14,8 @@ prefix = 'C:/Users/xiahaa/Documents/MATLAB/imgproc/pnp/test/eurasip/data/';
 % name = {'ordinary'};% 'plane'   % quasi-singular
 suffix = '.mat';
 
-number_of_points = 100;%:20:50;
-noise_level = 0.03:0.01:0.05;
+number_of_points = 20;%:20:50;
+noise_level = 0.05:0.01:0.1;
 
 numstd = length(noise_level);
 res_error_r = cell(numstd,2);%, 100);

@@ -14,13 +14,19 @@ addpath('../../../beautiful_plot');
 addpath('../');
 addpath('./eurasip/');
 
+% prefix = 'C:/Users/xiahaa/Documents/MATLAB/imgproc/pnp/test/eurasip/data/';
+% name = {'ordinary'};% 'plane'   % quasi-singular
+% suffix = '.mat';
+% %     stds = [0 0.1 0.25 0.5 0.75 1];
+% stds = [0.0 0.01 0.02 0.03 0.04 0.05];
+
 %% experimental configurations
-noise_level = 0.0:0.1:0.2;%0.5:0.5:5;
-number_of_points = 10:20:50;
+noise_level = 0.05:0.1:0.2;%0.5:0.5:5;
+number_of_points = 50;%:20:50;
 iterations = 20;
 
 outlier_percent = 0.0;
-random_order_percent = 0.3;
+random_order_percent = 0.5;
 
 %% function handler to call you method
 name= {'SVD'}%,'PROPOSED','ICP'};
@@ -46,16 +52,26 @@ usepcl = [0 0 1];
 % f = waitbar(0,'Solving...','Name','Pose Estimation Simulation',...
 %     'CreateCancelBtn','setappdata(gcbf,''canceling'',1)');
 
-%     gen = test_case{i};
+    gen = @datagen;
     for i = 1:length(number_of_points)
         num = number_of_points(i);
         for j= 1:numel(noise_level)
             nl= noise_level(j);
-            fprintf('noise_level = %.1f: ',nl);
+            fprintf('noise_level = %.3f: ',nl);
             index_fail = [];
             for k = 1:iterations
                 [P, Q, R, t] = gen(num);
 
+%            P = [-1.9496   -1.4197    2.1843   -0.7022    1.6351; ...
+%                 -1.1039   -2.3297   -1.1896   -2.3658   -1.2051; ...
+%                  1.3382   -0.3172    0.3487    0.0021   -2.2706];
+% 
+% 
+%             Q = [ ...
+%                 3.9088    5.2289    7.1965    5.7747    6.9922; ...
+%                 1.9878    1.8314    4.6834    2.1515    5.0434; ...
+%                 5.3174    3.6570    5.3085    4.1236    2.6644;];
+                
                 %% outlier
                 num_outliers = round(outlier_percent * num);
                 source = randperm(num, num_outliers);
@@ -140,4 +156,28 @@ for i = 1:size(test_case, 2)
         'Gaussian Noise std','Rotation Error (degrees)');
 end
 
+function [p,q,R,t] = datagen(N)
+    T1 = fakeRT();
+    p = rand([3,N]) * 5 - 2.5;
+    % p(3,:) = 5;%p(3,:);
+    p(1,:) = p(1,:);
+    p(2,:) = p(2,:);
+    s = 1;
+    q = s.*(T1(1:3,1:3)*p + repmat(T1(1:3,4),1,N));
+    q = q(:,1:N) + rand([3,N]).*0.0;
+    R = T1(1:3,1:3);
+    t = T1(1:3,4);
+end
 
+function T = fakeRT()
+    euler(1) = (rand(1)*pi/2 - pi/4);
+    euler(2) = (rand(1)*pi/2 - pi/4);
+    euler(3) = (rand(1)*2*pi - pi);
+    R1 = euler2rot(euler(1),euler(2),euler(3));
+    t1 = rand([1,3]) * 2 + 3;
+    t1 = t1';
+    t1(1) = t1(1);
+    t1(2) = t1(2);
+    t1(3) = t1(3);
+    T = [R1 t1;[0 0 0 1]];
+end

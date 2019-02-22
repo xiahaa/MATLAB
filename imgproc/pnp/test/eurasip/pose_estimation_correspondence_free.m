@@ -27,7 +27,7 @@ function varargout = pose_estimation_correspondence_free(p, q, varargin)
     wp = ones(1,size(SO3_p,3))./size(SO3_p,3);
     wq = ones(1,size(SO3_q,3))./size(SO3_q,3);
     
-    maxiter = 10;
+    maxiter = 20;
     iter = 1;
     while iter <= maxiter
         Mq1 = mean_1st_order(SO3_q, wq);
@@ -61,11 +61,11 @@ function varargout = pose_estimation_correspondence_free(p, q, varargin)
 %     SO3_p = SO3_p(:,:,~outlierp);
 %     wp = wp(~outlierp);
     % refine
-    Mq1 = mean_1st_order(SO3_q, wq);
-    Mp1 = mean_1st_order(SO3_p, wp);
+    Mq1 = mean_1st_order(SO3_q,wq);
+    Mp1 = mean_1st_order(SO3_p,wp);
     
-    Mq3 = Mq1;%mean_Taylor_2nd_SO3(SO3_q,1000);
-    Mp3 = Mp1;%mean_Taylor_2nd_SO3(SO3_p,1000);
+    Mq3 = Mq1;%FNS_iterative2(SO3_q,Mq1,wq);
+    Mp3 = Mp1;%FNS_iterative2(SO3_p,Mp1,wp);
 
     R1 = Mq3*Mp3';
 %     R2 = Mq2*inv(Mp2)
@@ -104,22 +104,22 @@ function [wp,wq] = update_weight(Rp,Rq,R,wp,wq)
     end
     min1 = min(dists,[],2)';
     min2 = min(dists,[],1);
-%     gamma = 0.0001;
-%     min1(abs(min1) < 1e-6) = gamma;
-%     min2(abs(min2) < 1e-6) = gamma;
+    gamma = 0.0001;
+    min1(abs(min1) < 1e-6) = gamma;
+    min2(abs(min2) < 1e-6) = gamma;
+    
+    wp = 1 ./ min1;
+    wq = 1 ./ min2;
+%     l1 = 1/m;
+%     l2 = 1/n;
 %     
-%     wp = 1 ./ min1;
-%     wq = 1 ./ min2;
-    l1 = 1/m;
-    l2 = 1/n;
+%     beta = 0.001;
+%     alpha = 3*pi/180.0;
     
-    beta = 0.001;
-    alpha = 3*pi/180.0;
-    
-    wp = l1.*exp(-beta.*(min1-alpha))';
+%     wp = l1.*exp(-beta.*(min1-alpha))';
     wp = wp ./ norm(wp);
-%     
-    wq = l2.*exp(-beta.*(min2-alpha));
+    
+%     wq = l2.*exp(-beta.*(min2-alpha));
     wq = wq ./ norm(wq);
 end
 

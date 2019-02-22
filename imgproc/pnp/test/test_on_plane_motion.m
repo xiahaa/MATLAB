@@ -98,6 +98,7 @@ tic
     SO3_q = formeSO3(q, set_q);
     SO3_p = formeSO3(p, set_p);
     
+    SO3_p = fliplr(SO3_p);
     
     %%% try directly work with lie algebra, doesn't work %%%
 %     b1 = zeros(3,1);
@@ -157,40 +158,48 @@ tic
     j = 0;
 %     threshold = 5/57.3;
 %     old_inlier_p = -1;
-    old_var = -1;
-    while j < 100
-        Mq = mean_Taylor_1st( SO3_q );
-        SigA = zeros(3,3);
-        for i = 1:size(SO3_p1,3)
-            X_i = SO3_p1(:,:,i);
-            P = Mp1\X_i;
-            SigA = SigA + so3_vec(logm(P))*so3_vec(logm(P))';
-        end
-        stdA = diag(sqrtm(SigA));
-        for i = 1:size(SO3_p1,3)
-            
-        end
-        
-        Mp1 = mean_Taylor_1st( SO3_p1 );
-        SigB = zeros(3,3);
-        for i = 1:size(SO3_q,3)
-            X_i = SO3_q(:,:,i);
-            P = Mq\X_i;
-            SigB = SigB + so3_vec(logm(P))*so3_vec(logm(P))';
-        end
-        
-        p1 = 1/((2*pi)^3*det(SigA));
-        p2 = 1/((2*pi)^3*det(SigB));
-        
-        if p1 > 0.8 && p2 > 0.8
-            break;
-        end
-        
-        
-        
-        j = j + 1;
-    end
-        R2 = Mq*inv(Mp1);
+%     old_var = -1;
+%     while j < 100
+%         Mq = mean_Taylor_1st( SO3_q );
+%         SigA = zeros(3,3);
+%         for i = 1:size(SO3_p1,3)
+%             X_i = SO3_p1(:,:,i);
+%             P = Mq\X_i;
+%             SigA = SigA + so3_vec(logm(P))*so3_vec(logm(P))';
+%         end
+%         stdA = diag(sqrtm(SigA));
+%         for i = 1:size(SO3_p1,3)
+%             
+%         end
+%         
+%         Mp1 = mean_Taylor_1st( SO3_p1 );
+%         SigB = zeros(3,3);
+%         for i = 1:size(SO3_q,3)
+%             X_i = SO3_q(:,:,i);
+%             P = Mp1\X_i;
+%             SigB = SigB + so3_vec(logm(P))*so3_vec(logm(P))';
+%         end
+%         
+%         p1 = 1/((2*pi)^3*det(SigA));
+%         p2 = 1/((2*pi)^3*det(SigB));
+%         
+%         if p1 > 0.8 && p2 > 0.8
+%             break;
+%         end
+%         
+%         
+%         
+%         j = j + 1;
+%     end
+
+    Mq = mean_Taylor_1st( SO3_q );
+    Mp1 = mean_Taylor_1st( SO3_p1 );
+
+    Mq2 = mean_Taylor_2nd_SO3( Mq , n_search);
+    Mp2 = mean_Taylor_2nd_SO3( Mp1 , n_search);
+    
+        R2 = Mq*inv(Mp1)
+        Mq2*inv(Mp2)
         R = R2*R1;
         
         

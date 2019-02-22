@@ -19,8 +19,8 @@ prefix = 'C:/Users/xiahaa/Documents/MATLAB/imgproc/pnp/test/eurasip/data/';
 suffix = '.mat';
 
 %% experimental configurations
-noise_level = 0.01:0.01:0.05;
-number_of_points = 100;%:10:100;%:20:50;
+noise_level = 0.05:0.01:0.1;
+number_of_points = 20;%:10:100;%:20:50;
 iterations = 50;
 
 random_order_percent = 0.5;
@@ -62,6 +62,16 @@ usepcl = [0 1];
                 disp(k)
                 [P, Q, R, t] = gen(num);
                 
+%                P = [-1.9496   -1.4197    2.1843   -0.7022    1.6351; ...
+%                     -1.1039   -2.3297   -1.1896   -2.3658   -1.2051; ...
+%                      1.3382   -0.3172    0.3487    0.0021   -2.2706];
+% 
+% 
+%                 Q = [ ...
+%                     3.9088    5.2289    7.1965    5.7747    6.9922; ...
+%                     1.9878    1.8314    4.6834    2.1515    5.0434; ...
+%                     5.3174    3.6570    5.3085    4.1236    2.6644;];
+%                 
                 Rs(:,:,k) = R;
                 ts(:,:,k) = t;
                 
@@ -112,10 +122,10 @@ usepcl = [0 1];
                         [R1,t1, R2, t2]= method_list(kk).f(placeholder1, placeholder2, placeholder3);%% if you want to do normalization, do it internally.
                     end
          
-                    err = cal_pose_err([R1 t1],[R t]);
+                    [errr,errt] = errors2([R1 t1],[R t]);
 %                     err1 = cal_pose_err([R2 t2],[R t]);
-                    method_list(kk).r(k)= err(1);
-                    method_list(kk).t(k)= err(2);
+                    method_list(kk).r(k)= errr;
+                    method_list(kk).t(k)= errt;
                     
 %                     PQ = R1'*Q - R1'*repmat(t1,1,size(Q,2));
 %                     
@@ -139,12 +149,19 @@ usepcl = [0 1];
     
 %% do some plot if you want
 
-
+function varargout = errors2(T, Tt)
+    R = Tt(1:3,1:3)'*T(1:3,1:3) - eye(3);
+    err1 = norm(R,'fro');
+    t = Tt(1:3,4) - T(1:3,4);
+    err2 = norm(t,2);
+    varargout{1} = err1;
+    varargout{2} = err2;
+end
 
 
 function [p,q,R,t] = datagen(N)
     T1 = fakeRT();
-    p = rand([3,N]) * 5 - 2.5;
+    p = rand([3,N]) * 2 - 1;
     % p(3,:) = 5;%p(3,:);
     p(1,:) = p(1,:);
     p(2,:) = p(2,:);
@@ -160,7 +177,7 @@ function T = fakeRT()
     euler(2) = (rand(1)*pi - pi/2);
     euler(3) = (rand(1)*2*pi - pi);
     R1 = euler2rot(euler(1),euler(2),euler(3));
-    t1 = rand([1,3]) * 2 + 3;
+    t1 = rand([1,3]) * 2 - 1;
     t1 = t1';
     t1(1) = t1(1);
     t1(2) = t1(2);
