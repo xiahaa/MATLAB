@@ -1,25 +1,26 @@
-clear; clc;
+clear all; clc;
 close all;
 
 addpath ../utils/
+addpath(genpath('../3rdparty/PnP_Toolbox-master/PnP_Toolbox-master/code'));
 
 % experimental parameters
 nl = 0; % level of noise
-npts  = 20; % number of points
-pouts = 0.1;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
+npts  = 50; % number of points
+pouts = 0.3:0.1:0.80;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
 num   = 20; % total number of trials
 
 % compared methods
 A= zeros(size(npts));
 B= zeros(num,1);
 
-name= {'Test'};%'RNSC P3P','RNSC RP4P RPnP','RNSC P3P OPnP','RNSC P3P ASPnP', 'REPPnP', 'R1PPnP'
-f = {@epnp_re_ransac};% kP3P,@RPnP,@kP3P,@kP3P,@REPPnP, @R1PPnP
-f2 = {[]}; %post ransac method: [],@RPnP,@OPnP,@ASPnP,[],[]
-ransacsamples = {0};%3,4,3,3,0,0}; %number of samples to apply ransac
-marker= {'o'};%,'d','>','<','^','x'};
-color= {'g'};%,[1,0.5,0],'c','b','r','k'};
-markerfacecolor=  {'g'};%,[1,0.5,0],'c','b','r','k'};
+name= {'Test','REPPnP', 'R1PPnP'};%'RNSC P3P','RNSC RP4P RPnP','RNSC P3P OPnP','RNSC P3P ASPnP', 'REPPnP', 'R1PPnP'
+f = {@epnp_re_ransac2,@REPPnP, @R1PPnP};% kP3P,@RPnP,@kP3P,@kP3P
+f2 = {[],[],[]}; %post ransac method: [],@RPnP,@OPnP,@ASPnP,
+ransacsamples = {0,0,0};%3,4,3,3,0,0}; %number of samples to apply ransac
+marker= {'o','d','>'};%,'d','>','<','^','x'};
+color= {'g','r','k'};%,[1,0.5,0],'c','b','r','k'};
+markerfacecolor=  {'g','r','k'};%,[1,0.5,0],'c','b','r','k'};
 
 method_list= struct('name', name, 'f', f,'f2', f2, 'ransac',ransacsamples, 'mean_r', A, 'mean_t', A,...
     'med_r', A, 'med_t', A, 'std_r', A, 'std_t', A, 'r', B, 't', B,...
@@ -75,14 +76,14 @@ for i= 1:length(pouts)
             R1 = []; t1 = []; inliers = [];
             for k= 1:length(method_list)
                  if strcmp(method_list(k).name, 'R1PPnP')
-%                     tic;
-%                     minInlierErrorinPixel = 10.0;
-%                     [R1,t1]= method_list(k).f([XXw, XXwo],[xxn, xxo]/f, f, minInlierErrorinPixel);
-%                     tcost = toc;
-%                  elseif strcmp(method_list(k).name, 'REPPnP')
-%                     tic;
-%                     [R1,t1,~,robustiters,terr]= method_list(k).f([XXw, XXwo],[xxn, xxo]/f);
-%                     tcost = toc;
+                    tic;
+                    minInlierErrorinPixel = 10.0;
+                    [R1,t1]= method_list(k).f([XXw, XXwo],[xxn, xxo]/f, f, minInlierErrorinPixel);
+                    tcost = toc;
+                 elseif strcmp(method_list(k).name, 'REPPnP')
+                    tic;
+                    [R1,t1,~,robustiters,terr]= method_list(k).f([XXw, XXwo],[xxn, xxo]/f);
+                    tcost = toc;
                  else
                      tic
                      [R1,t1]= method_list(k).f([XXw, XXwo],[xxn, xxo]/f);

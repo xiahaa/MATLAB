@@ -2,39 +2,49 @@ function [R, t] = epnp_re_ransac(p,q)
 % Implementation of EPnP algorithm.
     K = eye(3);
     
-    if size(q,1) == 2
-        qn = [q;ones(1,size(q,2))];
-    end
-    qn = qn./sqrt(qn(1,:).^2+qn(2,:).^2+qn(3,:).^2);
-    [retinliers, cost, itercnt] = two_point_ransac_for_pnp(p,qn);
+%     if size(q,1) == 2
+%         qn = [q;ones(1,size(q,2))];
+%     end
+%     qn = qn./sqrt(qn(1,:).^2+qn(2,:).^2+qn(3,:).^2);
+%     [retinliers, cost, itercnt] = two_point_ransac_for_pnp(p,qn);
 
 %     p = p(:,retinliers);
 %     q = q(:,retinliers);
     
     n = size(p,2);
     %% 1st step, define the virtual point
-    cw = [1 0 0;0 1 0;0 0 1;0 0 0]';
-    Cw = [1 0 0 0;0 1 0 0;0 0 1 0;1 1 1 1];
+%     cw = [1 0 0;0 1 0;0 0 1;0 0 0]';
+%     Cw = [1 0 0 0;0 1 0 0;0 0 1 0;1 1 1 1];
+    %% modify by me here, use one point as the base
+    qn1 = p(:,1) ./ norm(p(:,1));qn1 = qn1';
+    qn2 = [-qn1(2) qn1(1) 0];qn2 = qn2./norm(qn2);
+    qn3 = cross(qn1,qn2);qn3 = qn3 ./ norm(qn3);
+    cw = [qn1;qn2;qn3;0 0 0]';
+    Cw = [qn1 0;qn2 0;qn3 0;1 1 1 1];
+    
     ph = [p;ones(1,n)];
     alpha = Cw\ph;
     
     %% create M
-    fu = K(1,1);fv = K(2,2);
-    cu = K(1,3);cv = K(2,3);
+%     fu = K(1,1);fv = K(2,2);
+%     cu = K(1,3);cv = K(2,3);
+%     M = zeros(2*n,12);
+%     for i = 1:n
+%         cu_ui = cu-q(1,i);
+%         M(i*2-1, :) = [alpha(1,i)*fu 0 alpha(1,i)*(cu_ui) ...
+%                        alpha(2,i)*fu 0 alpha(2,i)*(cu_ui) ...
+%                        alpha(3,i)*fu 0 alpha(3,i)*(cu_ui) ...
+%                        alpha(4,i)*fu 0 alpha(4,i)*(cu_ui)];
+%         cv_vi = cv-q(2,i);
+%         M(i*2, :) = [0 alpha(1,i)*fv alpha(1,i)*(cv_vi) ...
+%                      0 alpha(2,i)*fv alpha(2,i)*(cv_vi) ...
+%                      0 alpha(3,i)*fv alpha(3,i)*(cv_vi) ...
+%                      0 alpha(4,i)*fv alpha(4,i)*(cv_vi)];
+%     end
     
-    M = zeros(2*n,12);
-    for i = 1:n
-        cu_ui = cu-q(1,i);
-        M(i*2-1, :) = [alpha(1,i)*fu 0 alpha(1,i)*(cu_ui) ...
-                       alpha(2,i)*fu 0 alpha(2,i)*(cu_ui) ...
-                       alpha(3,i)*fu 0 alpha(3,i)*(cu_ui) ...
-                       alpha(4,i)*fu 0 alpha(4,i)*(cu_ui)];
-        cv_vi = cv-q(2,i);
-        M(i*2, :) = [0 alpha(1,i)*fv alpha(1,i)*(cv_vi) ...
-                     0 alpha(2,i)*fv alpha(2,i)*(cv_vi) ...
-                     0 alpha(3,i)*fv alpha(3,i)*(cv_vi) ...
-                     0 alpha(4,i)*fv alpha(4,i)*(cv_vi)];
-    end
+    %ATTENTION U must be multiplied by K previously
+    M = kron(alpha',[1 0 -1; 0 1 -1]);
+    M(:,[[3,6,9,12]]) =  M(:,[3,6,9,12]) .* (q(:) * ones(1,4));
     
     %% deomposition, 
 %     [ev,ee] = eig(M'*M);
@@ -75,8 +85,8 @@ function [R, t] = epnp_re_ransac(p,q)
     [R1(:,:,4),t1(:,4)] = svd_3d23d(p, qc4);
     
     %% find the best solution
-    errs = zeros(1,4);
-    for i = 1:4
+    errs = zeros(1,3);
+    for i = 1:3
         errs(i)=calc_reproj_err(p,q,R1(:,:,i),t1(:,i),K);
     end
     [~,minid] = min(errs);
