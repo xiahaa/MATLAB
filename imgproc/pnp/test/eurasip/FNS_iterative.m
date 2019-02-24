@@ -4,7 +4,7 @@ function M = FNS_iterative(SO3s,M_1st,varargin)
 % and applies optimization directly on SO3.
     M = M_1st;
     iter = 1;
-    maxIter = 20;
+    maxIter = 100;
     if nargin == 2
         weight = ones(1,size(SO3s,3))./size(SO3s,3);
     else

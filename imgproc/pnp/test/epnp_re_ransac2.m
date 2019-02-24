@@ -3,7 +3,7 @@ function [R, t] = epnp_re_ransac2(p,q)
     sol_iter = 1; %indicates if the initial solution must be optimized
     dims = 4;     %kernel dimensions
     
-    
+    minerror = 0.02;
     
 %     qn1 = p(:,1) ./ norm(p(:,1));qn1 = qn1';
 %     qn2 = [-qn1(2) qn1(1) 0];qn2 = qn2./norm(qn2);
@@ -16,7 +16,7 @@ function [R, t] = epnp_re_ransac2(p,q)
     minset = 1;
     maxiter = 1e6;
     iter = 0;
-    bestcost = 1e6;
+    bestcost = 0;
     inliers = [];
     
     % total number
@@ -43,19 +43,22 @@ function [R, t] = epnp_re_ransac2(p,q)
     
         [M, Cw, Alph] = PrepareData1(p,q,Cw);
 
-        Km=kernel_noise(M,dims); %Compute kernel M
+        %roubst kernel estimation
+        [Km, cidinliers, robustiters] = my_robust_kernel_noise2(M,dims,minerror);
         
-        [R, t] = KernelPnP1(cw, Km, dims, 0);
+
         
+        %% rely on reporjection error, this has to be run together with a softweight or outlier suppression
+%         Km=kernel_noise(M,dims); %Compute kernel M
+%         [R, t] = KernelPnP1(cw, Km, dims, 0);
         % reproj_err
-        rep_err = calc_reproj_err(p,q,R,t,eye(3));
-        cinliers = id(rep_err < 0.2);
-        ninliers = numel(cinliers);
+%         rep_err = calc_reproj_err(p,q,R,t,eye(3));
+%         cidinliers = id(rep_err < 0.2);
+        ninliers = numel(cidinliers);
         
-        %    T = T - R * mPts;
-        if sum(rep_err(cinliers)) < bestcost
-            bestcost = sum(rep_err(cinliers));
-            inliers = cinliers;
+        if ninliers > bestcost
+            bestcost = ninliers;%sum(rep_err(cinliers));
+            inliers = cidinliers;
 %             ninliers = numel(rinlier); 
             % Update estimate of N, the number of trials to ensure we pick,
             % with probability p, a data set with no outliers.
@@ -104,6 +107,96 @@ function M = ComputeM1(U,Alph)
     %ATTENTION U must be multiplied by K previously
     M = kron(Alph,[1 0 -1; 0 1 -1]);
     M(:,[[3,6,9,12]]) =  M(:,[3,6,9,12]) .* (U * ones(1,4));
+end
+
+function [K, idinliers, i]=my_robust_kernel_noise2(M,dimker, minerror)
+    m   = size(M,1);
+    prev_cost = Inf;
+    maxIter = 30;
+    softWeight = ones(m,1);
+    prev_inlier_cnt = -m;
+    id1 = 1:2:m-1;
+    id2 = 2:2:m;
+    for i=1:maxIter
+        N = softWeight.*M;
+        [~,~,v] = svd(N'*N);
+
+        error21    = M(1:2:end,:) * v(:,end);
+        error22    = M(2:2:end,:) * v(:,end);
+        error2     = sqrt(error21.^2 + error22.^2);
+            
+        w = minerror./error2;
+        softWeight(id1,1) = w;softWeight(id2,1) = w;
+        softWeight(softWeight>1) = 1;
+        ninliers = sum(error2<minerror);
+       
+        ccost = sum(error2);
+        
+        if (abs(ccost-prev_cost) < 1e-6) || (ninliers-prev_inlier_cnt) < 1
+            break;
+        else
+            prev_inlier_cnt = ninliers;
+            prev_cost = ccost;
+            resv    = v;
+        end
+    end
+    idx = 1:m/2;
+    K = resv(:,end-dimker+1:end);   
+    idinliers = idx(error2<minerror);
+end
+
+function [K, idinliers, i]=my_robust_kernel_noise1(M,dimker, minerror)
+    m   = size(M,1);
+    id  =round(m/8);
+    idx = 1:m;
+    prev_sv = Inf;
+    pairs = 1; %each correspondence is a couple of equations
+    for i=1:30
+        N = M(idx,:);
+        [~,~,v] = svd(N'*N);
+       
+        if (pairs)
+            error21    = M(1:2:end,:) * v(:,end);
+            error22    = M(2:2:end,:) * v(:,end);
+            error2     = sqrt(error21.^2 + error22.^2);
+            
+            [sv, tidx] = sort(error2);        
+
+            med = sv(floor(m/16)); 
+
+        else
+            error2    = M * v(:,end);
+            [sv, tidx] = sort(error2.^2);
+            med = sv(floor(m/2)); 
+        end
+     
+        ninliers = sum(sv<max(med,minerror));
+
+        if (med >= prev_sv)
+            break;
+        else
+            prev_sv = med;
+            resv    = v;
+            if(pairs)
+                residx  = tidx(1:ninliers);
+            else
+                %always pairs = 1!! :P
+               
+            end
+        end
+        
+        if(pairs)
+            tidx2     = tidx'*2;
+            ttidx     = [tidx2-1; tidx2];
+            tidx2     = ttidx(:);
+            idx       = tidx2(1:2*ninliers);
+        else
+            idx       = tidx(1:ninliers);
+        end
+    end
+    
+    K = resv(:,end-dimker+1:end);   
+    idinliers = residx;
 end
 
 function [R,T, err] = KernelPnP1(Cw, Km, dims, sol_iter)
