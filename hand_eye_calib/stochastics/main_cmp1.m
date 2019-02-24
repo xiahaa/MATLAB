@@ -7,8 +7,9 @@ close all
 
 %% ----- Add Extra Worksapce ----- %%
 addpath ../../quaternion
+addpath ../../quaternion
 addpath utils/
-addpath ../../beautiful_plot
+addpath ../evaluation
 addpath mean/
 
 %% ---- Initilization ---- %%
@@ -34,7 +35,7 @@ end
 M = 5; % Number of noise levels
 N = 10; % Number of iterations for each noise level
 
-noise = 0.01:0.1/M:0.09; % standard deviation
+noise = 1.0:0.1:1.4; % standard deviation
 % noise = [0.1, 0.2, 0.3 ,0.4, 0.5, 0.6, 0.7 ,0.8, 0.9];
 % noise = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1];
 
@@ -52,6 +53,10 @@ e_tX2_true = zeros(N,M);
 
 X_noise = [];
 
+t1 = zeros(N,M);
+t2 = zeros(N,M);
+t3 = zeros(N,M);
+
 for j = 1:length(noise)
     for i = 1: N
         
@@ -64,11 +69,18 @@ for j = 1:length(noise)
         %% ------ Distribution Generation ------ %%
         [a1,a2,a3] = size(X_noise);
         X_noise_mex = reshape(X_noise, a1, a2*a3);
-        
-        [ MX, ~ ] = distibutionPropsMex( X_noise_mex );
-        [ MX1, ~] = mean_Taylor_1st( X_noise_mex );
-        MX2 = mean_Taylor_2nd_adv_recursive( X_noise_mex, 1, n_search );
-        
+%         tic
+%         [ MX, ~ ] = distibutionPropsMex( X_noise_mex );
+        [ MX, ~ ] = mean_Taylor_1st( X_noise_mex );
+%         t1(i,j) = toc;
+%         [ MX1] = mean_Taylor_2nd( X_noise_mex, 1, n_search );
+%         tic
+        MX1 = mean_Taylor_2nd_adv_recursive( X_noise_mex, 1, n_search );
+%         toc;
+%         tic
+        MX2 = mean_Taylor_2nd_adv_recursive3( X_noise_mex );
+%         toc;
+%         [ MX, ~ ] = batchSolveNew(A, B, opt);
         
         %% ----- Rot and Trans Errors ---- %%     
         e_RX(i,j) = roterror(X_true, MX);
@@ -85,15 +97,17 @@ for j = 1:length(noise)
         
     end
     
+    
+    
     %% Frame Clouds Visualization
-    figure
-    if false
-        trplot(X(:,:,1), 'color', 'r', 'length', 5)
-        for k = 1:size(X_noise,3)
-            hold on
-            trplot(X_noise(:,:,k), 'color', 'b', 'length', 5)
-        end
-    end
+%     figure
+%     if false
+%         trplot(X(:,:,1), 'color', 'r', 'length', 5)
+%         for k = 1:size(X_noise,3)
+%             hold on
+%             trplot(X_noise(:,:,k), 'color', 'b', 'length', 5)
+%         end
+%     end
 end
 
 %% ----- Output Display ---- %%
@@ -168,5 +182,14 @@ subplot(2,1,2)
 boxplot(e_tX2_true(:,1:range), noise(1:range))
 xlabel('Standard Deviation on the Lie Algebra of Matrix X (Taylor 2nd)','interpreter','latex')
 ylabel('Relative Translation Error ', 'interpreter','latex')
+
+figure
+t1 = mean(t1,1);
+t2 = mean(t2,1);
+t3 = mean(t3,1);
+plot(t1,'r-');
+hold on;
+plot(t2,'b--');
+plot(t3,'m-o');
 
 

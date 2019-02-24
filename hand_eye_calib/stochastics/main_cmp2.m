@@ -5,7 +5,7 @@ addpath ../../quaternion
 addpath utils/
 addpath ../../beautiful_plot
 addpath mean/
-addpath ../datagen/
+addpath ../data_gen/
 
 %%              Editable Variables             %%
 % --------------------------------------------- %
