@@ -9,8 +9,8 @@ function [ X, MeanA, MeanB, SigA, SigB, t_error ] = batchSolveNew(A, B, opt)
     n_search = int16(2*10^2);
 
     if opt == 1
-        [MeanA, ~] = mean_Taylor_1st( A ); %_mex
-        [MeanB, ~] = mean_Taylor_1st( B ); %_mex
+        [MeanA, ~] = mean_Taylor_1st( A_mex ); %_mex
+        [MeanB, ~] = mean_Taylor_1st( B_mex ); %_mex
     elseif opt == 2
         MeanA = mean_Taylor_2nd( A, 1, n_search ); %_mex
         MeanB = mean_Taylor_2nd( B, 1, n_search ); %_mex
@@ -20,6 +20,9 @@ function [ X, MeanA, MeanB, SigA, SigB, t_error ] = batchSolveNew(A, B, opt)
     elseif opt == 4
         MeanA = mean_Taylor_2nd_adv_recursive( A_mex, 1, n_search ); 
         MeanB = mean_Taylor_2nd_adv_recursive( B_mex, 1, n_search ); 
+    elseif opt == 5
+        MeanA = mean_Taylor_2nd_adv_recursive3( A_mex ); 
+        MeanB = mean_Taylor_2nd_adv_recursive3( B_mex ); 
     end
     
     SigA = zeros(6,6);
