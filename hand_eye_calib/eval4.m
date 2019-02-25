@@ -8,7 +8,7 @@
 
 %%% TODO
 
-clear; clc;
+clear; clc; close all;
 
 num = 210;	%Number of steps
 
@@ -22,7 +22,7 @@ model = 1;        %noise model
 
 ElipseParam = [10, 10, 10];
 
-trials = 1;
+trials = 10;
 
 % ------------------------------------------------------
 addpath ./stochastics/utils/
@@ -42,6 +42,7 @@ TranerrorKron=[];
 
 h = waitbar(0,'Computing...');
 
+try
 for i=1:length(noise)
     
     for k = 1:trials
@@ -61,11 +62,11 @@ for i=1:length(noise)
         trajParam = [.5, .5, .5, 0, 0.5*pi];
         [A2, B2] = AB_genTraj(X, ElipseParam, trajParam, num/3);
         
-        trajParam = [.5, .5, .5, 0, pi];
-        [A3, B3] = AB_genTraj(X, ElipseParam, trajParam, num/3);
+%         trajParam = [.5, .5, .5, 0, pi];
+%         [A3, B3] = AB_genTraj(X, ElipseParam, trajParam, num/3);
         
-        A = cat(3, A1, A2, A3);
-        B = cat(3, B1, B2, B3);
+        A = cat(3, A1, A2);
+        B = cat(3, B1, B2);
         
         A = sensorNoise(A,[0;0;0;0;0;0],noise(i),1);
         
@@ -73,28 +74,35 @@ for i=1:length(noise)
 %         A_noise_mex = reshape(A, a1, a2*a3);
 %         B_mex = reshape(B, a1, a2*a3);
 
-        [X_solved, MA, MB, SigA, SigB] = batchSolveNew(A, B, 2);
-        X_solved
-        X
+        [X_solved, MA, MB, SigA, SigB] = batchSolveNew(A, B, 4);
+        [X_solved1, MA, MB, SigA, SigB] = batchSolveNew(A, B, 5);
+%         X_solved
+%         X
         X_roterror(k,i) = roterror(X_solved,X);
         X_tranerror(k,i) = tranerror(X_solved,X);
-        
+        X_roterror2(k,i) = roterror(X_solved1,X);
+        X_tranerror2(k,i) = tranerror(X_solved1,X);
     end
     
     waitbar(i / length(noise))
     
 end
+catch
+    close(h);
+end
+close(h);
 
  X_meanroterror  = mean(X_roterror,1);
  X_meantranerror = mean(X_tranerror,1);
-
-
-close(h);
+ X_meanroterror2  = mean(X_roterror2,1);
+ X_meantranerror2 = mean(X_tranerror2,1);
 
 figure(1);
-plot(X_meanroterror)
+plot(X_meanroterror);hold on;
+plot(X_meanroterror2);
 figure(2);
-plot(X_meantranerror)
+plot(X_meantranerror);hold on;
+plot(X_meantranerror2);
 
 
 
