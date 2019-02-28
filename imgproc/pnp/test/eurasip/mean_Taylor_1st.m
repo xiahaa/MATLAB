@@ -1,5 +1,5 @@
 
-function [M_1, M_hat] = mean_Taylor_1st( X ) 
+function [M_1, M_hat] = mean_Taylor_1st1( X ) 
     % This function calculates the 1st order approximation of the mean of a
     % bunch of matrices based on the Taylor expansion of the matrix logarithm
     % and the definition of mean of a probability density function.
