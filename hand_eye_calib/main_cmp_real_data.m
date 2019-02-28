@@ -13,7 +13,7 @@ addpath('./solver/atadq');
 %% dataset path
 addpath('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/eth_asl_real/');
 
-id = 3;
+id = 2;
 
 load(strcat('prime_', num2str(id),'.mat'));
 
@@ -89,20 +89,21 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
              @sol_dphec, ...                            %% GLOBAL_POLY
              @sol_dual_sdp_cvx, ...                     %% DUAL_SDP
              @sol_cvx2, ...                             %% SCF
-             @sol_cvx_sdp};                    %% SE3OPT
+             @sol_cvx_sdp};                             %% SE3OPT
 
     convSolver1 = {
         @sol_andreff, ...                                   %% KR
         @sol_horaud_nlopt, ...                              %% DUAL_SDP
         @sol_adjoint_transformation_algo, ...               %% ATA
+        @sol_cvx1, ...                                      %% SOCP
         @sol_dphec, ...                                     %% GLOBAL_POLY
-        @sol_manifold_opt_SE3, ...                                   %% SDP
         @sol_dual_sdp_cvx, ...
-        @sol_cvx_sdp, ...
+        @batchSolveSoftUseScrew, ...
         };
-%         @sol_cvx1, ...                                      %% SOCP
+%       @sol_cvx1, ...                                      %% SOCP
+%       @sol_manifold_opt_SE3, ...                                   %% SDP
 
-    solver_name = {'KR','NLQ','ATA','GPOLY','SE3','DUAL','SDR'};%'SOCP',
+    solver_name = {'KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS'};%'SOCP',
 %     solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};
          
          
@@ -110,13 +111,25 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
 
 for kk = 1:size(usedsolver, 2)
     handle_sol = usedsolver{kk};
-    if kk ~= 7
+    if strcmp(solver_name(kk),'SDP')
         tic
-        TX = handle_sol(T1,T2,nsam);
+        TX = handle_sol(T1,T2,nsam, Th0(1:3,1));
+        tsol(kk) = toc;
+    elseif strcmp(solver_name(kk),'BS')
+        A = zeros(4,4,nsam);
+        B = zeros(4,4,nsam);
+        for i = 1:nsam
+            Ts = T2(i,:,:);Ts = reshape(Ts,4,4);
+            A(:,:,i) = Ts;
+            Ts = T1(i,:,:);Ts = reshape(Ts,4,4);
+            B(:,:,i) = Ts;
+        end 
+        tic
+        TX = handle_sol(A,B);
         tsol(kk) = toc;
     else
         tic
-        TX = handle_sol(T1,T2,nsam, Th0(1:3,1));
+        TX = handle_sol(T1,T2,nsam);
         tsol(kk) = toc;
     end
     if isempty(TX) == false
@@ -132,7 +145,7 @@ errcs1 = zeros(size(usedsolver, 2),nsam);
 errcs2 = zeros(size(usedsolver, 2),nsam);
 errcs3 = zeros(size(usedsolver, 2),nsam);
 
-for kk = 1:size(usedsolver, 2)
+for kk = 1:size(usedsolver, 2)    
     X = xsol(1:4,1:4,kk);
     errs = zeros(nsam,3);
     for i = 1:nsam

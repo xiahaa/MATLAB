@@ -7,8 +7,9 @@ function main_sim_cmp_ut_mit
     addpath('../MatrixLieGroup/barfoot_tro14');
     addpath('../quaternion');
     addpath('./solver/atadq');
-
-    id = 4;
+    addpath('./stochastics')
+    
+    id = 1;
     prefix = 'C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/data/';
     name = {'circle100','line100','rotation100','shape8100','smallr100'};
     suffix = '.mat';
@@ -61,13 +62,14 @@ function main_sim_cmp_ut_mit
         @sol_adjoint_transformation_algo, ...               %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
         @sol_manifold_opt_SE3, ...                          %% SE3OPT
+        @batchSolveSoftUseScrew, ...
 %         @sol_cvx1, ...               %% ATA
     };
-    solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};
+    solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3','batch'};
     
     usedsolver = convSolver;
     
-    for solver_id = 6%1:size(solver_name,2)
+    for solver_id = 7%1:size(solver_name,2)
         times = zeros(numel(stds),100);
         error_r = zeros(numel(stds),100);
         error_t = zeros(numel(stds),100);
@@ -109,9 +111,24 @@ function main_sim_cmp_ut_mit
                     t = t(2:4);
                     T2(i,1:4,1:4) = [R t;[0 0 0 1]];
                 end
-                tic
-                TX = handle_sol(T1,T2,num);
-                time = toc;
+                
+                if solver_id == 7
+                    A = zeros(4,4,num);
+                    B = zeros(4,4,num);
+                    for i = 1:num
+                        Ts = T2(i,:,:);Ts = reshape(Ts,4,4);
+                        A(:,:,i) = Ts;
+                        Ts = T1(i,:,:);Ts = reshape(Ts,4,4);
+                        B(:,:,i) = Ts;
+                    end 
+                    tic
+                    TX = handle_sol(A,B);
+                    time = toc;
+                else
+                    tic
+                    TX = handle_sol(T1,T2,num);
+                    time = toc;
+                end
                 
                 if isempty(TX)
                     valid_id(k,j) = 0;

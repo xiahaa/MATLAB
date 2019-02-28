@@ -65,12 +65,13 @@ function main_sim_cmp_runtime_ut_mit
         @sol_adjoint_transformation_algo, ...               %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
         @sol_manifold_opt_SE3, ...                           %% SE3
+        @batchSolveSoftUseScrew, ...
         };
 
 %     solver_name = {'KR','SOCP','ATA','GPOLY','DUAL','SDR'};%,'DUAL','SDR'
-    solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};%,'DUAL','SDR'
+    solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3','batchnew'};%,'DUAL','SDR'
 %     mapping_id = [1,6,4,3,4,5];
-    mapping_id = [1,2,6,4,3,6];
+    mapping_id = [1,2,6,4,3,6,7];
     
     usedsolver = convSolver;
     numSam = [20 40 60 80 100 120 140 160 180];

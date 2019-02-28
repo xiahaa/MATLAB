@@ -105,22 +105,58 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
     
     convSolver1 = {
         @sol_andreff, ...                                   %% KR
-        @sol_horaud_nlopt, ...                              %% DUAL_SDP
+        @sol_horaud_nlopt, ...                              %% NLOPT
         @sol_cvx1, ...                                      %% SOCP
         @sol_adjoint_transformation_algo, ...               %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
-        @sol_manifold_opt_SE3, ...                                   %% SDP
+        @sol_dual_sdp_cvx, ...                              %% dual
+        @batchSolveNew, ...                                 %% dual
+        @batchSolveSoftUseScrew, ...
 %         @sol_cvx_sdp, ...
         };
+    
+    convSolver1 = {
+        @sol_andreff, ...                                   %% KR
+        @sol_horaud_nlopt, ...                              %% DUAL_SDP
+        @sol_adjoint_transformation_algo, ...               %% ATA
+        @sol_cvx1, ...                                      %% SOCP
+        @sol_dphec, ...                                     %% GLOBAL_POLY
+        @sol_dual_sdp_cvx, ...
+        @batchSolveSoftUseScrew, ...
+        };
+%       @sol_cvx1, ...                                      %% SOCP
+%       @sol_manifold_opt_SE3, ...                                   %% SDP
+
+    solver_name = {'KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS'};%'SOCP',
          
  usedsolver = convSolver1;
      
 
 for kk = 1:size(usedsolver, 2)
     handle_sol = usedsolver{kk};
-    tic
-    TX = handle_sol(T1,T2,num);
-    tsol(kk) = toc;
+    if strcmp(solver_name(kk), 'BS') || strcmp(solver_name(kk), 'BN')
+        A = zeros(4,4,num);
+        B = zeros(4,4,num);
+        for i = 1:num
+            Ts = T2(i,:,:);Ts = reshape(Ts,4,4);
+            A(:,:,i) = Ts;
+            Ts = T1(i,:,:);Ts = reshape(Ts,4,4);
+            B(:,:,i) = Ts;
+        end
+        if strcmp(solver_name(kk), 'BS')
+            tic
+            TX = handle_sol(A,B);
+            tsol(kk) = toc;
+        else
+            tic
+            TX = handle_sol(A,B,2);
+            tsol(kk) = toc;
+        end
+    else
+        tic
+        TX = handle_sol(T1,T2,num);
+        tsol(kk) = toc;
+    end
     if isempty(TX) == false
         xsol(1:4,1:4,kk) = TX;
         flag(kk) = 1;
@@ -142,7 +178,8 @@ end
 % convSols = {'MIT', 'TSAI', 'LIE', 'QSEP', 'KR', 'DQ', 'CHOU', 'IDQ'};
 % convSols = {'MIT', 'LIE',  'DQ', 'CHOU', 'ATA', 'GPOLY', 'DUAL', 'SCF', 'SE3OPT', 'SDP'};
 % convSols = {'BL','KR','SOCP','ATA','GPOLY','DUAL','SDR'};
-    convSols = {'BL','KR','NLQ','SOCP','ATA','GPOLY','SE3'};
+%     convSols = {'BL','KR','DQ','SOCP','ATA','GPOLY','DUAL','batch1','batch2'};
+convSols = {'MIT','KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS'};
 
 
 red_color = [153 0 0]/255;
@@ -154,7 +191,7 @@ set(fig,'defaulttextinterpreter','latex');
 box_labels = categorical(convSols);
 box_labels = reordercats(box_labels,convSols);
 subplot(3,1,1);plot(box_labels, err_with_truth(:,1)', '-o', 'LineWidth', 2.5, 'Color', red_color);grid on;ylabel('$E_{\mathbf{R}}$','Interpreter','latex');
-title('$RGB-D\ Camera\ Dataset$','FontSize', font_size,'Interpreter','latex');set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
+title('$RGB-D\ Camera\ Dataset$','FontSize', font_size);set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');
 
 subplot(3,1,2);plot(box_labels, err_with_truth(:,2)', '-o', 'LineWidth', 2.5, 'Color', red_color);grid on;ylabel('$E_{\mathbf{t}}$','Interpreter','latex');
 set(gca,'FontSize', font_size, 'TickLabelInterpreter','latex');

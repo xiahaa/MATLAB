@@ -17,7 +17,7 @@ addpath('../beautiful_plot/aboxplot');
 % prefix = './data/sdp/';
 prefix = './data/SE3/';
 
-for id = 1:4
+for id = 1:2
 %     clear dat;
     dat(id) = load(strcat(prefix,'prime_', num2str(id),'_res','.mat'));
     numCls = numel(dat(id).tsol);
@@ -47,7 +47,7 @@ for jj=1:length(h)
    patch(get(h(jj),'XData'),get(h(jj),'YData'),cmapalpha(jj,1:3),'FaceAlpha',cmapalpha(jj,4));
 end
 decorateBox();
-ylabel('$RMSE\ Rotation$','Interpreter','latex','FontSize',font_size);
+ylabel('RMSE Rotation','FontSize',font_size);
 xticklabel_rotate([],45,[],'Fontsize',font_size);
 
 % subplot(1,2,2);
@@ -61,10 +61,10 @@ for jj=1:length(h)
    patch(get(h(jj),'XData'),get(h(jj),'YData'),cmapalpha(jj,1:3),'FaceAlpha',cmapalpha(jj,4));
 end
 decorateBox();
-ylabel('$RMSE\ Translation$','Interpreter','latex','FontSize',font_size);
+ylabel('RMSE Translation','FontSize',font_size);
 xticklabel_rotate([],45,[],'Fontsize',font_size);
-[~,h1]=suplabel('$primesense\_1$' ,'t'); 
-set(h1,'Interpreter','latex','FontSize',font_size);
+[~,h1]=suplabel('Prime\_1' ,'t'); 
+set(h1,'FontSize',font_size);
 % ha = axes('Position',[0 0 1 1],'Xlim',[0 1],'Ylim',[0  1],'Box','off','Visible','off','Units','normalized', 'clipping' , 'off');
 % text(0.5, 0.98,'Title')
 
@@ -81,7 +81,7 @@ for jj=1:length(h)
    patch(get(h(jj),'XData'),get(h(jj),'YData'),cmapalpha(jj,1:3),'FaceAlpha',cmapalpha(jj,4));
 end
 decorateBox();
-ylabel('$RMSE\ Rotation$','Interpreter','latex','FontSize',font_size);
+ylabel('RMSE Rotation','FontSize',font_size);
 xticklabel_rotate([],45,[],'Fontsize',font_size);
 
 % subplot(1,2,2);
@@ -95,9 +95,9 @@ for jj=1:length(h)
    patch(get(h(jj),'XData'),get(h(jj),'YData'),cmapalpha(jj,1:3),'FaceAlpha',cmapalpha(jj,4));
 end
 decorateBox();
-ylabel('$RMSE\ Translation$','Interpreter','latex','FontSize',font_size);
+ylabel('RMSE Translation','FontSize',font_size);
 xticklabel_rotate([],45,[],'Fontsize',font_size);
-[~,h1]=suplabel('$primesense\_2$' ,'t'); 
+[~,h1]=suplabel('Prime_2' ,'t'); 
 set(h1,'Interpreter','latex','FontSize',font_size);
 
 %% 3
