@@ -59,7 +59,7 @@ function MX = mean_Taylor_2nd_adv_recursive3( X, varargin )
         catch
             error('');
         end
-        if norm(xhat) < 1e-20
+        if norm(xhat) < 1e-15
             break;
         end
         iter = iter + 1;
