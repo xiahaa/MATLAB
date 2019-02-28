@@ -35,7 +35,7 @@ subplot_margin = 0.12;
 subplot_spacing = 0.03;
 fig = figure();
 % grid on;
-set(fig,'defaulttextinterpreter','latex');
+% set(fig,'defaulttextinterpreter','latex');
 % subplot(1,2,1);
 subaxis(1,2,1, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
 box_labels = categorical(convSols);
@@ -97,8 +97,8 @@ end
 decorateBox();
 ylabel('RMSE Translation','FontSize',font_size);
 xticklabel_rotate([],45,[],'Fontsize',font_size);
-[~,h1]=suplabel('Prime_2' ,'t'); 
-set(h1,'Interpreter','latex','FontSize',font_size);
+[~,h1]=suplabel('Prime\_2' ,'t'); 
+% set(h1,'Interpreter','latex','FontSize',font_size);
 
 %% 3
 fig = figure();
