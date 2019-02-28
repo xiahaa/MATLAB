@@ -103,13 +103,13 @@ cmap = lines(3);
 cmapalpha = [cmap 0.8*ones(size(cmap,1),1)];
 xlabels = nstd;
 plot_case = {'B1','B2','BS'};
-for solver_id = 3
+for solver_id = 1:3
     plot(xlabels', meantimes(solver_id,:),'-o', 'Color', cmapalpha(solver_id,:),'LineWidth', 2.5);hold on;
 end
 fontsize = 16;
-xlabel('Number of samples','FontSize',fontsize);
+xlabel('Standard deviation of additional noise','FontSize',fontsize);
 ylabel('Time: (s)','FontSize',fontsize);
-legend(plot_case(3),'FontSize',fontsize,'Location', 'northwest');
+legend(plot_case,'FontSize',fontsize,'Location', 'northwest');
 title('Runtime Comparison','FontSize',fontsize);
 grid on;
 yticks([0 0.1 0.2 0.3 0.4 0.5 0.6])

@@ -70,7 +70,7 @@ for solver_id = 1:size(solver_name,2)
             [A, B] = generateAB(num, optPDF, X, gmean, cov);
             [Aout, Bout] = generateAB(numout, optPDF, Xout, gmean, cov);
         
-            A = cat(3,A,Aout);
+            A = cat(3,A);
             B = cat(3,B);
                 
             PA = (1:size(A,3));
@@ -109,7 +109,7 @@ for solver_id = 1:size(solver_name,2)
     res.error_r = error_r;
     res.error_t = error_t;
     res.times = times;
-    save(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/sto/',solver_name{solver_id},'.mat'),'res');
+    save(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/sto/test_1',solver_name{solver_id},'.mat'),'res');
 end
 
 function X = genRandomPose(num) 
