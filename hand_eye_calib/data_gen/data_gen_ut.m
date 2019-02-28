@@ -19,7 +19,7 @@ function varargout = data_gen_ut()
     sensor2_expressedIn_sensor1 = GetHomoTransform(trueCalib_euler);
 
     motion = 4;
-    N = 51; % Num poses
+    N = 201; % Num poses
     N_interp = 300;% interpolation for surface
     if motion == 1
         N_modes = ceil(N/10);% perturbate modes
@@ -170,13 +170,31 @@ function varargout = data_gen_ut()
     [~,sensor1check_expressedIn_world] = MakeAbsStates(sensor1_expressedIn_world(1,:), [], sensor1_expressedIn_prevSensor1, []);
     [~,sensor2check_expressedIn_world] = MakeAbsStates(sensor2Initial_expressedIn_world, [], sensor2_expressedIn_prevSensor2, []);
 
+    std = 0.1;%0.25;%0.5 0.75 1
+    tstd = std*ones(1,3);
+    tstr = std*ones(1,3);
+    std_sensor1_per_unit = [tstd tstr];
+
+    cov1 = zeros(size(sensor1_expressedIn_world,1), 36);
+    for i = 1:size(sensor1_expressedIn_world,1)
+        motion1 = abs(sensor1_expressedIn_world(i,:));
+        S1 = diag((motion1 .* std_sensor1_per_unit).^2+(1e-20)^2);% + randn(6)*(1e-3)^2;
+        S1 = triu(S1)+triu(S1,1)';
+        cov1(i,:) = reshape(S1,1,[]);
+    end
+
+    simu.true.sensor1_expressedIn_world = sensor1_expressedIn_world;
+    simu.true.cov1 = cov1;    
+    sensor1_expressedIn_world_noise = SampleVelocitiesWithCovariance(sensor1check_expressedIn_world, simu.true.cov1);
+    simu.true.sensor1_expressedIn_world_noise = sensor1_expressedIn_world_noise;
+    
     font_size = 14;
     blue_color = [0 116 186]/255;
     red_color = [153 0 0]/255;
     figure(2);
 
-    h4=plot3(sensor1check_expressedIn_world(1:end-1,1),sensor1check_expressedIn_world(1:end-1,2),sensor1check_expressedIn_world(1:end-1,3),'LineWidth', 2.5, 'Color', blue_color);hold on;
-    h5=plot3(sensor2check_expressedIn_world(1:end-1,1),sensor2check_expressedIn_world(1:end-1,2),sensor2check_expressedIn_world(1:end-1,3),'LineWidth', 2.5, 'Color', red_color);
+    h4=plot3(sensor1_expressedIn_world(1:end-1,1),sensor1_expressedIn_world(1:end-1,2),sensor1_expressedIn_world(1:end-1,3),'LineWidth', 2.5, 'Color', blue_color);hold on;
+    h5=plot3(sensor1_expressedIn_world_noise(1:end-1,1),sensor1_expressedIn_world_noise(1:end-1,2),sensor1_expressedIn_world_noise(1:end-1,3),'LineWidth', 2.5, 'Color', red_color);
     axis equal;
     grid on;
     hold on;
@@ -184,15 +202,15 @@ function varargout = data_gen_ut()
         T1 = GetHomoTransform(sensor1check_expressedIn_world(i,:));
         DrawAxis(T1, 0.2, 'r', 'g', 'b');
         T2 = GetHomoTransform(sensor2check_expressedIn_world(i,:));
-        DrawAxis(T2, 0.2, 'r', 'g', 'b');
-        p1 = T1(1:3,4);
-        p2 = T2(1:3,4);
-        p = [p1 p2];
-        disp(["baseline: ",num2str(norm(p1-p2))]);
-        plot3(p(1,:),p(2,:),p(3,:),'k-','LineWidth',2);
+%         DrawAxis(T2, 0.2, 'r', 'g', 'b');
+%         p1 = T1(1:3,4);
+%         p2 = T2(1:3,4);
+%         p = [p1 p2];
+%         disp(["baseline: ",num2str(norm(p1-p2))]);
+%         plot3(p(1,:),p(2,:),p(3,:),'k-','LineWidth',2);
     end
     hold off;
-    lgnd2 = legend([h4,h5],{'Sensor $a$','Sensor $b$'}, 'Location', 'NorthWest');
+    lgnd2 = legend([h4,h5],{'Sensor $a$','Sensor $a\ +$ noise'}, 'Location', 'NorthWest');
     set(lgnd2, 'Interpreter', 'Latex','FontSize', font_size);
     colormap summer
     xlabel('$x$ (m)','FontSize', font_size, 'Interpreter', 'latex');
@@ -210,27 +228,27 @@ function varargout = data_gen_ut()
         filename = strcat(basedir, 'circle.mat');
         title('Circle','Interpreter', 'latex','FontSize', font_size);
 %         print(['./docs/figures/mit_ut_data_gen/', 'circle'],'-dpdf','-bestfit','-r300');
-        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+        save(filename,'simu');
     elseif motion == 2
         filename = strcat(basedir, 'line.mat');
         title('Line','Interpreter', 'latex','FontSize', font_size);
 %         print(['./docs/figures/mit_ut_data_gen/', 'line'],'-dpdf','-bestfit','-r300');
-        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+        save(filename,'simu');
     elseif motion == 3
         filename = strcat(basedir, 'rotation.mat');
         title('Pure Rotation','Interpreter', 'latex','FontSize', font_size);
 %         print(['./docs/figures/mit_ut_data_gen/', 'rotation'],'-dpdf','-bestfit','-r300');
-        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+        save(filename,'simu');
     elseif motion == 4
         filename = strcat(basedir, 'shape8.mat');
         title('$8-Shape$','Interpreter', 'latex','FontSize', font_size);
 %         print(['./docs/figures/mit_ut_data_gen/', 'shape8'],'-dpdf','-bestfit','-r300');
-        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+        save(filename,'simu');
     elseif motion == 5
         filename = strcat(basedir, 'samllr.mat');
         title('$Small Rotation$','Interpreter', 'latex','FontSize', font_size);
 %         print(['./docs/figures/mit_ut_data_gen/', 'smallr'],'-dpdf','-bestfit','-r300');
-        save(filename,'sensor1check_expressedIn_world','sensor2check_expressedIn_world');
+        save(filename,'simu');
     end
 
     % generate random covariances
