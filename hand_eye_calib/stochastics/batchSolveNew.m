@@ -2,9 +2,9 @@ function [ X, MeanA, MeanB, SigA, SigB, t_error ] = batchSolveNew(A, B, opt)
     %% Mixed version for solving AX = XB
     %%
     [a1,a2,a3]  = size(A);
-    
+    [b1,b2,b3]  = size(B);
     A_mex = reshape(A, a1, a2*a3);
-    B_mex = reshape(B, a1, a2*a3);
+    B_mex = reshape(B, b1, b2*b3);
         
     n_search = int16(2*10^2);
 
@@ -12,8 +12,8 @@ function [ X, MeanA, MeanB, SigA, SigB, t_error ] = batchSolveNew(A, B, opt)
         [MeanA, ~] = mean_Taylor_1st( A_mex ); %_mex
         [MeanB, ~] = mean_Taylor_1st( B_mex ); %_mex
     elseif opt == 2
-        MeanA = mean_Taylor_2nd( A, 1, n_search ); %_mex
-        MeanB = mean_Taylor_2nd( B, 1, n_search ); %_mex
+        MeanA = mean_Taylor_2nd( A_mex, 1, n_search ); %_mex
+        MeanB = mean_Taylor_2nd( B_mex, 1, n_search ); %_mex
     elseif opt == 3
         [ MeanA, ~ ] = distibutionPropsMex( A );
         [ MeanB, ~ ] = distibutionPropsMex( B );
