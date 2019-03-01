@@ -10,42 +10,49 @@ addpath('../');
 addpath('./eurasip/');
 T1 = fakeRT();
 tform = affine3d(T1');
-% ptCloud = pcread('teapot.ply');
+ptCloud = pcread('teapot.ply');
 % ptCloud = pcread('C:\Users\xiahaa\3rdparty\opencv-3.1.0\samples\cpp\tutorial_code\viz\bunny.ply');
-% gridStep = 0.02;
-% ptCloud = pcdownsample(ptCloud,'gridAverage',gridStep);
-% ptCloudTformed = pctransform(ptCloud,tform);
-% figure
-% pcshow(ptCloud); hold on;
-% pcshow(ptCloudTformed); 
-% tic
-% tform1 = pcregistericp(ptCloudTformed,ptCloud,'Extrapolate',true);
-% toc
-% tform2 = invert(tform1);
-% disp(tform2.T);
-% p = ptCloud.Location;
-% q = ptCloudTformed.Location;
-% p = p';
-% q = q';
+gridStep = 0.3;
+ptCloud = pcdownsample(ptCloud,'gridAverage',gridStep);
+ptCloudTformed = pctransform(ptCloud,tform);
+figure
+plot3(ptCloud.Location(:,1),ptCloud.Location(:,2),ptCloud.Location(:,3),'.','MarkerSize',10); hold on;
+plot3(ptCloudTformed.Location(:,1),ptCloudTformed.Location(:,2),ptCloudTformed.Location(:,3),'.','MarkerSize',10); 
+legend({'Original','Transformed'})
+tic
+tform1 = pcregistericp(ptCloudTformed,ptCloud,'Extrapolate',true);
+toc
+tform2 = invert(tform1);
+disp(tform2.T);
+ptCloud1 = pctransform(ptCloudTformed,tform1);
+figure
+plot3(ptCloud.Location(:,1),ptCloud.Location(:,2),ptCloud.Location(:,3),'.','MarkerSize',10); hold on;
+plot3(ptCloud1.Location(:,1),ptCloud1.Location(:,2),ptCloud1.Location(:,3),'.','MarkerSize',10); 
+legend({'Original','Recovered ICP'})
 
-N = 50;
-p = rand([3,N]) * 5 - 2.5;
-% p(3,:) = 5;%p(3,:);
-p(1,:) = p(1,:);
-p(2,:) = p(2,:);
-s = 1;
-q = s.*(T1(1:3,1:3)*p + repmat(T1(1:3,4),1,N));
-q = q(:,1:N) + rand([3,N]).*0.0;
+p = ptCloud.Location;
+q = ptCloudTformed.Location;
+p = p';
+q = q';
 
-font_size = 14;
-blue_color = [0 116 186]/255;
-orange_color = [223 80 35]/255;
-plot3(q(1,:),q(2,:),q(3,:),'o','MarkerSize',5,'MarkerEdgeColor',orange_color,'MarkerFaceColor',orange_color)
-hold on;
-plot3(p(1,:),p(2,:),p(3,:),'o','MarkerSize',5,'MarkerEdgeColor',blue_color,'MarkerFaceColor',blue_color)
-xlabel('$x$','Interpreter','latex')
-ylabel('$y$','Interpreter','latex')
-zlabel('$z$','Interpreter','latex')
+% N = 50;
+% p = rand([3,N]) * 5 - 2.5;
+% % p(3,:) = 5;%p(3,:);
+% p(1,:) = p(1,:);
+% p(2,:) = p(2,:);
+% s = 1;
+% q = s.*(T1(1:3,1:3)*p + repmat(T1(1:3,4),1,N));
+% q = q(:,1:N) + rand([3,N]).*0.0;
+
+% font_size = 14;
+% blue_color = [0 116 186]/255;
+% orange_color = [223 80 35]/255;
+% plot3(q(1,:),q(2,:),q(3,:),'o','MarkerSize',5,'MarkerEdgeColor',orange_color,'MarkerFaceColor',orange_color)
+% hold on;
+% plot3(p(1,:),p(2,:),p(3,:),'o','MarkerSize',5,'MarkerEdgeColor',blue_color,'MarkerFaceColor',blue_color)
+% xlabel('$x$','Interpreter','latex')
+% ylabel('$y$','Interpreter','latex')
+% zlabel('$z$','Interpreter','latex')
 
 disp(T1)
 
@@ -79,11 +86,17 @@ tic
 %     R = Mq1*inv(Mp1)
     [R1,t1,R2,t2] = pose_estimation_correspondence_free(p, q);
 toc
-    [R1 t1;[0 0 0 1]]
+    T1 = [R1 t1;[0 0 0 1]];
     [R2 t2;[0 0 0 1]]
 %     norm(logm(R2'*T1(1:3,1:3)),'fro')*57.3
+    tform3 = affine3d(T1');
+    tform4 = invert(tform3);
+    ptCloud3 = pctransform(ptCloudTformed,tform4);
+    figure
+    plot3(ptCloud.Location(:,1),ptCloud.Location(:,2),ptCloud.Location(:,3),'.','MarkerSize',10); hold on;
+    plot3(ptCloud3.Location(:,1),ptCloud3.Location(:,2),ptCloud3.Location(:,3),'.','MarkerSize',10); 
+    legend({'Original','Recovered Mopt'})
 
-    
 function T = fakeRT()
     euler(1) = (rand(1)*pi/2 - pi/4);
     euler(2) = (rand(1)*pi/2 - pi/4);

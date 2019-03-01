@@ -27,7 +27,7 @@ function varargout = pose_estimation_correspondence_free(p, q, varargin)
     wp = ones(1,size(SO3_p,3))./size(SO3_p,3);
     wq = ones(1,size(SO3_q,3))./size(SO3_q,3);
     
-    maxiter = 20;
+    maxiter = 1;
     iter = 1;
     while iter <= maxiter
         Mq1 = mean_1st_order(SO3_q, wq);

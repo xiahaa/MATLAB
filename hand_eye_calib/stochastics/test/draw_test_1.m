@@ -13,9 +13,9 @@ function draw_test_1
     %% Initialize Parameters
     
     % test 1
-%     stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
-%     base_name = 'test_1';
-%     xlbs = 'Standard deviation of additional noise';
+    stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
+    base_name = 'test_1';
+    xlbs = 'Standard deviation of additional noise';
     
     % test 2
 %     percentage_of_added_sample = 0:0.1:0.5;
@@ -23,11 +23,11 @@ function draw_test_1
 %     xlbs = 'Percentage of additional samples';
 
     % test 3
-    outlier_percentage = 0:0.1:0.5;
-    base_name = 'test_3';
-    xlbs = 'Percentage of additional outliers';
+%     outlier_percentage = 0:0.1:0.5;
+%     base_name = 'test_3';
+%     xlbs = 'Percentage of additional outliers';
     
-    test_case = outlier_percentage;
+    test_case = stds;
     
     solver_name = {'B1','B2','BS'};
 
