@@ -8,8 +8,14 @@ function SO3s = formeSO3(p)
     % sort
     [val,sortid] = sort(dist,'ascend');
     % select from 25%-75%
-    lowerbd = round(0.1*np);
-    upperbd = round(0.9*np);
+    lowerbd = round(0.3*np);
+    upperbd = round(0.6*np);
+    
+    if (upperbd-lowerbd) > 10
+        lowerbd = round(0.5*np)- 5;
+        upperbd = 10 + lowerbd - 1;
+    end
+    
     % filtering
     filterid = sortid(lowerbd:upperbd);
     % cn2
