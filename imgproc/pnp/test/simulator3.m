@@ -8,7 +8,7 @@ close all;
 addpath ./3rdparty
 addpath ./dataGen
 addpath ./solver
-addpath('../../../MatrixLieGroup');
+addpath(genpath('../../../MatrixLieGroup'));
 addpath('../../../quaternion');
 addpath('../../../beautiful_plot');
 addpath('../');
@@ -21,12 +21,12 @@ addpath('./eurasip/');
 % stds = [0.0 0.01 0.02 0.03 0.04 0.05];
 
 %% experimental configurations
-noise_level = 0.0:0.02:0.1;%:0.1:0.2;%0.5:0.5:5;
+noise_level = 0:0.001:0.001;%:0.02:0.1;%:0.1:0.2;%0.5:0.5:5;
 number_of_points = 20;%:20:50;
 iterations = 20;
 
-outlier_percent = 0.0;
-random_order_percent = 1.0;
+outlier_percent = 0.1;
+random_order_percent = 0.0;
 
 %% function handler to call you method
 name= {'SVD'}%,'PROPOSED','ICP'};
@@ -80,7 +80,7 @@ usepcl = [0 0 1];
                 Po = rand(3,num_outliers);
                 Qo = rand(3,num_outliers);
                 Q(:,source) = Qo;
-                P(:,source) = Po;
+%                 P(:,source) = Po;
                 R
                 num_scrambles = round(random_order_percent * num);
                 source = randperm(num, num_scrambles);
@@ -115,7 +115,7 @@ usepcl = [0 0 1];
                         R1 = tform2.T(1:3,1:3);
                         t1 = tform2.T(4,1:3);
                     else
-                        [R1,t1]= method_list(kk).f(placeholder1, placeholder2, placeholder3);%% if you want to do normalization, do it internally.
+                        [R1,t1,R2,t2]= method_list(kk).f(placeholder1, placeholder2, placeholder3);%% if you want to do normalization, do it internally.
                     end
                     %In case of no solution
                     if size(t1,2) ~= 1
@@ -123,7 +123,7 @@ usepcl = [0 0 1];
                         break;
                     end
                     err = cal_pose_err([R1 t1],[R t]);
-%                     err1 = cal_pose_err([R2 t2],[R t]);
+                    err1 = cal_pose_err([R2 t2],[R t]);
                     method_list(kk).r(k)= err(1);
                     method_list(kk).t(k)= err(2);
                 end

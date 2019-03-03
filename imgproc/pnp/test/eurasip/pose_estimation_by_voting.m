@@ -1,25 +1,65 @@
 function varargout = pose_estimation_by_voting(p, q, varargin) 
-    %% clustering
+    nq = size(q,2);
+    np = size(p,2);
+    
+    %% use distance to select consistent subsets  
+    % mean
+%     center = mean(p,2);
+    % diff
+%     distp = p - repmat(center,1,np);
+    s1 = nchoosek(1:np,2);
+    distp = p(:,s1(:,1)) - p(:,s1(:,2));
+    distp = diag(distp'*distp);
+    
+    % mean
+%     center = mean(q,2);
+    % diff
+%     distq = q - repmat(center,1,nq);
+    s2 = nchoosek(1:nq,2);
+    distq = q(:,s2(:,1)) - q(:,s2(:,2));
+    distq = diag(distq'*distq);
+    
+    % cross-error
+    cross_error = abs(repmat(distq,1,size(distp,1)) - repmat(distp',size(distq,1),1));
+    
+    % find consistent subsets
+    subq = zeros(1,nq);
+    subp = zeros(1,np);
+    threshold = 0.15;
+    tmp = 1:np;
+    for i = 1:nq
+        after_threshold = tmp(cross_error(i,:) < threshold);
+        if ~isempty(after_threshold)
+            subq(i) = 1;
+            subp(after_threshold) = 1;
+        end
+    end
+    
+    % only choose consistent data
+    q = q(:,subq == 1);
+    p = p(:,subp == 1);
+    
     nq = size(q,2);
     np = size(p,2);
     
     % form SO3
-    SO3_q = formeSO3(q);
-    SO3_p = formeSO3(p);
+    SO3_q = formeSO3self(q);
+    SO3_p = formeSO3self(p);
 
     nq1 = size(SO3_q,3);
     np1 = size(SO3_p,3);
     
-%     % form so3
-%     so3_q = zeros(3,nq1);
-%     so3_p = zeros(3,np1);
-%     for i = 1:nq1
-%         so3_q(:,i) = rot2vec(SO3_q(:,:,i));
-%     end
-%     for i = 1:np1
-%         so3_p(:,i) = rot2vec(SO3_p(:,:,i));
-%     end
+%     Mq1 = mean_1st_order(SO3_q);
+%     Mp1 = mean_1st_order(SO3_p);
+%     
+%     Mq3 = FNS_iterative(SO3_q,Mq1);
+%     Mp3 = FNS_iterative(SO3_p,Mp1);
+% 
+%     R1 = Mq3*Mp3';
+% %     R2 = Mq2*inv(Mp2)
+%     R2 = Mq1*Mp1';
     
+%     
     % voting, brute-force
     SO3_tb = zeros(3,3,nq1*np1);
     so3_tb = zeros(3,nq1*np1);
@@ -42,7 +82,7 @@ function varargout = pose_estimation_by_voting(p, q, varargin)
                 err = so3_tb(:,1:k-1) - repmat(so3r,1,k-1);
                 err = sqrt(diag(err'*err));
                 [minval,minid] = min(err);
-                if minval < 0.1
+                if minval < 0.2
                     vote(minid) = vote(minid) + 1;
 %                     pairs(minid) = [pairs(minid);[i,j]];
                 else
@@ -59,11 +99,6 @@ function varargout = pose_estimation_by_voting(p, q, varargin)
     Rvote = SO3_tb(:,:,maxid);
     R1 = Rvote;
     
-
-%     R1 = Mq3*Mp3';
-%     R2 = Mq2*inv(Mp2)
-%     R2 = Mq1*Mp1';
-    
     pbar = mean(p,2);
     qbar = mean(q,2);
     t1 = qbar - R1*pbar;
@@ -78,7 +113,62 @@ function varargout = pose_estimation_by_voting(p, q, varargin)
     end
 end
     
-
+function SO3s = formeSO3self(p)
+    np = size(p,2);
+    % mean
+    center = mean(p,2);
+    % diff
+    dist = p - repmat(center,1,np);
+    dist = diag(dist'*dist);
+    % sort
+    [~,sortid] = sort(dist,'ascend');
+    % select from 25%-75%
+    lowerbd = round(0.4*np);
+    upperbd = round(0.8*np);
+    
+    if (upperbd-lowerbd) > 10
+        lowerbd = round(0.5*np)- 5;
+        upperbd = 10 + lowerbd - 1;
+    end
+    
+    % filtering
+    filterid = sortid(lowerbd:upperbd);
+    % cn2
+    setp = nchoosek(1:length(filterid),2);
+    % pre allocate
+    n_so3 = size(setp,1);
+    SO3s = zeros(3,3,n_so3);
+    k = 1;
+    for i=1:n_so3
+        ii = filterid(setp(i,1));
+        jj = filterid(setp(i,2));
+%         kk = setp(i,3);
+        v1 = -center+p(:,ii); 
+        v2 = -center+p(:,jj);
+        
+        if norm(v1) < norm(v2)
+            tmp = v1;v1 = v2;v2 = tmp;
+        end
+         
+        if norm(cross(v1,v2)) < 1e-3 || norm(v1) < 1e-3 || norm(v2) < 1e-3 
+            continue;
+        else
+            %% case 1
+            vn1 = v1./norm(v1);vn2 = v2./norm(v2);
+            vn3 = cross(vn1,vn2);vn3 = vn3./norm(vn3);
+            vn2 = cross(vn3,vn1);vn2 = vn2./norm(vn2);
+            SO3s(:,:,k) = [vn1 vn2 vn3];
+            k = k + 1;
+            %% case 2
+%             vn1 = v2./norm(v2);vn2 = v1./norm(v1);
+%             vn3 = cross(vn1,vn2);vn3 = vn3./norm(vn3);
+%             vn2 = cross(vn3,vn1);vn2 = vn2./norm(vn2);
+%             SO3s(:,:,k) = [vn1 vn2 vn3];
+%             k = k + 1;
+            
+        end
+    end
+end
 
 
 
