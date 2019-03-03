@@ -21,16 +21,16 @@ addpath('./eurasip/');
 % stds = [0.0 0.01 0.02 0.03 0.04 0.05];
 
 %% experimental configurations
-noise_level = 0.05:0.1:0.2;%0.5:0.5:5;
-number_of_points = 50;%:20:50;
+noise_level = 0.0:0.02:0.1;%:0.1:0.2;%0.5:0.5:5;
+number_of_points = 20;%:20:50;
 iterations = 20;
 
 outlier_percent = 0.0;
-random_order_percent = 0.5;
+random_order_percent = 1.0;
 
 %% function handler to call you method
 name= {'SVD'}%,'PROPOSED','ICP'};
-f= {@pose_estimation_correspondence_free};%@SVD33,@pose_estimation_correspondence_free,@pcregistericp};
+f= {@pose_estimation_by_voting};%@SVD33,@pose_estimation_correspondence_free,@pcregistericp};
 
 cmap = lines(size(f,2));
 cmapalpha = [cmap];
@@ -43,6 +43,7 @@ method_list= struct('name', name, 'f', f, 'r', B, 't', B, ...
                     'mean_r', A, 'mean_t', A, ...
                     'med_r', A, 'med_t', A, 'std_r', A, 'std_t', A, ...
                     'marker', 'o', 'color', color, 'markerfacecolor', markerfacecolor);
+test_case = {@ordinary_case};
 
 totaltime = length(noise_level)*length(number_of_points)*iterations;
 currtime = 0;
@@ -75,10 +76,12 @@ usepcl = [0 0 1];
                 %% outlier
                 num_outliers = round(outlier_percent * num);
                 source = randperm(num, num_outliers);
-                [Po, Qo, ~, ~] = gen(num_outliers);
+%                 [Po, Qo, ~, ~] = gen(num_outliers);
+                Po = rand(3,num_outliers);
+                Qo = rand(3,num_outliers);
                 Q(:,source) = Qo;
                 P(:,source) = Po;
-
+                R
                 num_scrambles = round(random_order_percent * num);
                 source = randperm(num, num_scrambles);
 %                 source_s = source + 1;
@@ -112,7 +115,7 @@ usepcl = [0 0 1];
                         R1 = tform2.T(1:3,1:3);
                         t1 = tform2.T(4,1:3);
                     else
-                        [R1,t1, R2, t2]= method_list(kk).f(placeholder1, placeholder2, placeholder3);%% if you want to do normalization, do it internally.
+                        [R1,t1]= method_list(kk).f(placeholder1, placeholder2, placeholder3);%% if you want to do normalization, do it internally.
                     end
                     %In case of no solution
                     if size(t1,2) ~= 1
@@ -120,13 +123,25 @@ usepcl = [0 0 1];
                         break;
                     end
                     err = cal_pose_err([R1 t1],[R t]);
-                    err1 = cal_pose_err([R2 t2],[R t]);
+%                     err1 = cal_pose_err([R2 t2],[R t]);
                     method_list(kk).r(k)= err(1);
                     method_list(kk).t(k)= err(2);
                 end
                 currtime = currtime + 1;
 %                 waitbar(currtime / totaltime, f);
             end
+            for k = 1:length(method_list)
+                method_list(k).r(index_fail) = [];
+                method_list(k).t(index_fail) = [];
+
+                method_list(k).mean_r(i,j)= mean(method_list(k).r);
+                method_list(k).mean_t(i,j)= mean(method_list(k).t);
+                method_list(k).med_r(i,j)= median(method_list(k).r);
+                method_list(k).med_t(i,j)= median(method_list(k).t);
+                method_list(k).std_r(i,j)= std(method_list(k).r);
+                method_list(k).std_t(i,j)= std(method_list(k).t);
+            end
+            
             fprintf('\n');
         end
     end
