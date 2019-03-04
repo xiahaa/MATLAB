@@ -21,12 +21,12 @@ addpath('./eurasip/');
 % stds = [0.0 0.01 0.02 0.03 0.04 0.05];
 
 %% experimental configurations
-noise_level = 0:0.001:0.001;%:0.02:0.1;%:0.1:0.2;%0.5:0.5:5;
-number_of_points = 20;%:20:50;
+noise_level = 0.00:0.05:0.1;%:0.02:0.1;%:0.1;%:0.02:0.1;%:0.1:0.2;%0.5:0.5:5;
+number_of_points = 100;%:20:50;
 iterations = 20;
 
-outlier_percent = 0.1;
-random_order_percent = 0.0;
+outlier_percent = 0.0;
+random_order_percent = 1.0;
 
 %% function handler to call you method
 name= {'SVD'}%,'PROPOSED','ICP'};
@@ -75,11 +75,11 @@ usepcl = [0 0 1];
                 
                 %% outlier
                 num_outliers = round(outlier_percent * num);
-                source = randperm(num, num_outliers);
+%                 source = randperm(num, num_outliers);
 %                 [Po, Qo, ~, ~] = gen(num_outliers);
                 Po = rand(3,num_outliers);
                 Qo = rand(3,num_outliers);
-                Q(:,source) = Qo;
+                Q = [Q Qo];
 %                 P(:,source) = Po;
                 R
                 num_scrambles = round(random_order_percent * num);
@@ -101,7 +101,7 @@ usepcl = [0 0 1];
                 placeholder3 = [];
 
 %                 P = P;
-                Q = Q + randn(3,num).*nl;
+                Q = Q + randn(3,size(Q,2)).*nl;
                 placeholder1 = Ps;
                 placeholder2 = Q;
 
@@ -164,11 +164,11 @@ for i = 1:size(test_case, 2)
     figure('color','w','position',[w*i,100,w,h]);
     figtitle = strcat('Mean Translation Error: ', func2str(test_case{i}));
     xdrawgraph(noise_level,yrange,method_list,'mean_t', figtitle, ...
-        'Gaussian Noise std','Rotation Error (degrees)');
+        'Gaussian Noise std','Translation Error (cm)');
     figure('color','w','position',[w*i,100,w,h]);
     figtitle = strcat('Median Translation Error: ', func2str(test_case{i}));
     xdrawgraph(noise_level,yrange,method_list,'med_t', figtitle, ...
-        'Gaussian Noise std','Rotation Error (degrees)');
+        'Gaussian Noise std','Translation Error (cm)');
 end
 
 function [p,q,R,t] = datagen(N)

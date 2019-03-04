@@ -2,27 +2,49 @@ function varargout = pose_estimation_by_voting(p, q, varargin)
     nq = size(q,2);
     np = size(p,2);
     
+    nn1 = nchoosek(1:np,2);
+    distp = p(:,nn1(:,1)) - p(:,nn1(:,2));
+    distp = diag(distp'*distp)';
+%     [~,id] = sort(distp);
+%     tmp1 = round(0.4*length(distp)):round(0.6*length(distp));
+%     distp = distp(id(tmp1));
+%     nn1 = nn1(id(tmp1),:);
+%     
+    nn2 = nchoosek(1:nq,2);
+    distq = q(:,nn2(:,1)) - q(:,nn2(:,2));
+    distq = diag(distq'*distq)';
+%     [~,id] = sort(distq);
+%     tmp1 = round(0.4*length(distq)):round(0.6*length(distq));
+%     distq = distq(id(tmp1));
+%     nn2 = nn2(id(tmp1),:);
+%     
     %% use distance to select consistent subsets  
     % find consistent subsets
     subq = zeros(1,nq);
     subp = zeros(1,np);
-    threshold = 0.15;
-    tmp = 1:np;
-    for i = 1:nq
-        
-        
-        
-        after_threshold = tmp(cross_error(i,:) < threshold);
+    threshold = 0.02;
+    tmp = 1:length(distq);
+    for i = 1:length(distq)
+        cross_error = abs(distp - distq(i));
+        after_threshold = tmp(cross_error < threshold);
         if ~isempty(after_threshold)
-            subq(i) = 1;
-            subp(after_threshold) = 1;
+            subq(nn2(i,1)) = subq(nn2(i,1)) + 1;
+            subq(nn2(i,2)) = subq(nn2(i,2)) + 1;
+            
+            subp(nn1(after_threshold,1)) = subp(nn1(after_threshold,1)) + 1;
+            subp(nn1(after_threshold,2)) = subp(nn1(after_threshold,2)) + 1;
         end
     end
     
     % only choose consistent data
-    q = q(:,subq == 1);
-    p = p(:,subp == 1);
-    
+    q = q(:,subq >= 2);
+    p = p(:,subp >= 2);
+
+%     [~,id1] = sort(subp,'descend');
+%     [~,id2] = sort(subq,'descend');
+%     q = q(:,id2(1:round(1*nq)));
+%     p = p(:,id1(1:round(1*np)));
+
     nq = size(q,2);
     np = size(p,2);
     
@@ -32,7 +54,7 @@ function varargout = pose_estimation_by_voting(p, q, varargin)
 
     nq1 = size(SO3_q,3);
     np1 = size(SO3_p,3);
-    
+% %     
 %     Mq1 = mean_1st_order(SO3_q);
 %     Mp1 = mean_1st_order(SO3_p);
 %     
@@ -42,9 +64,9 @@ function varargout = pose_estimation_by_voting(p, q, varargin)
 %     R1 = Mq3*Mp3';
 % %     R2 = Mq2*inv(Mp2)
 %     R2 = Mq1*Mp1';
-    
-%     
-    % voting, brute-force
+     
+     
+    %voting, brute-force
     SO3_tb = zeros(3,3,nq1*np1);
     so3_tb = zeros(3,nq1*np1);
     vote = zeros(1,nq1*np1);
@@ -107,10 +129,10 @@ function SO3s = formeSO3self(p)
     % sort
     [~,sortid] = sort(dist,'ascend');
     % select from 25%-75%
-    lowerbd = round(0.4*np);
-    upperbd = round(0.8*np);
-    
-    if (upperbd-lowerbd) > 10
+    lowerbd = round(0.25*np);
+    upperbd = round(0.75*np);
+%     
+    if (upperbd-lowerbd) > 5
         lowerbd = round(0.5*np)- 5;
         upperbd = 10 + lowerbd - 1;
     end
