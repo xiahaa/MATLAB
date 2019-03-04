@@ -3,31 +3,15 @@ function varargout = pose_estimation_by_voting(p, q, varargin)
     np = size(p,2);
     
     %% use distance to select consistent subsets  
-    % mean
-%     center = mean(p,2);
-    % diff
-%     distp = p - repmat(center,1,np);
-    s1 = nchoosek(1:np,2);
-    distp = p(:,s1(:,1)) - p(:,s1(:,2));
-    distp = diag(distp'*distp);
-    
-    % mean
-%     center = mean(q,2);
-    % diff
-%     distq = q - repmat(center,1,nq);
-    s2 = nchoosek(1:nq,2);
-    distq = q(:,s2(:,1)) - q(:,s2(:,2));
-    distq = diag(distq'*distq);
-    
-    % cross-error
-    cross_error = abs(repmat(distq,1,size(distp,1)) - repmat(distp',size(distq,1),1));
-    
     % find consistent subsets
     subq = zeros(1,nq);
     subp = zeros(1,np);
     threshold = 0.15;
     tmp = 1:np;
     for i = 1:nq
+        
+        
+        
         after_threshold = tmp(cross_error(i,:) < threshold);
         if ~isempty(after_threshold)
             subq(i) = 1;
