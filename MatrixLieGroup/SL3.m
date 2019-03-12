@@ -4,8 +4,8 @@ clc;close all;clear all;
 %% fist simulation
 H0 = [1 0 0;0 1 0;0 0 1];
 A = [0.1 0.1 0.1;0.05 -0.18 0.025;0.05 0 0.08];
-dt = 0.1;
-N = 200;
+dt = 0.01;
+N = 1500;
 Hreal = zeros(3,3,N);
 Hmeas = zeros(3,3,N);
 Areal = zeros(3,3,N);
@@ -22,7 +22,8 @@ for i = 2:N
 end
 
 Hest = zeros(3,3,N);
-Hest(:,:,1) = [3 1 2;1 0 1;1 0.6 2];
+H1 = [3 1 2;1 0.4 1;1 0.4 2];
+Hest(:,:,1) = H1./(det(H1)^(1/3));
 Aest = zeros(3,3,N);
 Aest(:,:,1) = [0 0 0;0 0 0;0 0 0];
 for i = 2:N
@@ -40,10 +41,15 @@ for i = 1:1:3
     end
 end
 figure
-a11 = Hreal(1,1,:);a11 = a11(:);
-b11 = Hest(1,1,:);b11 = b11(:);
-plot(a11,'r-');hold on;
-plot(b11,'b--');hold on;
+for i = 1:1:3
+    for j = 1:1:3
+        subplot(3,3,(i-1)*3+j);
+        b11 = Hreal(i,j,:);b11 = b11(:);
+        a11 = Hest(i,j,:);a11 = a11(:);
+        plot(b11,'r-');hold on;
+        plot(a11,'b--');hold on;
+    end
+end
 
 
 
@@ -62,7 +68,7 @@ plot(b11,'b--');hold on;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function sl3 = tosl3(H)
 % From SL3 to its corresponding sl3
-    sl3 = (H - trace(H)/3.*eye(3));
+    sl3 = (H - trace(H)/3*eye(3));
 end
 
 function n = SL3norm(H1,H2)
@@ -75,23 +81,25 @@ function AdH = adjointSL3(H,X)
 end
 
 function [Hest, Aest] = SL3filter1(Hest, Hmeas, Aest, dt)
-    Hpred = Hest*expm(Aest.*dt);
+% Malis E, Hamel T, Mahony R, et al. Dynamic estimation of homography 
+% transformations on the special linear group for visual servo control[C]
+% 2009 IEEE international conference on robotics and automation. 
+% IEEE, 2009: 1498-1503.
     
+    Hpred = Hest;  
     Htilde = inv(Hpred)*Hmeas;
-    Hproj = tosl3(Htilde' - Htilde'*Htilde);
+    Hproj = tosl3(Htilde'*(eye(3) - Htilde));
     
     kh = 2; ka = 1;
     
-    alpha = -kh.*adjointSL3(Htilde,Hproj);
+    alpha = -kh.*adjointSL3((Htilde),Hproj);
     beta  = -ka.*Hproj;
     
-    Hdot = (adjointSL3(Htilde,Aest) + alpha);
     Adot = beta;
     
-%     Hdot = tosl3(Hdot);
-%     Adot = tosl3(Adot);
-    
-    Hest = Hpred*expm(Hdot.*dt);
-    Aest = Aest+Adot.*dt;
+    Aest = Aest + Adot*dt;
+    Hdot = (adjointSL3((Htilde),Aest) + alpha);
+    Hest = Hest*expm((Hdot)*dt);
+    Hest = Hest ./ (det(Hest)^(1/3));
 end
 
