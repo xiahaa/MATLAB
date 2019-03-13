@@ -80,6 +80,14 @@ function AdH = adjointSL3(H,X)
     AdH = H*X*inv(H);
 end
 
+function res = liebracket(A,B)
+    res = A*b-B*A;
+end
+
+function res = toso3(w)
+    res = [0 -w(3) w(2);w(3) 0 -w(1);-w(2) w(1) 0];
+end
+
 function [Hest, Aest] = SL3filter1(Hest, Hmeas, Aest, dt)
 % Malis E, Hamel T, Mahony R, et al. Dynamic estimation of homography 
 % transformations on the special linear group for visual servo control[C]
@@ -99,7 +107,39 @@ function [Hest, Aest] = SL3filter1(Hest, Hmeas, Aest, dt)
     
     Aest = Aest + Adot*dt;
     Hdot = (adjointSL3((Htilde),Aest) + alpha);
-    Hest = Hest*expm((Hdot)*dt);
+    Hest = Hest*(eye(3)+(Hdot)*dt);% alternatively, Hest = Hest*expm(Hdot*dt)
     Hest = Hest ./ (det(Hest)^(1/3));
 end
 
+function w = correctionByPoints(Hest, pref, pcur)
+% be very careful here, Hest transforms current feature to refered
+% feature. Another concern is the |e|.
+%
+    e = Hest*pcur;
+    e = e ./ sqrt(e(1,:).^2+e(2,:).^2+e(3,:).^2);
+    w = zeros(3,3);
+    for i = 1:size(e,2)
+        w = w + (eye(3) - e(:,i)*e(:,i)')*pref(:,i)*e(:,i)';
+    end
+end
+
+% the benefit of this observor is that no direct measuremnt of H is
+% necessary
+function [Hest, tau] = SL3filter2(Hest, tau, dt, pref, pcur,omega)
+% Hamel T, Mahony R, Trumpf J, et al. 
+% Homography estimation on the special linear group based on direct point correspondence[C]
+% //2011 50th IEEE Conference on Decision and Control and European Control Conference. IEEE, 2011: 7902-7908.
+% NOTE: do not know how to validate the observor.
+    % compute point correction          
+    w = correctionByPoints(Hest, pref, pcur);
+    % update tau
+    KI = 1; KP = 3;
+    
+    Omega = toso3(omega);
+    taudot = liebracket(tau,Omega)+KI*adjointSL3(Hest,w);
+    
+    tau = tau + taudot*dt;
+    
+    Hdot = Hest*(Omega+tau)+KP*w*Hest;
+    Hest = Hest*(eye(3)+(Hdot)*dt);
+end
