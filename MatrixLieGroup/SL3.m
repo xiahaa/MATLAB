@@ -10,14 +10,16 @@ Hreal = zeros(3,3,N);
 Hmeas = zeros(3,3,N);
 Areal = zeros(3,3,N);
 
-Hreal(:,:,1) = H0;
-Hmeas(:,:,1) = H0;
+Hreal(:,:,1) = H0 ./ (det(H0)^(1/3));
+Hmeas(:,:,1) = H0 ./ (det(H0)^(1/3));
 Areal(:,:,1) = A;
 for i = 2:N
     Q = rand(3,3).*0.2;
     Q = tosl3(Q);
-    Hreal(:,:,i) = Hreal(:,:,i-1)*expm((A).*dt);
-    Hmeas(:,:,i) = Hreal(:,:,i-1)*expm((A+Q).*dt);
+    H = Hreal(:,:,i-1)*expm((A).*dt);
+    Hreal(:,:,i) = H ./ (det(H)^(1/3));
+    H = Hreal(:,:,i-1)*expm((A+Q).*dt);
+    Hmeas(:,:,i) = H ./ (det(H)^(1/3));
     Areal(:,:,i) = A;
 end
 
@@ -25,7 +27,8 @@ Hest = zeros(3,3,N);
 H1 = [3 1 2;1 0.4 1;1 0.4 2];
 Hest(:,:,1) = H1./(det(H1)^(1/3));
 Aest = zeros(3,3,N);
-Aest(:,:,1) = [0 0 0;0 0 0;0 0 0];
+A0 = [0 0 0;0 0 0;0 0 0];
+Hest(:,:,1) = H0;
 for i = 2:N
     [Hest(:,:,i), Aest(:,:,i)] = SL3filter1(Hest(:,:,i-1), Hmeas(:,:,i), Aest(:,:,i-1), dt);
 end
@@ -36,8 +39,8 @@ for i = 1:1:3
         subplot(3,3,(i-1)*3+j);
         b11 = Areal(i,j,:);b11 = b11(:);
         a11 = Aest(i,j,:);a11 = a11(:);
-        plot(b11,'r-');hold on;
-        plot(a11,'b--');hold on;
+        plot(b11,'r-','LineWidth',2);hold on;
+        plot(a11,'b-.','LineWidth',2);hold on;
     end
 end
 figure
@@ -46,8 +49,8 @@ for i = 1:1:3
         subplot(3,3,(i-1)*3+j);
         b11 = Hreal(i,j,:);b11 = b11(:);
         a11 = Hest(i,j,:);a11 = a11(:);
-        plot(b11,'r-');hold on;
-        plot(a11,'b--');hold on;
+        plot(b11,'r-','LineWidth',2);hold on;grid on;
+        plot(a11,'b-.','LineWidth',2);hold on;
     end
 end
 
@@ -89,26 +92,26 @@ function res = toso3(w)
 end
 
 function [Hest, Aest] = SL3filter1(Hest, Hmeas, Aest, dt)
-% Malis E, Hamel T, Mahony R, et al. Dynamic estimation of homography 
+% Malis E, Hamel T, Mahony R, et al. Dynamic estimation of homography
 % transformations on the special linear group for visual servo control[C]
-% 2009 IEEE international conference on robotics and automation. 
+% 2009 IEEE international conference on robotics and automation.
 % IEEE, 2009: 1498-1503.
-    
-    Hpred = Hest;  
+    Hpred = Hest;
     Htilde = inv(Hpred)*Hmeas;
     Hproj = tosl3(Htilde'*(eye(3) - Htilde));
-    
+
     kh = 2; ka = 1;
-    
-    alpha = -kh.*adjointSL3((Htilde),Hproj);
-    beta  = -ka.*Hproj;
-    
+
+    alpha = -kh*adjointSL3(Htilde,Hproj);
+    beta  = -ka*Hproj;
+
     Adot = beta;
-    
+
     Aest = Aest + Adot*dt;
     Hdot = (adjointSL3((Htilde),Aest) + alpha);
     Hest = Hest*(eye(3)+(Hdot)*dt);% alternatively, Hest = Hest*expm(Hdot*dt)
     Hest = Hest ./ (det(Hest)^(1/3));
+
 end
 
 function w = correctionByPoints(Hest, pref, pcur)
@@ -126,20 +129,20 @@ end
 % the benefit of this observor is that no direct measuremnt of H is
 % necessary
 function [Hest, tau] = SL3filter2(Hest, tau, dt, pref, pcur,omega)
-% Hamel T, Mahony R, Trumpf J, et al. 
+% Hamel T, Mahony R, Trumpf J, et al.
 % Homography estimation on the special linear group based on direct point correspondence[C]
 % //2011 50th IEEE Conference on Decision and Control and European Control Conference. IEEE, 2011: 7902-7908.
 % NOTE: do not know how to validate the observor.
-    % compute point correction          
+    % compute point correction
     w = correctionByPoints(Hest, pref, pcur);
     % update tau
     KI = 1; KP = 3;
-    
+
     Omega = toso3(omega);
     taudot = liebracket(tau,Omega)+KI*adjointSL3(Hest,w);
-    
+
     tau = tau + taudot*dt;
-    
+
     Hdot = Hest*(Omega+tau)+KP*w*Hest;
     Hest = Hest*(eye(3)+(Hdot)*dt);
 end
