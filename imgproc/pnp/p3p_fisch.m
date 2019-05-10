@@ -110,7 +110,8 @@ function [R, t] = p3p_fisch(P, q, K)
         v2 = v2 ./ norm(v2);
         v3 = v3 ./ norm(v3);
         Q = [v1*a v2*b v3*c];
-        [Ropt,topt] = svd_3d23d(P(:,1:3), Q);
+%         [Ropt,topt] = svd_3d23d(P(:,1:3), Q);
+        [Ropt,topt] = lssol(P(:,1:3), Q);
         R(:,:,i) = Ropt;
         t(:,:,i) = topt;
     end
@@ -142,3 +143,43 @@ function [Ropt,topt] = svd_3d23d(ptsrc, ptdst)
     end
     topt = ptdstmean - Ropt * ptsrcmean;
 end
+
+function [R,t] = lssol(p,q)
+% implementation of the simple linear solution for absolute orientation
+% proposed in:
+% Review and Analysis of Solutions of the Three Point Perspective Pose Estimation Problem
+% ROBERT M. HARALICK, IJCV 1994.
+
+    % transformation
+    v1 = p(:,2) - p(:,1);v1 = v1./norm(v1);
+    v2 = p(:,3) - p(:,1);v2 = v2./norm(v2);
+    v3 = cross(v1,v2);v3 = v3./norm(v3);
+    v4 = [0;0;1];
+    v5 = cross(v3,v4);v5 = v5./norm(v5);
+    theta = acos(dot(v4,v3));
+    K = [0 -v5(3) v5(2);v5(3) 0 -v5(1);-v5(2) v5(1) 0];
+    R1 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+    
+    pnew = R1*p;
+    d = mean(pnew(3,:));
+    A = [pnew(1,1) pnew(2,1) 0 0 0 0 1 0 0; ...
+         0 0 pnew(1,1) pnew(2,1) 0 0 0 1 0; ...
+         0 0 0 0 pnew(1,1) pnew(2,1) 0 0 1; ...
+         pnew(1,2) pnew(2,2) 0 0 0 0 1 0 0; ...
+         0 0 pnew(1,2) pnew(2,2) 0 0 0 1 0; ...
+         0 0 0 0 pnew(1,2) pnew(2,2) 0 0 1; ...
+         pnew(1,3) pnew(2,3) 0 0 0 0 1 0 0; ...
+         0 0 pnew(1,3) pnew(2,3) 0 0 0 1 0; ...
+         0 0 0 0 pnew(1,3) pnew(2,3) 0 0 1];
+    B = q(:);
+    X = A\B;
+    r11 = X(1);r12 = X(2);r21 = X(3);r22 = X(4);r31 = X(5);r32 = X(6);
+    r13 = r21*r32-r22*r31;
+    r23 = r12*r31-r11*r32;
+    r33 = r11*r22-r12*r21;
+    R2 = [r11 r12 r13;r21 r22 r23;r31 r32 r33];
+    R = R2*R1;
+    t = -R2*[0;0;d]+[X(7);X(8);X(9)];
+    
+end
+
