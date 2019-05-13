@@ -3,7 +3,7 @@ function [R, t] = epnp_re_ransac2(p,q)
     sol_iter = 1; %indicates if the initial solution must be optimized
     dims = 4;     %kernel dimensions
     
-    minerror = 0.02;
+    minerror = 0.01;
     
 %     qn1 = p(:,1) ./ norm(p(:,1));qn1 = qn1';
 %     qn2 = [-qn1(2) qn1(1) 0];qn2 = qn2./norm(qn2);
@@ -113,21 +113,28 @@ function [K, idinliers, i]=my_robust_kernel_noise2(M,dimker, minerror)
     m   = size(M,1);
     prev_cost = Inf;
     maxIter = 30;
-    softWeight = ones(m,1);
+    softWeight = ones(round(m * 0.5),1);%softWeight = softWeight./sum(softWeight(:));
     prev_inlier_cnt = -m;
     id1 = 1:2:m-1;
     id2 = 2:2:m;
     for i=1:maxIter
-        N = softWeight.*M;
-        [~,~,v] = svd(N'*N);
-
+        N(id1,:) = softWeight.*M(id1,:);
+        N(id2,:) = softWeight.*M(id2,:);
+        [~,S,V] = svd(N);
+        id = find(diag(S)>0);
+        v = V(:,id(end));
+        
         error21    = M(1:2:end,:) * v(:,end);
         error22    = M(2:2:end,:) * v(:,end);
         error2     = sqrt(error21.^2 + error22.^2);
             
         w = minerror./error2;
-        softWeight(id1,1) = w;softWeight(id2,1) = w;
+%         softWeight(id1,1) = softWeight(id1,1).*w;
+%         softWeight(id2,1) = softWeight(id2,1).*w;
+        softWeight = softWeight.*w;
+        %softWeight = softWeight./sum(softWeight(:));
         softWeight(softWeight>1) = 1;
+        
         ninliers = sum(error2<minerror);
        
         ccost = sum(error2);

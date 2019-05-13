@@ -7,8 +7,8 @@ addpath(genpath('../3rdparty/PnP_Toolbox-master/PnP_Toolbox-master/code'));
 % experimental parameters
 nl = 5; % level of noise
 npts  = 50; % number of points
-pouts = 0.1:0.1:0.60;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
-num   = 20; % total number of trials
+pouts = 0.6:0.1:0.80;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
+num   = 100; % total number of trials
 
 % compared methods
 A= zeros(size(npts));
