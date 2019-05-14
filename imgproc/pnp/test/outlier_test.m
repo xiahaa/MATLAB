@@ -5,9 +5,9 @@ addpath ../utils/
 addpath(genpath('../3rdparty/PnP_Toolbox-master/PnP_Toolbox-master/code'));
 
 % experimental parameters
-nl = 5; % level of noise
-npts  = 50; % number of points
-pouts = 0.6:0.1:0.80;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
+nl = 0; % level of noise
+npts  = 100; % number of points
+pouts = 0.6:0.1:0.60;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
 num   = 100; % total number of trials
 
 % compared methods
@@ -15,7 +15,7 @@ A= zeros(size(npts));
 B= zeros(num,1);
 
 name= {'Test','REPPnP', 'R1PPnP'};%'RNSC P3P','RNSC RP4P RPnP','RNSC P3P OPnP','RNSC P3P ASPnP', 'REPPnP', 'R1PPnP'
-f = {@epnp_re_ransac2,@REPPnP, @R1PPnP};% kP3P,@RPnP,@kP3P,@kP3P
+f = {@epnp_re_ransac4,@REPPnP, @R1PPnP};% kP3P,@RPnP,@kP3P,@kP3P
 f2 = {[],[],[]}; %post ransac method: [],@RPnP,@OPnP,@ASPnP,
 ransacsamples = {0,0,0};%3,4,3,3,0,0}; %number of samples to apply ransac
 marker= {'o','d','>'};%,'d','>','<','^','x'};
@@ -57,19 +57,30 @@ for i= 1:length(pouts)
             xx  = [Xc(1,:)./Xc(3,:); Xc(2,:)./Xc(3,:)]*f;
            % randomvals = randn(2,npt);
             xxn = xx + randn(2,npt) * nl;
+            
+            disp(R);
+%             disp(t);
                          
             %generate outliers (assigning to some 3D points more than one 2D correspondence)
             if (pout ~= 0)
-                nout = max(1,round((npt * pout)/(1-pout))); %at least we want 1 outlier
+%                 nout = max(1,round((npt * pout)/(1-pout))); %at least we want 1 outlier
+                nout = max(1,round(npt*pout));
 
-                idx  = randi(npt,1,nout);
-                XXwo = XXw(:,idx);
+                idx  = randperm(npt,nout);
+                id1 = logical(zeros(1,npt));
+                id1(idx) = 1;
+                XXwo = XXw(:,id1);
             else
                nout = 0;
                XXwo = []; 
+               id1 = logical(zeros(1,npt));
             end
             % assignation of random 2D correspondences
             xxo  = [xrand(1,nout,[min(xxn(1,:)) max(xxn(1,:))]); xrand(1,nout,[min(xxn(2,:)) max(xxn(2,:))])];
+            
+            XXw = XXw(:,~id1);
+            xxn = xxn(:,~id1);
+            Xc = Xc(:,~id1);
             
             % test
             % pose estimation
@@ -111,7 +122,7 @@ for i= 1:length(pouts)
                     if sum(tempy) < error
                         cost  = tcost;
                         %L2 error is computed without taing into account the outliers
-                        ercorr= mean(sqrt(sum((R1(:,:,jjj) * XXw +  t1(:,jjj) * ones(1,npt) - Xc).^2)));
+                        ercorr= mean(sqrt(sum((R1(:,:,jjj) * XXw +  t1(:,jjj) * ones(1,size(XXw,2)) - Xc).^2)));
                         y     = tempy;
                         error = sum(tempy);
                     end
