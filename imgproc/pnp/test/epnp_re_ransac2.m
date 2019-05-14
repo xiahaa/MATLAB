@@ -112,7 +112,7 @@ end
 function [K, idinliers, i]=my_robust_kernel_noise2(M,dimker, minerror)
     m   = size(M,1);
     prev_cost = Inf;
-    maxIter = 30;
+    maxIter = 100;
     softWeight = ones(round(m * 0.5),1);%softWeight = softWeight./sum(softWeight(:));
     prev_inlier_cnt = -m;
     id1 = 1:2:m-1;
@@ -122,7 +122,7 @@ function [K, idinliers, i]=my_robust_kernel_noise2(M,dimker, minerror)
         N(id2,:) = softWeight.*M(id2,:);
         [~,S,V] = svd(N);
         id = find(diag(S)>0);
-        v = V(:,id(end));
+        v = V;
         
         error21    = M(1:2:end,:) * v(:,end);
         error22    = M(2:2:end,:) * v(:,end);
