@@ -63,7 +63,7 @@ function [R, t] = epnp_re_ransac4(p,q)
         iter = iter + 1;
     end
     
-    plot(besterror);
+%     plot(besterror);
 %         pause(0.1);
     
     sol_iter = 1; %indicates if the initial solution must be optimized
@@ -190,14 +190,14 @@ function [R,error] = sol1(v1,v2,tau)
 %     w = w ./ sum(w(:));
     % solve the first time
     dummy1 = R*v2;
-    ei = diag(v1'*dummy1);
+    ei = diag(v1'*dummy1)';
     
-    for i = 1:5 % maxiteration
+    for i = 1:30 % maxiteration
         [LHS, RHS] = sol1core(v1,dummy1,ei,w);
         xi = -LHS \ RHS;
         R = vec2rot( xi ) * R;
         dummy1 = R*v2;
-        ei = diag(v1'*dummy1);
+        ei = diag(v1'*dummy1)';
         % if exit
         if norm(xi) < 1e-6
             break;
@@ -210,17 +210,11 @@ function [R,error] = sol1(v1,v2,tau)
     error = ei;
 end
 
-function [LHS, RHS] = sol1core(v1,dummy1,ei,w)
-    LHS = zeros(3);
-    RHS = zeros(3,1);
-    
-    fskew = @(x)([0 -x(3) x(2);x(3) 0 -x(1);-x(2) x(1) 0]);
-    
-    for i = 1:size(v1,2)
-        J = -v1(:,i)' * fskew(dummy1(:,i));
-        LHS = LHS + w(i).*J'*J;
-        RHS = RHS + w(i).*J'*ei(i);
-    end
+function [LHS, RHS] = sol1core(v1,dummy1,ei,w)    
+    Js = -1.*cross(v1,dummy1);
+    wJs = w.*Js;
+    RHS = sum(ei.*wJs,2);
+    LHS = wJs*Js';
 end
 
 

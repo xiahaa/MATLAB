@@ -7,15 +7,15 @@ addpath(genpath('../3rdparty/PnP_Toolbox-master/PnP_Toolbox-master/code'));
 % experimental parameters
 nl = 0; % level of noise
 npts  = 100; % number of points
-pouts = 0.5:0.1:0.60;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
+pouts = 0.5:0.1:0.70;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
 num   = 100; % total number of trials
 
 % compared methods
 A= zeros(size(npts));
 B= zeros(num,1);
 
-name= {'Test','REPPnP', 'R1PPnP'};%'RNSC P3P','RNSC RP4P RPnP','RNSC P3P OPnP','RNSC P3P ASPnP', 'REPPnP', 'R1PPnP'
-f = {@epnp_re_ransac4,@REPPnP, @R1PPnP};% kP3P,@RPnP,@kP3P,@kP3P
+name= {'REPPnP','Test', 'R1PPnP'};%'RNSC P3P','RNSC RP4P RPnP','RNSC P3P OPnP','RNSC P3P ASPnP', 'REPPnP', 'R1PPnP'
+f = {@REPPnP,@epnp_re_ransac4, @R1PPnP};% kP3P,@RPnP,@kP3P,@kP3P
 f2 = {[],[],[]}; %post ransac method: [],@RPnP,@OPnP,@ASPnP,
 ransacsamples = {0,0,0};%3,4,3,3,0,0}; %number of samples to apply ransac
 marker= {'o','d','>'};%,'d','>','<','^','x'};
