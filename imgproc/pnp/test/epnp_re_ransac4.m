@@ -2,16 +2,16 @@ function [R, t] = epnp_re_ransac4(p,q)
 % this file trys to solve the pnp problem with outliers by placing the
 % ransac in advance.
     if size(q,1) == 2
-        q = [q;ones(1,size(q,2))];
+        qn = [q;ones(1,size(q,2))];
         % to normalized vector
-        qn = q ./ sqrt(q(1,:).^2+q(2,:).^2+q(3,:).^2);
+        qn = qn ./ sqrt(qn(1,:).^2+qn(2,:).^2+qn(3,:).^2);
     end
 
      % implementation of two point ransac for pnp
     minset = 1;
     maxiter = 1e6;
     iter = 0;
-    bestcost = 0;
+    bestcost = 0;besterror = 0;
     inliers = [];
     
     % total number
@@ -19,10 +19,11 @@ function [R, t] = epnp_re_ransac4(p,q)
     pd = 0.99;         % Desired probability of choosing at least one sample
                        % free from outliers (probably should be a parameter)
     
-    inlierthreshold = 0.05;
+    inlierthreshold = 1e-4;
+%     figure
     while iter < maxiter
         % choosing one point as the control point
-        control_point_id = 1;%randperm(n, minset);
+        control_point_id = randperm(n, minset);
         
         control_point_3d = p(:,control_point_id);
         control_point_2d = qn(:,control_point_id);
@@ -36,32 +37,19 @@ function [R, t] = epnp_re_ransac4(p,q)
         
         v1 = other_points_3d - repmat(control_point_3d,1,n-1);
         v1 = v1 ./ sqrt(v1(1,:).^2+v1(2,:).^2+v1(3,:).^2);
-        v1 = v1';
         v2 = cross(other_points_2d, repmat(control_point_2d,1,n-1));
         v2 = v2 ./ sqrt(v2(1,:).^2+v2(2,:).^2+v2(3,:).^2);
-        v2 = v2';
         % kernel
 %         M = kron(v2', v1');
-        M = [v2(:,1).*v1 v2(:,2).*v1 v2(:,3).*v1];
-        
-        [eigv,eige] = eig(M'*M);
-        rvec = eigv(:,1);
-        Rbar = rvec([1 2 3;4 5 6;7 8 9]);
-        [U,~,V] = svd(Rbar);
-        D = V*U';
-        if det(D) < 0
-            Ropt = V*[1 0 0;0 1 0;0 0 -1]*U';
-        else
-            Ropt = V*U';
-        end
-        rvec = vec(Ropt');
-        
-        error = M*rvec;
+%         [R,error] = sol0(v1, v2);
+        [Ropt,error] = sol1(v1,v2,inlierthreshold);
+        error = error.^2;
         
         inlier = abs(error) < inlierthreshold;
         ninliers = sum(inlier);
                 
-        if ninliers > bestcost
+        if ninliers > bestcost || (ninliers == bestcost && sum(besterror) > sum(error))
+            besterror = error;
             bestcost = ninliers;
             inliers = [control_point_id dummy_id(inlier)];
             % Update estimate of N, the number of trials to ensure we pick,
@@ -74,6 +62,9 @@ function [R, t] = epnp_re_ransac4(p,q)
         end
         iter = iter + 1;
     end
+    
+    plot(besterror);
+%         pause(0.1);
     
     sol_iter = 1; %indicates if the initial solution must be optimized
     dims = 4;     %kernel dimensions
@@ -88,6 +79,148 @@ function [R, t] = epnp_re_ransac4(p,q)
     [~,~,v] = eig(M'*M);
     Km = v(:,dims:-1:1);
     [R, t, ~] = KernelPnP1(cw, Km, dims, sol_iter);
+end
+
+function [R,error] = sol0(v1, v2)
+% can this be designed as a kernel framework for outlier identification for
+% outlier ratio lower than 50%.
+    v1 = v1';
+    v2 = v2';
+    M = [v2(:,1).*v1 v2(:,2).*v1 v2(:,3).*v1];
+    [eigv,~] = eig(M'*M);
+    rvec = eigv(:,1);
+    Rbar = rvec([1 2 3;4 5 6;7 8 9]);
+    [U,~,V] = svd(Rbar);
+    D = V*U';
+    if det(D) < 0
+        R = V*[1 0 0;0 1 0;0 0 -1]*U';
+    else
+        R = V*U';
+    end
+    rvec = vec(R');
+    error = M*rvec;
+end
+
+function [R,error] = sol2(v1, v2)
+    v1 = v1';
+    v2 = v2';
+    M = [v2(:,1).*v1 v2(:,2).*v1 v2(:,3).*v1];
+    % robust kernel based outlier identification.
+    m   = size(M,1);
+    id  =round(m/8);
+    idx = 1:m;
+    prev_sv = Inf;
+    pairs = 0; %each correspondence is a couple of equations
+    minerror = 0.1;
+    for i=1:10
+        N = M(idx,:);
+        [~,~,v] = svd(N'*N);
+       
+        vm = v(:,end);
+        Rbar = vm([1 2 3;4 5 6;7 8 9]);
+        [U,~,V] = svd(Rbar);
+        D = V*U';
+        if det(D) < 0
+            R = V*[1 0 0;0 1 0;0 0 -1]*U';
+        else
+            R = V*U';
+        end
+        rvec = vec(R');
+        
+        if (pairs)
+            error21    = M(1:2:end,:) * rvec;
+            error22    = M(2:2:end,:) * rvec;
+            error2     = sqrt(error21.^2 + error22.^2);
+            
+            [sv, tidx] = sort(error2);        
+
+            med = sv(floor(m/4)); 
+
+        else
+            error2    = M * rvec;
+            [sv, tidx] = sort(error2.^2);
+            med = sv(floor(m/4)); 
+        end
+     
+        ninliers = sum(sv<max(med,minerror));
+
+        if (med >= prev_sv)
+            break;
+        else
+            prev_sv = med;
+            resv    = v;
+            if(pairs)
+                residx  = tidx(1:ninliers);
+            else
+                %always pairs = 1!! :P
+                residx  = tidx(1:ninliers);
+            end
+        end
+        
+        if(pairs)
+            tidx2     = tidx'*2;
+            ttidx     = [tidx2-1; tidx2];
+            tidx2     = ttidx(:);
+            idx       = tidx2(1:2*ninliers);
+        else
+            idx       = tidx(1:ninliers);
+        end
+    end
+    
+%     K = resv(:,end-dimker+1:end);   
+%     idinliers = residx;
+    v = resv(:,end);
+    Rbar = v([1 2 3;4 5 6;7 8 9]);
+    [U,~,V] = svd(Rbar);
+    D = V*U';
+    if det(D) < 0
+        R = V*[1 0 0;0 1 0;0 0 -1]*U';
+    else
+        R = V*U';
+    end
+    rvec = vec(R');
+    error = M*rvec;
+    
+end
+
+function [R,error] = sol1(v1,v2,tau)
+% this solve for the R using weighted manifold optimization.
+    R = eye(3);
+    w = ones(1,size(v1,2));
+%     w = w ./ sum(w(:));
+    % solve the first time
+    dummy1 = R*v2;
+    ei = diag(v1'*dummy1);
+    
+    for i = 1:5 % maxiteration
+        [LHS, RHS] = sol1core(v1,dummy1,ei,w);
+        xi = -LHS \ RHS;
+        R = vec2rot( xi ) * R;
+        dummy1 = R*v2;
+        ei = diag(v1'*dummy1);
+        % if exit
+        if norm(xi) < 1e-6
+            break;
+        end
+        % update weight
+        w = tau ./ (abs(ei)+1e-8);
+        w(w>1) = 1;
+%         w = w ./ sum(w(:));
+    end
+    error = ei;
+end
+
+function [LHS, RHS] = sol1core(v1,dummy1,ei,w)
+    LHS = zeros(3);
+    RHS = zeros(3,1);
+    
+    fskew = @(x)([0 -x(3) x(2);x(3) 0 -x(1);-x(2) x(1) 0]);
+    
+    for i = 1:size(v1,2)
+        J = -v1(:,i)' * fskew(dummy1(:,i));
+        LHS = LHS + w(i).*J'*J;
+        RHS = RHS + w(i).*J'*ei(i);
+    end
 end
 
 
