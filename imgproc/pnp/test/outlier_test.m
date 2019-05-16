@@ -7,7 +7,7 @@ addpath(genpath('../3rdparty/PnP_Toolbox-master/PnP_Toolbox-master/code'));
 % experimental parameters
 nl = 0; % level of noise
 npts  = 100; % number of points
-pouts = 0.5:0.1:0.70;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
+pouts = 0.6:0.1:0.70;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
 num   = 100; % total number of trials
 
 % compared methods
@@ -58,8 +58,8 @@ for i= 1:length(pouts)
            % randomvals = randn(2,npt);
             xxn = xx + randn(2,npt) * nl;
             
-            disp(R);
-%             disp(t);
+            disp((R));
+            disp(t);
                          
             %generate outliers (assigning to some 3D points more than one 2D correspondence)
             if (pout ~= 0)

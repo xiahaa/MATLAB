@@ -7,7 +7,7 @@ function [R, t] = epnp_re_ransac4(p,q)
         qn = qn ./ sqrt(qn(1,:).^2+qn(2,:).^2+qn(3,:).^2);
     end
 
-     % implementation of two point ransac for pnp
+    % implementation of two point ransac for pnp
     minset = 1;
     maxiter = 1e6;
     iter = 0;
@@ -19,7 +19,7 @@ function [R, t] = epnp_re_ransac4(p,q)
     pd = 0.99;         % Desired probability of choosing at least one sample
                        % free from outliers (probably should be a parameter)
     
-    inlierthreshold = 1e-4;
+    inlierthreshold = 1e-6;
 %     figure
     while iter < maxiter
         % choosing one point as the control point
@@ -42,16 +42,23 @@ function [R, t] = epnp_re_ransac4(p,q)
         % kernel
 %         M = kron(v2', v1');
 %         [R,error] = sol0(v1, v2);
-        [Ropt,error] = sol1(v1,v2,inlierthreshold);
+        [Ropt,error] = sol1(v2,v1,inlierthreshold);
         error = error.^2;
+        cinlier = abs(error) < inlierthreshold;
+        cinliers = [dummy_id(cinlier)];
+        topt = optimize_t(p(:,cinliers),q(:,cinliers),Ropt);
+        ninliers = length(cinliers);
+        % check reporjection error, second round outlier check
+        pq = Ropt*p(:,cinliers) + repmat(topt,1,ninliers);
+        pq = pq ./ pq(3,:);
+        error2 = sum((pq(1:2,:) - q(:,cinliers)).^2, 1);
+        cinlier(error2 > 0.01) = 0;
+        ninliers = sum(cinlier);
         
-        inlier = abs(error) < inlierthreshold;
-        ninliers = sum(inlier);
-                
-        if ninliers > bestcost || (ninliers == bestcost && sum(besterror) > sum(error))
-            besterror = error;
+        if ninliers > bestcost || (ninliers == bestcost && sum(error2)<sum(besterror))
+            besterror = error2;
             bestcost = ninliers;
-            inliers = [control_point_id dummy_id(inlier)];
+            inliers = [dummy_id(cinlier)];
             % Update estimate of N, the number of trials to ensure we pick,
             % with probability p, a data set with no outliers.
             fracinliers =  ninliers/n;
@@ -63,8 +70,8 @@ function [R, t] = epnp_re_ransac4(p,q)
         iter = iter + 1;
     end
     
-%     plot(besterror);
-%         pause(0.1);
+    plot(besterror);
+    pause(0.1);
     
     sol_iter = 1; %indicates if the initial solution must be optimized
     dims = 4;     %kernel dimensions
@@ -79,6 +86,14 @@ function [R, t] = epnp_re_ransac4(p,q)
     [~,~,v] = eig(M'*M);
     Km = v(:,dims:-1:1);
     [R, t, ~] = KernelPnP1(cw, Km, dims, sol_iter);
+end
+
+function topt = optimize_t(p,q,R)
+    pp = R*p;
+    n = size(p,2);
+    A = [[ones(n,1) zeros(n,1) -q(1,:)'];[zeros(n,1) ones(n,1) -q(2,:)']];
+    b = [[q(1,:)'.*pp(3,:)' - pp(1,:)'];[q(2,:)'.*pp(3,:)' - pp(2,:)']];
+    topt = A\b;
 end
 
 function [R,error] = sol0(v1, v2)
@@ -203,7 +218,7 @@ function [R,error] = sol1(v1,v2,tau)
             break;
         end
         % update weight
-        w = tau ./ (abs(ei)+1e-8);
+        w = tau ./ (ei.^2+1e-16);
         w(w>1) = 1;
 %         w = w ./ sum(w(:));
     end
