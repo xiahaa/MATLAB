@@ -5,9 +5,9 @@ addpath ../utils/
 addpath(genpath('../3rdparty/PnP_Toolbox-master/PnP_Toolbox-master/code'));
 
 % experimental parameters
-nl = 0; % level of noise
-npts  = 100; % number of points
-pouts = 0.6:0.1:0.70;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
+nl = 5; % level of noise
+npts  = 50; % number of points
+pouts = 0.6:0.1:0.60;%:0.1:0.1;%[0.0:0.05:0.80];  % percentage of outliers
 num   = 100; % total number of trials
 
 % compared methods
@@ -63,24 +63,16 @@ for i= 1:length(pouts)
                          
             %generate outliers (assigning to some 3D points more than one 2D correspondence)
             if (pout ~= 0)
-%                 nout = max(1,round((npt * pout)/(1-pout))); %at least we want 1 outlier
-                nout = max(1,round(npt*pout));
+                nout = max(1,round((npt * pout)/(1-pout))); %at least we want 1 outlier
 
-                idx  = randperm(npt,nout);
-                id1 = logical(zeros(1,npt));
-                id1(idx) = 1;
-                XXwo = XXw(:,id1);
+                idx  = randi(npt,1,nout);
+                XXwo = XXw(:,idx);
             else
                nout = 0;
                XXwo = []; 
-               id1 = logical(zeros(1,npt));
             end
             % assignation of random 2D correspondences
             xxo  = [xrand(1,nout,[min(xxn(1,:)) max(xxn(1,:))]); xrand(1,nout,[min(xxn(2,:)) max(xxn(2,:))])];
-            
-            XXw = XXw(:,~id1);
-            xxn = xxn(:,~id1);
-            Xc = Xc(:,~id1);
             
             % test
             % pose estimation

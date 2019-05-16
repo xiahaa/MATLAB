@@ -9,8 +9,8 @@ function [R, t] = epnp_re_ransac4(p,q)
 
     % implementation of two point ransac for pnp
     minset = 1;
-    maxiter = 1e6;
-    iter = 0;
+%     maxiter = 1e6;
+%     iter = 0;
     bestcost = 0;besterror = 0;
     inliers = [];
     
@@ -18,12 +18,13 @@ function [R, t] = epnp_re_ransac4(p,q)
     n = size(p,2);
     pd = 0.99;         % Desired probability of choosing at least one sample
                        % free from outliers (probably should be a parameter)
-    
-    inlierthreshold = 1e-6;
+    Rbest = [];
+    inlierthreshold = 0.005;
 %     figure
-    while iter < maxiter
+    
+    for iter = 1:n
         % choosing one point as the control point
-        control_point_id = randperm(n, minset);
+        control_point_id = iter;%randperm(n, minset);
         
         control_point_3d = p(:,control_point_id);
         control_point_2d = qn(:,control_point_id);
@@ -36,38 +37,36 @@ function [R, t] = epnp_re_ransac4(p,q)
         other_points_2d = qn(:,dummy_id);
         
         v1 = other_points_3d - repmat(control_point_3d,1,n-1);
-        v1 = v1 ./ sqrt(v1(1,:).^2+v1(2,:).^2+v1(3,:).^2);
+        v1 = v1 ./ sqrt(v1(1,:).^2+v1(2,:).^2+v1(3,:).^2 + 1e-20);
         v2 = cross(other_points_2d, repmat(control_point_2d,1,n-1));
-        v2 = v2 ./ sqrt(v2(1,:).^2+v2(2,:).^2+v2(3,:).^2);
+        v2 = v2 ./ sqrt(v2(1,:).^2+v2(2,:).^2+v2(3,:).^2 + 1e-20);
         % kernel
 %         M = kron(v2', v1');
 %         [R,error] = sol0(v1, v2);
-        [Ropt,error] = sol1(v2,v1,inlierthreshold);
-        error = error.^2;
+        [Ropt,error] = sol1(v2,v1,inlierthreshold,p(:,dummy_id),q(:,dummy_id));
+        
+        plot(error);
+        pause(0.1);
+        
         cinlier = abs(error) < inlierthreshold;
         cinliers = [dummy_id(cinlier)];
-        topt = optimize_t(p(:,cinliers),q(:,cinliers),Ropt);
-        ninliers = length(cinliers);
-        % check reporjection error, second round outlier check
-        pq = Ropt*p(:,cinliers) + repmat(topt,1,ninliers);
-        pq = pq ./ pq(3,:);
-        error2 = sum((pq(1:2,:) - q(:,cinliers)).^2, 1);
-        cinlier(error2 > 0.01) = 0;
+        
         ninliers = sum(cinlier);
         
-        if ninliers > bestcost || (ninliers == bestcost && sum(error2)<sum(besterror))
-            besterror = error2;
+        if ninliers > bestcost
+            besterror = error;
             bestcost = ninliers;
-            inliers = [dummy_id(cinlier)];
+            inliers = cinliers;
+            Rbest = Ropt;
             % Update estimate of N, the number of trials to ensure we pick,
             % with probability p, a data set with no outliers.
-            fracinliers =  ninliers/n;
-            pNoOutliers = 1 -  fracinliers^minset;
-            pNoOutliers = max(eps, pNoOutliers);  % Avoid division by -Inf
-            pNoOutliers = min(1-eps, pNoOutliers);% Avoid division by 0.
-            maxiter = log(1-pd)/log(pNoOutliers);
+%             fracinliers =  ninliers/n;
+%             pNoOutliers = 1 -  fracinliers^minset;
+%             pNoOutliers = max(eps, pNoOutliers);  % Avoid division by -Inf
+%             pNoOutliers = min(1-eps, pNoOutliers);% Avoid division by 0.
+%             maxiter = log(1-pd)/log(pNoOutliers);
         end
-        iter = iter + 1;
+%         iter = iter + 1;
     end
     
     plot(besterror);
@@ -88,11 +87,16 @@ function [R, t] = epnp_re_ransac4(p,q)
     [R, t, ~] = KernelPnP1(cw, Km, dims, sol_iter);
 end
 
-function topt = optimize_t(p,q,R)
+function topt = optimize_t(p,q,R,w)
     pp = R*p;
     n = size(p,2);
-    A = [[ones(n,1) zeros(n,1) -q(1,:)'];[zeros(n,1) ones(n,1) -q(2,:)']];
-    b = [[q(1,:)'.*pp(3,:)' - pp(1,:)'];[q(2,:)'.*pp(3,:)' - pp(2,:)']];
+    if isempty(w)
+        w = ones(n,1);
+    end
+    
+    A = [w.*[ones(n,1) zeros(n,1) -q(1,:)'];w.*[zeros(n,1) ones(n,1) -q(2,:)']];
+    b = [w.*[q(1,:)'.*pp(3,:)' - pp(1,:)'];w.*[q(2,:)'.*pp(3,:)' - pp(2,:)']];
+    
     topt = A\b;
 end
 
@@ -198,31 +202,32 @@ function [R,error] = sol2(v1, v2)
     
 end
 
-function [R,error] = sol1(v1,v2,tau)
+function [R,error] = sol1(v1,v2,tau,p,q)
 % this solve for the R using weighted manifold optimization.
     R = eye(3);
     w = ones(1,size(v1,2));
-%     w = w ./ sum(w(:));
-    % solve the first time
-    dummy1 = R*v2;
-    ei = diag(v1'*dummy1)';
     
-    for i = 1:30 % maxiteration
+    for i = 1:50 % maxiteration
+        dummy1 = R*v2;
+        ei = diag(v1'*dummy1)';
         [LHS, RHS] = sol1core(v1,dummy1,ei,w);
         xi = -LHS \ RHS;
         R = vec2rot( xi ) * R;
-        dummy1 = R*v2;
-        ei = diag(v1'*dummy1)';
         % if exit
         if norm(xi) < 1e-6
             break;
         end
+        
+        topt = optimize_t(p,q,R,w');
+        pq = R*p + repmat(topt,1,size(p,2));
+        pq = pq ./ pq(3,:);
+        error2 = sum((pq(1:2,:) - q).^2, 1);
+        
         % update weight
-        w = tau ./ (ei.^2+1e-16);
+        w = tau ./ (error2 + 1e-16);
         w(w>1) = 1;
-%         w = w ./ sum(w(:));
     end
-    error = ei;
+    error = error2;
 end
 
 function [LHS, RHS] = sol1core(v1,dummy1,ei,w)    
