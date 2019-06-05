@@ -12,14 +12,14 @@ function [R, t] = epnp_re_ransac4(p,q)
 %     maxiter = 1e6;
 %     iter = 0;
     bestcost = 0;besterror = 0;
-    inliers = [];
+    inliers = [];inlierids = [];
     
     % total number
     n = size(p,2);
     pd = 0.99;         % Desired probability of choosing at least one sample
                        % free from outliers (probably should be a parameter)
     Rbest = [];
-    inlierthreshold = 0.005;
+    inlierthreshold = 0.001;
 %     figure
     
     for iter = 1:n
@@ -45,18 +45,19 @@ function [R, t] = epnp_re_ransac4(p,q)
 %         [R,error] = sol0(v1, v2);
         [Ropt,error] = sol1(v2,v1,inlierthreshold,p(:,dummy_id),q(:,dummy_id));
         
-        plot(error);
-        pause(0.1);
+%         plot(error);
+%         pause(0.1);
         
         cinlier = abs(error) < inlierthreshold;
         cinliers = [dummy_id(cinlier)];
         
         ninliers = sum(cinlier);
         
-        if ninliers > bestcost
+        if ninliers > bestcost || (ninliers == bestcost && (sum(error(cinlier)) < sum(besterror(inlierids))))
             besterror = error;
             bestcost = ninliers;
             inliers = cinliers;
+            inlierids = cinlier;
             Rbest = Ropt;
             % Update estimate of N, the number of trials to ensure we pick,
             % with probability p, a data set with no outliers.
@@ -207,7 +208,7 @@ function [R,error] = sol1(v1,v2,tau,p,q)
     R = eye(3);
     w = ones(1,size(v1,2));
     
-    for i = 1:50 % maxiteration
+    for i = 1:100 % maxiteration
         dummy1 = R*v2;
         ei = diag(v1'*dummy1)';
         [LHS, RHS] = sol1core(v1,dummy1,ei,w);
@@ -220,11 +221,20 @@ function [R,error] = sol1(v1,v2,tau,p,q)
         
         topt = optimize_t(p,q,R,w');
         pq = R*p + repmat(topt,1,size(p,2));
+        
+        cnt = sum(pq(3,:) < 0);
+        if cnt / size(pq,2) > 0.1
+            R = diag([-1 1 -1])*R;
+            topt = optimize_t(p,q,R,w');
+            pq = R*p + repmat(topt,1,size(p,2));
+        end
+        
         pq = pq ./ pq(3,:);
         error2 = sum((pq(1:2,:) - q).^2, 1);
-        
+%         error2 = abs(ei);
+
         % update weight
-        w = tau ./ (error2 + 1e-16);
+        w = (tau ./ (error2 + 1e-16));
         w(w>1) = 1;
     end
     error = error2;
