@@ -123,11 +123,13 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
         @sol_dual_sdp_cvx, ...
         @batchSolveSoftUseScrew, ...
+        @batchSolveNew, ...
+        @batchSolveNew, ...
         };
 %       @sol_cvx1, ...                                      %% SOCP
 %       @sol_manifold_opt_SE3, ...                                   %% SDP
 
-    solver_name = {'KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS'};%'SOCP',
+    solver_name = {'KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS','B1','B2'};%'SOCP',
          
  usedsolver = convSolver1;
      
@@ -152,6 +154,14 @@ for kk = 1:size(usedsolver, 2)
             TX = handle_sol(A,B,2);
             tsol(kk) = toc;
         end
+    elseif strcmp(solver_name(kk), 'B1')
+            tic
+            TX = handle_sol(A,B,1);
+            tsol(kk) = toc;
+    elseif strcmp(solver_name(kk), 'B2')
+            tic
+            TX = handle_sol(A,B,4);
+            tsol(kk) = toc;
     else
         tic
         TX = handle_sol(T1,T2,num);
@@ -179,7 +189,7 @@ end
 % convSols = {'MIT', 'LIE',  'DQ', 'CHOU', 'ATA', 'GPOLY', 'DUAL', 'SCF', 'SE3OPT', 'SDP'};
 % convSols = {'BL','KR','SOCP','ATA','GPOLY','DUAL','SDR'};
 %     convSols = {'BL','KR','DQ','SOCP','ATA','GPOLY','DUAL','batch1','batch2'};
-convSols = {'MIT','KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS'};
+convSols = {'MIT','KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS','B1','B2'};
 
 
 red_color = [153 0 0]/255;
