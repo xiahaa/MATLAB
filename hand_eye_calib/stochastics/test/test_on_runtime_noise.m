@@ -64,6 +64,15 @@ for j = 1:n_num
         numout = 0.5*num;
         [A, B] = generateAB(num, optPDF, X, gmean, cov);
         [Aout, Bout] = generateAB(numout, optPDF, Xout, gmean, cov);
+
+        A = sensorNoise(A, gmean, nstd(j), 1);
+        Aout = sensorNoise(Aout, gmean, nstd(j), 1);
+
+%         for ii = 1:2:size(A,3)
+%             DrawAxis(A(:,:,ii), 0.5, 'r', 'r', 'r');
+%             DrawAxis(B(:,:,ii), 0.5, 'g', 'g', 'g');
+%         end
+%         view(3)
         
         A = cat(3,A,Aout);
         B = cat(3,B);
