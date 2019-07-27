@@ -116,7 +116,7 @@ function [id1,id2] = findMaximumConsistentSet(A,B)
     
     % 4th step, find score for each query
     bestscore = scores(:,1);
-    inlierthresh = 0.05;%mean(bestscore);%0.01;
+    inlierthresh = 0.5;%mean(bestscore);%0.01;
     valid = bestscore < inlierthresh;
     
     % otherway, just voting

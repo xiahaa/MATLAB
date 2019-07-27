@@ -23,6 +23,8 @@ addpath D:\dtu\sourcecode\hand_eye\axxb_calibration-stable_stochastics_lie\axxb_
 num = 50; % Number of steps
 gmean = [0;0;0;0;0;0];	%Gaussian Noise Mean
 stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
+stds_n = 0.02:0.02:0.1; % Gaussian Noise standard deviation Range
+
 n_trials = 50; %60
 
 perm_rate = 100;
@@ -70,6 +72,9 @@ for solver_id = 1:size(solver_name,2)
             [A, B] = generateAB(num, optPDF, X, gmean, cov);
             [Aout, Bout] = generateAB(numout, optPDF, Xout, gmean, cov);
         
+            B = sensorNoise(B, gmean, stds_n(id_std), 1);
+%             Aout = sensorNoise(Aout, gmean, 0.3, 1);
+            
             A = cat(3,A);
             B = cat(3,B);
                 
