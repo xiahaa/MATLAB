@@ -99,11 +99,13 @@ advSolver = {@sol_adjoint_transformation_algo, ...      %% ATA
         @sol_dphec, ...                                     %% GLOBAL_POLY
         @sol_dual_sdp_cvx, ...
         @batchSolveSoftUseScrew, ...
+        @batchSolveNew, ...
+        @batchSolveNew, ...
         };
 %       @sol_cvx1, ...                                      %% SOCP
 %       @sol_manifold_opt_SE3, ...                                   %% SDP
 
-    solver_name = {'KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS'};%'SOCP',
+    solver_name = {'KR','NLQ','ATA','SOCP', 'GPOLY', 'DUAL','BS','B1','B2'};%'SOCP',
 %     solver_name = {'KR','NLQ','SOCP','ATA','GPOLY','SE3'};
          
          
@@ -126,6 +128,30 @@ for kk = 1:size(usedsolver, 2)
         end 
         tic
         TX = handle_sol(A,B);
+        tsol(kk) = toc;
+    elseif strcmp(solver_name(kk),'B1')
+        A = zeros(4,4,nsam);
+        B = zeros(4,4,nsam);
+        for i = 1:nsam
+            Ts = T2(i,:,:);Ts = reshape(Ts,4,4);
+            A(:,:,i) = Ts;
+            Ts = T1(i,:,:);Ts = reshape(Ts,4,4);
+            B(:,:,i) = Ts;
+        end 
+        tic
+        TX = handle_sol(A,B,1);
+        tsol(kk) = toc;
+    elseif strcmp(solver_name(kk),'B2')
+        A = zeros(4,4,nsam);
+        B = zeros(4,4,nsam);
+        for i = 1:nsam
+            Ts = T2(i,:,:);Ts = reshape(Ts,4,4);
+            A(:,:,i) = Ts;
+            Ts = T1(i,:,:);Ts = reshape(Ts,4,4);
+            B(:,:,i) = Ts;
+        end 
+        tic
+        TX = handle_sol(A,B,4);
         tsol(kk) = toc;
     else
         tic
