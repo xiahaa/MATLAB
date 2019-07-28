@@ -2,7 +2,11 @@ function draw_test_1
 % this functionality will draw results on simulated data by using the
 % generator given in the MIT folder.
     clc;clear all;close all;
-    basepath = 'C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/';
+    if ismac == 1
+        basepath = '/Users/xiaohu/Documents/MATLAB/MATLAB/hand_eye_calib/';
+    else
+        basepath = 'C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/';
+    end
     addpath(strcat(basepath,'../beautiful_plot'));
     addpath(strcat(basepath,'./solver/'));
     addpath(strcat(basepath,'../MatrixLieGroup/barfoot_tro14'));
@@ -32,7 +36,7 @@ function draw_test_1
 %     base_name = 'test_5';
 %     xlbs = 'Percentage of additional samples';
 
-    % test 4
+%     % test 4
     outlier_percentage = 0:0.1:0.5;
     base_name = 'test_4';
     xlbs = 'Percentage of additional outliers';
@@ -63,7 +67,7 @@ function draw_test_1
 
     for solver_id = 1:numsolver
         clear res;
-        res = load(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/sto/',base_name,plot_case{solver_id},'.mat'),'res');
+        res = load(strcat(basepath,'result/sto/',base_name,plot_case{solver_id},'.mat'),'res');
         meantime = mean(res.res.times,2)';
         runtimes(solver_id,:) = meantime(1:numcases);
         
