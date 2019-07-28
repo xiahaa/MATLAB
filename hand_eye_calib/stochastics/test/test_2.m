@@ -23,11 +23,19 @@ addpath D:\dtu\sourcecode\hand_eye\axxb_calibration-stable_stochastics_lie\axxb_
 num = 50; % Number of steps
 gmean = [0;0;0;0;0;0];	%Gaussian Noise Mean
 stds = 1; % Gaussian Noise standard deviation Range
+n_stds = 0.025;
 n_trials = 50; %60
 perm_rate = 50;
 
-% percentage_of_added_sample = 0:0.1:0.5;
+percentage_of_added_sample = 0:0.1:0.5;
 outlier_percentage = 0:0.1:0.5;
+
+exp = 2;
+if exp == 1
+    use_case = percentage_of_added_sample;
+else
+    use_case = outlier_percentage;
+end
 
 convSolver = {
     @batchSolveNew, ...                                   %% batch1
@@ -47,12 +55,12 @@ A_noise = [];
 B = [];
 
 for solver_id = 1:size(solver_name,2)
-    times = zeros(numel(outlier_percentage),100);
-    error_r = zeros(numel(outlier_percentage),n_trials);
-    error_t = zeros(numel(outlier_percentage),n_trials);
-    valid_id = ones(numel(outlier_percentage),n_trials);
-    for id1 = 1:numel(outlier_percentage)
-        numout = outlier_percentage(id1)*num;
+    times = zeros(numel(use_case),100);
+    error_r = zeros(numel(use_case),n_trials);
+    error_t = zeros(numel(use_case),n_trials);
+    valid_id = ones(numel(use_case),n_trials);
+    for id1 = 1:numel(use_case)
+        numout = use_case(id1)*num;
         disp([solver_id,id1])
         std = stds(1);
         cov = std*eye(6,6);
@@ -68,19 +76,26 @@ for solver_id = 1:size(solver_name,2)
             Xout = expm(se3_vec(xout)); % Generate a Random Xout
             
             [A, B] = generateAB(num, optPDF, X, gmean, cov);
-%             [Aout, Bout] = generateAB(numout, optPDF, X, gmean, cov);
-            Aout = genRandomPose(numout);
-            Bout = genRandomPose(numout);
-        
-%             if rand(1) > 0.5
-%                 A = cat(3,A,Aout);
-%                 B = cat(3,B);
-%             else
-%                 A = cat(3,A);
-%                 B = cat(3,B, Bout);
-%             end
-            A = cat(3,A,Aout);
-            B = cat(3,B, Bout);
+            B = sensorNoise(B, gmean, n_stds, 1);
+            
+            if exp == 2
+%                 [Aout, Bout] = generateAB(numout, optPDF, Xout, gmean, cov);
+                Aout = genRandomPose(numout);
+                Bout = genRandomPose(numout);
+                Bout = sensorNoise(Bout, gmean, n_stds, 1);
+                
+                %% do a toss
+    %             if rand(1) > 0.5
+    %                 A = cat(3,A,Aout);
+    %                 B = cat(3,B);
+    %             else
+    %                 A = cat(3,A);
+    %                 B = cat(3,B, Bout);
+    %             end
+                
+                A = cat(3,A,Aout);
+%                 B = cat(3,B, Bout);                
+            end
                 
             PA = (1:size(A,3));
             PB = (1:size(B,3));
@@ -91,6 +106,11 @@ for solver_id = 1:size(solver_name,2)
                     PA([i index]) = PA([index i]);
                 end
             end
+            
+            if exp == 1
+                PA(1:numout) = [];
+            end
+            
             A_perm = A(:, :, PA);
             B_perm = B(:, :, PB);
         
@@ -111,14 +131,14 @@ for solver_id = 1:size(solver_name,2)
         end
     end
     fig = figure();
-    xlbs = cellstr(string(outlier_percentage));
+    xlbs = cellstr(string(use_case));
     box_labels = categorical(xlbs);
     box_labels = reordercats(box_labels,xlbs);
     boxplot(error_r', box_labels);
     res.error_r = error_r;
     res.error_t = error_t;
     res.times = times;
-    save(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/sto/test_3',solver_name{solver_id},'.mat'),'res');
+    save(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/sto/test_4',solver_name{solver_id},'.mat'),'res');
 end
 
 function X = genRandomPose(num) 
