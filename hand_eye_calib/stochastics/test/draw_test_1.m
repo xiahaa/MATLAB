@@ -13,9 +13,19 @@ function draw_test_1
     %% Initialize Parameters
     
     % test 1
-    stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
-    base_name = 'test_1';
-    xlbs = 'Standard deviation of additional noise';
+%     stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
+%     base_name = 'test_1';
+%     xlbs = 'Standard deviation';
+    
+    % test 2
+%     stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
+%     base_name = 'test_2';
+%     xlbs = 'Standard deviation';
+    
+    % test 3
+    stds = 0.02:0.02:0.10; % Gaussian Noise standard deviation Range
+    base_name = 'test_3';
+    xlbs = 'Standard deviation of noise';
     
     % test 2
 %     percentage_of_added_sample = 0:0.1:0.5;
@@ -113,6 +123,7 @@ function draw_test_1
     grid on;
     xticks(test_case);
     xticklabels(cellstr(string(test_case)));
+    ylim([0, 1])
     % axis([0 100 0 4])
 
     figure

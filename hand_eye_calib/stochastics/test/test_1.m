@@ -22,8 +22,14 @@ addpath D:\dtu\sourcecode\hand_eye\axxb_calibration-stable_stochastics_lie\axxb_
 %% Initialize Parameters
 num = 50; % Number of steps
 gmean = [0;0;0;0;0;0];	%Gaussian Noise Mean
-stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
+
+% stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
+% stds_n = 0 * ones(1, numel(stds));% exp 1 & 2, data generation methods.
+% name = stds;
+
 stds_n = 0.02:0.02:0.1; % Gaussian Noise standard deviation Range
+stds = 0.9*ones(1,numel(stds_n)); % Gaussian Noise standard deviation Range
+name = stds_n;
 
 n_trials = 50; %60
 
@@ -107,7 +113,7 @@ for solver_id = 1:size(solver_name,2)
         end
     end
     fig = figure();
-    xlbs = cellstr(string(stds));
+    xlbs = cellstr(string(name));
     box_labels = categorical(xlbs);
     box_labels = reordercats(box_labels,xlbs);
     boxplot(error_r', box_labels);
