@@ -22,22 +22,22 @@ function draw_test_1
 %     base_name = 'test_2';
 %     xlbs = 'Standard deviation';
     
-    % test 3
-    stds = 0.02:0.02:0.10; % Gaussian Noise standard deviation Range
-    base_name = 'test_3';
-    xlbs = 'Standard deviation of noise';
+%     % test 3
+%     stds = 0.01:0.01:0.05; % Gaussian Noise standard deviation Range
+%     base_name = 'test_3';
+%     xlbs = 'Standard deviation of noise';
     
-    % test 2
+%     test 5
 %     percentage_of_added_sample = 0:0.1:0.5;
-%     base_name = 'test_2';
+%     base_name = 'test_5';
 %     xlbs = 'Percentage of additional samples';
 
-    % test 3
-%     outlier_percentage = 0:0.1:0.5;
-%     base_name = 'test_3';
-%     xlbs = 'Percentage of additional outliers';
+    % test 4
+    outlier_percentage = 0:0.1:0.5;
+    base_name = 'test_4';
+    xlbs = 'Percentage of additional outliers';
     
-    test_case = stds;
+    test_case = outlier_percentage;
     
     solver_name = {'B1','B2','BS'};
 
@@ -123,7 +123,7 @@ function draw_test_1
     grid on;
     xticks(test_case);
     xticklabels(cellstr(string(test_case)));
-    ylim([0, 1])
+    ylim([0, 2.0])
     % axis([0 100 0 4])
 
     figure
