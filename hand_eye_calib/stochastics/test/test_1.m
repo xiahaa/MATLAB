@@ -23,13 +23,13 @@ addpath D:\dtu\sourcecode\hand_eye\axxb_calibration-stable_stochastics_lie\axxb_
 num = 50; % Number of steps
 gmean = [0;0;0;0;0;0];	%Gaussian Noise Mean
 
-% stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
-% stds_n = 0 * ones(1, numel(stds));% exp 1 & 2, data generation methods.
-% name = stds;
+stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
+stds_n = 0 * ones(1, numel(stds));% exp 1 & 2, data generation methods.
+name = stds;
 
-stds_n = 0.02:0.02:0.1; % Gaussian Noise standard deviation Range
-stds = 0.9*ones(1,numel(stds_n)); % Gaussian Noise standard deviation Range
-name = stds_n;
+% stds_n = [0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08]; % Gaussian Noise standard deviation Range
+% stds = 1*ones(1,numel(stds_n)); % Gaussian Noise standard deviation Range
+% name = stds_n;
 
 n_trials = 50; %60
 
