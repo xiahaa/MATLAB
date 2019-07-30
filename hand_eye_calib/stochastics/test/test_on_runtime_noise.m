@@ -25,7 +25,10 @@ addpath D:\dtu\sourcecode\hand_eye\axxb_calibration-stable_stochastics_lie\axxb_
 num = 100; % Number of measurements
 gmean = [0;0;0;0;0;0];	%Gaussian Noise Mean
 
-nstd = 0.1:0.1:1.0; % Gaussian Noise standard deviation Range
+stds_n = 0.01:0.01:0.1; % Gaussian Noise standard deviation Range
+nstd = 1*ones(1,numel(stds_n)); % Gaussian Noise standard deviation Range
+
+% nstd = 0.1:0.1:1.0; % Gaussian Noise standard deviation Range
 
 n_trials = 50; %60
 
@@ -68,6 +71,7 @@ for j = 1:n_num
         A = sensorNoise(A, gmean, nstd(j), 1);
         Aout = sensorNoise(Aout, gmean, nstd(j), 1);
 
+        B = sensorNoise(B, gmean, stds_n(j), 1);
 %         for ii = 1:2:size(A,3)
 %             DrawAxis(A(:,:,ii), 0.5, 'r', 'r', 'r');
 %             DrawAxis(B(:,:,ii), 0.5, 'g', 'g', 'g');
@@ -110,7 +114,7 @@ meantimes(3,:) = mean(runtime_batch_3);
 figure()
 cmap = lines(3);
 cmapalpha = [cmap 0.8*ones(size(cmap,1),1)];
-xlabels = nstd;
+xlabels = stds_n;
 plot_case = {'B1','B2','BS'};
 for solver_id = 1:3
     plot(xlabels', meantimes(solver_id,:),'-o', 'Color', cmapalpha(solver_id,:),'LineWidth', 2.5);hold on;
