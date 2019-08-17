@@ -40,6 +40,12 @@ function [R, t] = epnp_re_ransac4(p,q)
         v1 = v1 ./ sqrt(v1(1,:).^2+v1(2,:).^2+v1(3,:).^2 + 1e-20);
         v2 = cross(other_points_2d, repmat(control_point_2d,1,n-1));
         v2 = v2 ./ sqrt(v2(1,:).^2+v2(2,:).^2+v2(3,:).^2 + 1e-20);
+        
+%         invalid_id = isnan(v1(1,:));
+%         v1(:,invalid_id) = [];
+%         v2(:,invalid_id) = [];
+%         varargout = find_inliers(v1,v2);
+        
         % kernel
 %         M = kron(v2', v1');
 %         [R,error] = sol0(v1, v2);
@@ -208,12 +214,44 @@ function [R,error] = sol1(v1,v2,tau,p,q)
     R = eye(3);
     w = ones(1,size(v1,2));
     
-    for i = 1:100 % maxiteration
+    for i = 1:20 % maxiteration
         dummy1 = R*v2;
         ei = diag(v1'*dummy1)';
         [LHS, RHS] = sol1core(v1,dummy1,ei,w);
         xi = -LHS \ RHS;
         R = vec2rot( xi ) * R;
+        
+%         M = v2 * diag(w) * (v1'*R);
+%         [U,S,V]=svd(M);
+%         % 16 possible solution
+%         dR(:,:,1) = [U(:,2)';U(:,3)';U(:,1)'];
+%         dR(:,:,2) = [U(:,2)';U(:,3)';-U(:,1)'];
+%         dR(:,:,3) = [U(:,2)';-U(:,3)';U(:,1)'];
+%         dR(:,:,4) = [U(:,2)';-U(:,3)';-U(:,1)'];
+%         dR(:,:,5) = [-U(:,2)';U(:,3)';U(:,1)'];
+%         dR(:,:,6) = [-U(:,2)';U(:,3)';-U(:,1)'];
+%         dR(:,:,7) = [-U(:,2)';-U(:,3)';U(:,1)'];
+%         dR(:,:,8) = [-U(:,2)';-U(:,3)';-U(:,1)'];
+%         
+%         dR(:,:,9) = [U(:,3)';U(:,1)';U(:,2)'];
+%         dR(:,:,10) = [U(:,3)';U(:,1)';-U(:,2)'];
+%         dR(:,:,11) = [U(:,3)';-U(:,1)';U(:,2)'];
+%         dR(:,:,12) = [U(:,3)';-U(:,1)';-U(:,2)'];
+%         dR(:,:,13) = [-U(:,3)';U(:,1)';U(:,2)'];
+%         dR(:,:,14) = [-U(:,3)';U(:,1)';-U(:,2)'];
+%         dR(:,:,15) = [-U(:,3)';-U(:,1)';U(:,2)'];
+%         dR(:,:,16) = [-U(:,3)';-U(:,1)';-U(:,2)'];
+%         
+%         det16 = zeros(1,16);
+%         for j = 1:16
+%             det16(j) = det(reshape(dR(:,:,j),3,3));
+%         end
+%         validid = (det(V).*det16)>0;
+        
+        
+%         dR = V * diag([1,1,det(V*U')]) * U';
+%         xi = rot2vec(dR);
+%         R = R * dR;
         % if exit
         if norm(xi) < 1e-6
             break;
