@@ -33,3 +33,4 @@ imgproc/pnp/test/eurasip/data/*
 imgproc/pnp/test/formeSO32.m
 
 hand_eye_calib/stochastics/test/figures/*
+traj_opt_on_manifold/SOn_regression-master/*
