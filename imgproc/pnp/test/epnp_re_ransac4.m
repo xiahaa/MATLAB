@@ -21,8 +21,8 @@ function [R, t] = epnp_re_ransac4(p,q)
     Rbest = [];
     inlierthreshold = 0.001;
 %     figure
-    
-    for iter = 1:n
+    maxiter = n;
+    for iter = 1:maxiter
         % choosing one point as the control point
         control_point_id = iter;%randperm(n, minset);
         
@@ -67,11 +67,11 @@ function [R, t] = epnp_re_ransac4(p,q)
             Rbest = Ropt;
             % Update estimate of N, the number of trials to ensure we pick,
             % with probability p, a data set with no outliers.
-%             fracinliers =  ninliers/n;
-%             pNoOutliers = 1 -  fracinliers^minset;
-%             pNoOutliers = max(eps, pNoOutliers);  % Avoid division by -Inf
-%             pNoOutliers = min(1-eps, pNoOutliers);% Avoid division by 0.
-%             maxiter = log(1-pd)/log(pNoOutliers);
+            fracinliers =  ninliers/n;
+            pNoOutliers = 1 -  fracinliers^minset;
+            pNoOutliers = max(eps, pNoOutliers);  % Avoid division by -Inf
+            pNoOutliers = min(1-eps, pNoOutliers);% Avoid division by 0.
+            maxiter = log(1-pd)/log(pNoOutliers);
         end
 %         iter = iter + 1;
     end
@@ -101,7 +101,7 @@ function topt = optimize_t(p,q,R,w)
         w = ones(n,1);
     end
     
-    A = [w.*[ones(n,1) zeros(n,1) -q(1,:)'];w.*[zeros(n,1) ones(n,1) -q(2,:)']];
+    A = [[w zeros(n,1) -w.*q(1,:)'];[zeros(n,1) w -w.*q(2,:)']];
     b = [w.*[q(1,:)'.*pp(3,:)' - pp(1,:)'];w.*[q(2,:)'.*pp(3,:)' - pp(2,:)']];
     
     topt = A\b;
@@ -214,12 +214,12 @@ function [R,error] = sol1(v1,v2,tau,p,q)
     R = eye(3);
     w = ones(1,size(v1,2));
     
-    for i = 1:20 % maxiteration
+    for i = 1:30 % maxiteration
         dummy1 = R*v2;
-        ei = diag(v1'*dummy1)';
+        ei = dot(v1,dummy1);
         [LHS, RHS] = sol1core(v1,dummy1,ei,w);
         xi = -LHS \ RHS;
-        R = vec2rot( xi ) * R;
+        R = expSO3( xi ) * R;
         
 %         M = v2 * diag(w) * (v1'*R);
 %         [U,S,V]=svd(M);
@@ -259,16 +259,22 @@ function [R,error] = sol1(v1,v2,tau,p,q)
         
         topt = optimize_t(p,q,R,w');
         pq = R*p + repmat(topt,1,size(p,2));
-        
+%         
         cnt = sum(pq(3,:) < 0);
-        if cnt / size(pq,2) > 0.1
+        if cnt / size(pq,2) > 0.5
             R = diag([-1 1 -1])*R;
             topt = optimize_t(p,q,R,w');
             pq = R*p + repmat(topt,1,size(p,2));
         end
-        
         pq = pq ./ pq(3,:);
         error2 = sum((pq(1:2,:) - q).^2, 1);
+
+%         error1 = dot(v1, diag([-1 1 -1])*R*v2).^2;
+%         error2 = dot(v1, R*v2).^2;
+%         if sum(error1) < sum(error2)
+%             R = diag([-1 1 -1])*R;
+%             error2 = error1;
+%         end
 %         error2 = abs(ei);
 
         % update weight
@@ -278,8 +284,45 @@ function [R,error] = sol1(v1,v2,tau,p,q)
     error = error2;
 end
 
-function [LHS, RHS] = sol1core(v1,dummy1,ei,w)    
-    Js = -1.*cross(v1,dummy1);
+function vechat = hat(vec)
+    if size(vec,1) == 3 
+        vechat = [  0,     -vec(3),  vec(2);
+                vec(3),   0    , -vec(1);
+               -vec(2),  vec(1),   0    ];  
+    elseif size(vec,1) == 6
+        vechat = [ hat( vec(4:6,1) ) vec(1:3,1); zeros(1,4) ];    
+    end   
+end
+
+function R = expSO3(r)
+    angle = norm(r);
+    tol = 1e-12;
+    if angle < tol
+        R = eye(3);
+        xM = eye(3);
+        cmPhi = hat(phi);
+        N = 10;% finite series
+        for n = 1:N
+            xM = xM * (cmPhi / n);
+            R = R + xM;
+        end
+        [U,~,V] = svd(R);
+        R = V*diag([1,1,det(V*U')])*U';% projection to SO3
+    else
+        so3 = [  0,     -r(3),  r(2);
+                r(3),   0    , -r(1);
+               -r(2),  r(1),   0    ];
+        R = eye(3) + sin(angle)/angle*so3 + (1-cos(angle))/angle^2*so3^2;
+    end
+end
+
+
+function [LHS, RHS] = sol1core(v1,dummy1,ei,w)
+    Js = zeros(3,size(v1,2));
+    Js(1,:) =  dummy1(2,:).*v1(3,:)-dummy1(3,:).*v1(2,:); 
+    Js(2,:) =  dummy1(3,:).*v1(1,:)-dummy1(1,:).*v1(3,:); 
+    Js(3,:) =  dummy1(1,:).*v1(2,:)-dummy1(2,:).*v1(1,:); 
+%     Js = cross(dummy1,v1);
     wJs = w.*Js;
     RHS = sum(ei.*wJs,2);
     LHS = wJs*Js';
