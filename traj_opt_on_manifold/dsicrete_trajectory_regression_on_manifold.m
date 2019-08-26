@@ -20,7 +20,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 97;
+    Nd = 4*n;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -92,7 +92,7 @@ function dsicrete_trajectory_regression_on_manifold
     oldcost = -1e6;
     newcost = 1e6;
     
-    tol1 = 1e-6;
+    tol1 = 1e-3;
     
     % seems without trust-region, parallel update will be oscillate.
     % try with sequential update
@@ -100,11 +100,17 @@ function dsicrete_trajectory_regression_on_manifold
     cheeseboard_id = ones(1,N2);
     cheeseboard_id(2:2:N2) = 0;
     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
-        
+%     cheeseboard_id = zeros(1,N2);
+%     valid = 1;
+%     for i = 1:N2
+%         cheeseboard_id(i)=valid;
+%         valid=valid+1;if valid>3 valid=1;end
+%     end
+
     tr = 10;
     
 %     [speed0, acc0] = compute_profiles(problem, X0);
-    
+    valid = 1;
     tic
     while iter < maxiter
 %         xi = data_term_error(Rdata,Rreg,indices);
@@ -135,7 +141,7 @@ function dsicrete_trajectory_regression_on_manifold
         
         % sequential update
 %         newcost = 0;
-        ids = randperm(N2,N2);
+%         ids = randperm(N2,N2);
         for j = 1:N2
             id = j;%ids(j);
             xi = data_term_error(Rdata,Rreg,indices,id);
@@ -152,6 +158,8 @@ function dsicrete_trajectory_regression_on_manifold
 %                 newcost = norm(dxis);
 %             end
         end
+%         updateid = cheeseboard_id == valid;
+%         valid = valid+1;if valid>3 valid=1;end
         for j = 1:N2
             id = j;
             dxi = dxis(:,id).*cheeseboard_id(id);
@@ -172,7 +180,7 @@ function dsicrete_trajectory_regression_on_manifold
         % the norm of gradient is lower than a threshold.
         
         iter = iter + 1;
-        disp(iter);
+%         disp(iter);
     end
     toc
     
