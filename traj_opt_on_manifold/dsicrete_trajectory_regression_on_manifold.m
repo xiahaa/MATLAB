@@ -80,7 +80,7 @@ function dsicrete_trajectory_regression_on_manifold
         Rdata(:,i*3-2:i*3) = X0(:,:,indices(i));
     end
     for i = 1:N2
-        Rreg(:,i*3-2:i*3) = X0(:,:,i);
+        Rreg(:,i*3-2:i*3) = X0(:,:,i);%expSO3(rand(3,1));
     end
     
     % initialize with piecewise geodesic path using park's method
@@ -101,7 +101,9 @@ function dsicrete_trajectory_regression_on_manifold
     cheeseboard_id(2:2:N2) = 0;
     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
         
-    tr = 0.1;
+    tr = 10;
+    
+%     [speed0, acc0] = compute_profiles(problem, X0);
     
     tic
     while iter < maxiter
@@ -135,20 +137,28 @@ function dsicrete_trajectory_regression_on_manifold
 %         newcost = 0;
         ids = randperm(N2,N2);
         for j = 1:N2
-            id = ids(j);
+            id = j;%ids(j);
             xi = data_term_error(Rdata,Rreg,indices,id);
             v = numerical_diff_v(Rreg,id);
             [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N2, id,Rreg);
 %             dxis = -LHS(id*3-2:id*3,id*3-2:id*3)\RHS(id*3-2:id*3);
-            dxis = -LHS\RHS;
-            if norm(dxis) > tr
-                dxis = dxis ./ norm(dxis) .* tr;
+            dxi = -LHS\RHS;
+            if norm(dxi) > tr
+                dxi = dxi ./ norm(dxi) .* tr;
             end
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxis);
+            dxis(:,id)=dxi;
+%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxis);
 %             if norm(dxis) > newcost
 %                 newcost = norm(dxis);
 %             end
         end
+        for j = 1:N2
+            id = j;
+            dxi = dxis(:,id).*cheeseboard_id(id);
+            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+        end
+        cheeseboard_id = ~cheeseboard_id;
+        
         xi = data_term_error(Rdata,Rreg,indices);
         v = numerical_diff_v(Rreg);
         newcost = cost(xi,v,tau,lambda,miu);
@@ -170,7 +180,7 @@ function dsicrete_trajectory_regression_on_manifold
     plot(newcosts,'r-o','LineWidth',2);
     
     figure(1);
-    plotrotations(X0(:, :, 1:8:Nd));
+    plotrotations(X0(:, :, 1:4:Nd));
     view(0, 0);
     
     for i = 1:N2
@@ -178,7 +188,7 @@ function dsicrete_trajectory_regression_on_manifold
     end
 
     figure(2);
-    plotrotations(X1(:, :, 1:8:Nd));
+    plotrotations(X1(:, :, 1:4:Nd));
     view(0, 0);
     
     figure(3);
@@ -198,7 +208,8 @@ function dsicrete_trajectory_regression_on_manifold
     figure(5);
 
     subplot(1, 2, 1);
-    plot(time, speed0, time, speed1);
+    plot(1:N2,speed0,1:N2,speed1);
+%     plot(time, speed0, time, speed1);
     title('Speed of initial curve and optimized curve');
     xlabel('Time');
     ylabel('Speed');
@@ -206,14 +217,15 @@ function dsicrete_trajectory_regression_on_manifold
     pbaspect([1.6, 1, 1]);
 
     subplot(1, 2, 2);
-    plot(time, acc0, time, acc1);
+    plot(1:N2,acc0,1:N2,acc1);
+%     plot(time, acc0, time, acc1);
     title('Acceleration of initial curve and optimized curve');
     xlabel('Time');
     ylabel('Acceleration');
     legend('Initial curve', 'Optimized curve', 'Location', 'NorthWest');
     pbaspect([1.6, 1, 1]);
 
-    ylim([0, 20]);
+    ylim([0, 100]);
     
 end
 
@@ -230,24 +242,25 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
     % second term
     % endpoints 
     c1 = lambda / tau;
-    
-    if id == 1
-        Jr = rightJinv(-v(:,1));
-        lhs = lhs + Jr'*Jr.*c1;
-        rhs = rhs + Jr'*(-v(:,1)).*c1;
-    elseif id == N
-        Jr = rightJinv(v(:,end));
-        lhs = lhs + Jr'*Jr.*c1;
-        rhs = rhs + Jr'*(v(:,end)).*c1;
-    else
-        Jr1 = rightJinv(v(:,1));
-        Jr2 = rightJinv(-v(:,2));
-        A1 = Jr1'*Jr1;
-        b1 = Jr1'*v(:,1);
-        A2 = Jr2'*Jr2;
-        b2 = Jr2'*(-v(:,2));
-        lhs = lhs + (A1+A2).*c1;
-        rhs = rhs + (b1+b2).*c1;
+    if lambda ~= 0
+        if id == 1
+            Jr = rightJinv(-v(:,1));
+            lhs = lhs + Jr'*Jr.*c1;
+            rhs = rhs + Jr'*(-v(:,1)).*c1;
+        elseif id == N
+            Jr = rightJinv(v(:,end));
+            lhs = lhs + Jr'*Jr.*c1;
+            rhs = rhs + Jr'*(v(:,end)).*c1;
+        else
+            Jr1 = rightJinv(v(:,1));
+            Jr2 = rightJinv(-v(:,2));
+            A1 = Jr1'*Jr1;
+            b1 = Jr1'*v(:,1);
+            A2 = Jr2'*Jr2;
+            b2 = Jr2'*(-v(:,2));
+            lhs = lhs + (A1+A2).*c1;
+            rhs = rhs + (b1+b2).*c1;
+        end
     end
     
     % third term
@@ -272,61 +285,112 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
 
 
     % parallel transport
+%     if id == 1
+% %         pt = Rreg(:,1:3)*Rreg(:,4:6)';
+%         Jr = rightJinv(-v(:,1));% * Rreg(:,1:3);
+%         lhs = lhs + Jr'*Jr.*c2;
+%         rhs = rhs + Jr'*(-v(:,1)+v(:,2)).*c2;
+%     elseif id == N
+% %         pt = Rreg(:,end-2:end)*Rreg(:,end-5:end-3)';
+%         Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end);
+%         lhs = lhs + Jr'*Jr.*c2;
+%         rhs = rhs + Jr'*(-v(:,end-1)+v(:,end)).*c2;
+%     elseif id == 2
+%         % 2, two times
+%         Jr1 = rightJinv(v(:,1));% * Rreg(:,1:3); 
+%         Jr2 = rightJinv(-v(:,2));% * Rreg(:,1:3);
+%         A1 = Jr1+Jr2; 
+%         b1 = A1'*(-v(:,2)+v(:,1));A1 = A1'*A1;
+%     
+% %         pt = Rreg(:,4:6)*Rreg(:,7:9)';
+%         A2 = Jr2'*Jr2;
+%         b2 = Jr2'*(v(:,3)-v(:,2));
+% 
+%         lhs = lhs + (A1+A2).*c2;
+%         rhs = rhs + (b1+b2).*c2;
+%     elseif id == N-1
+%         % end - 1, two times
+%         Jr1 = rightJinv(v(:,end-1));% * Rreg(:,1:3); 
+%         Jr2 = rightJinv(-v(:,end));% * Rreg(:,1:3);
+%         A1 = Jr1+Jr2; 
+%         b1 = A1'*(-v(:,end)+v(:,end-1));A1 = A1'*A1;
+% 
+% %         pt = Rreg(:,end-5:end-3)*Rreg(:,end-8:end-6)';
+%         A2 = Jr1'*Jr1;
+%         b2 = Jr1'*(-v(:,end-2)+v(:,end-1));
+% 
+%         lhs = lhs + (A1+A2).*c2;
+%         rhs = rhs + (b1+b2).*c2;
+%     else
+%         % 3 times
+%         Jr1 = rightJinv(v(:,2));% * Rreg(:,i*3-2:i*3);
+%         Jr2 = rightJinv(-v(:,3));% * Rreg(:,i*3-2:i*3);
+%         A1 = Jr1+Jr2;
+%         b1 = A1'*(-v(:,3) + v(:,2));A1 = A1'*A1;
+% 
+% %         pt = Rreg(:,id*3-2:id*3)*Rreg(:,id*3-5:id*3-3)';
+%         A2 = Jr1;
+%         b2 = A2'*(v(:,2)-v(:,1));A2 = A2'*A2;
+% 
+% %         pt = Rreg(:,id*3-2:id*3)*Rreg(:,id*3+1:id*3+3)';
+%         A3 = Jr2;
+%         b3 = A3'*(v(:,4)-v(:,3));A3 = A3'*A3;
+% 
+%         lhs = lhs + (A1+A2+A3).*c2;
+%         rhs = rhs + (b1+b2+b3).*c2;
+%     end
+
+    %% new, use parallel transport and unify all +/-
+    ss = 1;
     if id == 1
-%         pt = Rreg(:,1:3)*Rreg(:,4:6)';
-        Jr = rightJinv(-v(:,1));% * Rreg(:,1:3);
+        Jr = rightJinv(v(:,1));% * Rreg(:,1:3);
         lhs = lhs + Jr'*Jr.*c2;
-        rhs = rhs + Jr'*(-v(:,1)+v(:,2)).*c2;
+        rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
     elseif id == N
-%         pt = Rreg(:,end-2:end)*Rreg(:,end-5:end-3)';
         Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end);
         lhs = lhs + Jr'*Jr.*c2;
-        rhs = rhs + Jr'*(-v(:,end-1)+v(:,end)).*c2;
+        rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
     elseif id == 2
         % 2, two times
         Jr1 = rightJinv(v(:,1));% * Rreg(:,1:3); 
-        Jr2 = rightJinv(-v(:,2));% * Rreg(:,1:3);
+        Jr2 = rightJinv(v(:,2));% * Rreg(:,1:3);
         A1 = Jr1+Jr2; 
-        b1 = A1'*(-v(:,2)+v(:,1));A1 = A1'*A1;
+        b1 = A1'*(v(:,2)+v(:,1));A1 = A1'*A1;
     
-%         pt = Rreg(:,4:6)*Rreg(:,7:9)';
         A2 = Jr2'*Jr2;
-        b2 = Jr2'*(v(:,3)-v(:,2));
+        b2 = Jr2'*(v(:,3).*ss+v(:,2));
 
         lhs = lhs + (A1+A2).*c2;
         rhs = rhs + (b1+b2).*c2;
     elseif id == N-1
         % end - 1, two times
         Jr1 = rightJinv(v(:,end-1));% * Rreg(:,1:3); 
-        Jr2 = rightJinv(-v(:,end));% * Rreg(:,1:3);
+        Jr2 = rightJinv(v(:,end));% * Rreg(:,1:3);
         A1 = Jr1+Jr2; 
-        b1 = A1'*(-v(:,end)+v(:,end-1));A1 = A1'*A1;
+        b1 = A1'*(v(:,end)+v(:,end-1));A1 = A1'*A1;
 
-%         pt = Rreg(:,end-5:end-3)*Rreg(:,end-8:end-6)';
         A2 = Jr1'*Jr1;
-        b2 = Jr1'*(-v(:,end-2)+v(:,end-1));
+        b2 = Jr1'*(v(:,end-2).*ss+v(:,end-1));
 
         lhs = lhs + (A1+A2).*c2;
         rhs = rhs + (b1+b2).*c2;
     else
         % 3 times
         Jr1 = rightJinv(v(:,2));% * Rreg(:,i*3-2:i*3);
-        Jr2 = rightJinv(-v(:,3));% * Rreg(:,i*3-2:i*3);
+        Jr2 = rightJinv(v(:,3));% * Rreg(:,i*3-2:i*3);
         A1 = Jr1+Jr2;
-        b1 = A1'*(-v(:,3) + v(:,2));A1 = A1'*A1;
+        b1 = A1'*(v(:,3) + v(:,2));A1 = A1'*A1;
 
-%         pt = Rreg(:,id*3-2:id*3)*Rreg(:,id*3-5:id*3-3)';
         A2 = Jr1;
-        b2 = A2'*(v(:,2)-v(:,1));A2 = A2'*A2;
+        b2 = A2'*(v(:,2)+v(:,1).*ss);A2 = A2'*A2;
 
-%         pt = Rreg(:,id*3-2:id*3)*Rreg(:,id*3+1:id*3+3)';
         A3 = Jr2;
-        b3 = A3'*(v(:,4)-v(:,3));A3 = A3'*A3;
+        b3 = A3'*(v(:,4).*ss+v(:,3));A3 = A3'*A3;
 
         lhs = lhs + (A1+A2+A3).*c2;
         rhs = rhs + (b1+b2+b3).*c2;
     end
-    
+
     if c1 == 0 && c2 == 0
         index = find(indices == id,1);
         if isempty(index)
@@ -443,6 +507,7 @@ function xi = data_term_error(Rdata,Rreg,indices,varargin)
         for i = 1:length(indices)
             ii = indices(i);
             xi(:,i) = logSO3(Rdata(:,(i*3-2):i*3)'*Rreg(:,(ii*3-2):ii*3));
+            xi(:,i) = para_trans(Rdata(:,(i*3-2):i*3),Rreg(:,(ii*3-2):ii*3),xi(:,i));
         end
     else
         id = find(indices == varargin{1},1);
@@ -451,6 +516,7 @@ function xi = data_term_error(Rdata,Rreg,indices,varargin)
         else
             ii = indices(id);
             xi = logSO3(Rdata(:,(id*3-2):id*3)'*Rreg(:,(ii*3-2):ii*3));
+            xi = para_trans(Rdata(:,(id*3-2):id*3),Rreg(:,(ii*3-2):ii*3),xi);
         end
     end
 end
@@ -465,30 +531,50 @@ function v = numerical_diff_v(Rreg,varargin)
     else
         i = varargin{1};
         if i == 1
-            % tangent plane 1
-            v(:,1) = logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));
-            % firstly tangent plane 2, then parallel to tangent plane 1
-            v(:,2) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));
-            v(:,2) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,2));
-        elseif i == N
-            v(:,1) = logSO3(Rreg(:,(i*3-8):i*3-6)'*Rreg(:,(i*3-5):(i*3-3)));
-            % tangent plane n-1
-            v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));
+            % tangent plane 2
+            v(:,1) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3-2):(i*3)));% 2 -- 1            
+            v(:,2) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));% 2 -- 3
             
-            v(:,1) = para_trans(Rreg(:,(i*3-5):i*3-3),Rreg(:,(i*3-8):i*3-6),v(:,2));
+            v(:,1) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,1));% tgt2 to 1
+            v(:,2) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,2));% tgt2 to 1
+
+            % old code
+%             v(:,1) = logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));
+%             v(:,2) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));
+        elseif i == N
+            v(:,1) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-8):(i*3-6)));%e-1 -- e-2
+            v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));%e-1 -- e
+            
+            v(:,1) = para_trans(Rreg(:,(i*3-5):i*3-3),Rreg(:,(i*3-2):i*3),v(:,1));% e-1 -- e
+            v(:,2) = para_trans(Rreg(:,(i*3-5):i*3-3),Rreg(:,(i*3-2):i*3),v(:,2));
+            
+%             v(:,1) = logSO3(Rreg(:,(i*3-8):i*3-6)'*Rreg(:,(i*3-5):(i*3-3)));
+%             % tangent plane n-1
+%             v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));
+%             
         elseif i == 2
-            v(:,1) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));
-            v(:,2) = logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));
-            v(:,3) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));
+            % little trick, 1--2 parallel to 2 equals to -(1--2)
+            v(:,1) = -logSO3(Rreg(:,(i*3-2):(i*3))'*Rreg(:,(i*3-5):(i*3-3)));% 1 -- 2 pt to 2
+            v(:,2) = -logSO3(Rreg(:,(i*3-2):(i*3))'*Rreg(:,(i*3+1):(i*3+3)));% 3 -- 2 pt to 2
+            v(:,3) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));% 3 -- 4
+            
+            v(:,3) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,3));% pt to 2
         elseif i == N-1
-            v(:,1) = logSO3(Rreg(:,(i*3-11):i*3-9)'*Rreg(:,(i*3-8):(i*3-6)));
-            v(:,2) = logSO3(Rreg(:,(i*3-8):i*3-6)'*Rreg(:,(i*3-5):(i*3-3)));
-            v(:,3) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));
+            v(:,1) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-8):(i*3-6)));% e-2 -- e-3
+            v(:,2) = -logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3-5):(i*3-3)));% e-2 -- e-1 to e-1
+            v(:,3) = -logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));% e -- e-1 to e-1
+            
+            v(:,1) = para_trans(Rreg(:,(i*3-5):(i*3-3)),Rreg(:,(i*3-2):i*3),v(:,1));% pt from e-2 to e-1
         else
-            v(:,1) = logSO3(Rreg(:,(i*3-8):i*3-6)'*Rreg(:,(i*3-5):(i*3-3)));
-            v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));
-            v(:,3) = logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));
-            v(:,4) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));
+            v(:,1) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-8):(i*3-6)));% i-1 -- i-2
+            v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3))); % i-1 -- i
+            v(:,3) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3-2):(i*3))); % i+1 -- i
+            v(:,4) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6))); % i+1 -- i+2
+            
+            v(:,1) = para_trans(Rreg(:,(i*3-5):(i*3-3)),Rreg(:,(i*3-2):i*3),v(:,1));% pt from i-1 to i
+            v(:,2) = para_trans(Rreg(:,(i*3-5):(i*3-3)),Rreg(:,(i*3-2):i*3),v(:,2));% pt from i-1 to i
+            v(:,3) = para_trans(Rreg(:,(i*3+1):(i*3+3)),Rreg(:,(i*3-2):i*3),v(:,3));% pt from i+1 to i
+            v(:,4) = para_trans(Rreg(:,(i*3+1):(i*3+3)),Rreg(:,(i*3-2):i*3),v(:,4));% pt from i+1 to i
         end
     end
 end
