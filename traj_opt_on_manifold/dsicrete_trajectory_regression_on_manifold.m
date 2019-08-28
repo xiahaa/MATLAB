@@ -20,7 +20,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 97;
+    Nd = 30;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -92,7 +92,7 @@ function dsicrete_trajectory_regression_on_manifold
     oldcost = -1e6;
     newcost = 1e6;
     
-    tol1 = 1e-6;
+    tol1 = 1e-3;
     
     % seems without trust-region, parallel update will be oscillate.
     % try with sequential update
@@ -155,7 +155,7 @@ function dsicrete_trajectory_regression_on_manifold
         for j = 1:N2
             id = j;
             dxi = dxis(:,id).*cheeseboard_id(id);
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(Rreg(:,id*3-2:id*3)'*dxi);
         end
         cheeseboard_id = ~cheeseboard_id;
         
@@ -342,18 +342,19 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
 
     %% new, use parallel transport and unify all +/-
     ss = 1;
+    v = Rreg(:,id*3-2:id*3) * v;
     if id == 1
-        Jr = rightJinv(v(:,1));% * Rreg(:,1:3);
+        Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
     elseif id == N
-        Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end);
+        Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end)';
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
     elseif id == 2
         % 2, two times
-        Jr1 = rightJinv(v(:,1));% * Rreg(:,1:3); 
-        Jr2 = rightJinv(v(:,2));% * Rreg(:,1:3);
+        Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)'; 
+        Jr2 = rightJinv(v(:,2));% * Rreg(:,4:6)';
         A1 = Jr1+Jr2; 
         b1 = A1'*(v(:,2)+v(:,1));A1 = A1'*A1;
     
@@ -364,8 +365,8 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
         rhs = rhs + (b1+b2).*c2;
     elseif id == N-1
         % end - 1, two times
-        Jr1 = rightJinv(v(:,end-1));% * Rreg(:,1:3); 
-        Jr2 = rightJinv(v(:,end));% * Rreg(:,1:3);
+        Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)'; 
+        Jr2 = rightJinv(v(:,end));% * Rreg(:,end-5:end-3)';
         A1 = Jr1+Jr2; 
         b1 = A1'*(v(:,end)+v(:,end-1));A1 = A1'*A1;
 
@@ -376,8 +377,8 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
         rhs = rhs + (b1+b2).*c2;
     else
         % 3 times
-        Jr1 = rightJinv(v(:,2));% * Rreg(:,i*3-2:i*3);
-        Jr2 = rightJinv(v(:,3));% * Rreg(:,i*3-2:i*3);
+        Jr1 = rightJinv(v(:,2));% * Rreg(:,id*3-2:id*3)';
+        Jr2 = rightJinv(v(:,3));% * Rreg(:,id*3-2:id*3)';
         A1 = Jr1+Jr2;
         b1 = A1'*(v(:,3) + v(:,2));A1 = A1'*A1;
 
