@@ -1,33 +1,92 @@
 % this implements the shooting method for optimal trajectory generation on
 % SO3.
 function shooting_method()
+%     cost = 1e6;
+%     minuvk = [0;0;0];
+%     
+%     for u = -10:0.1:10
+%         for v = -10:0.1:10
+%             for k = -10:0.1:10
+%                 Rf = numrical_integration(R0,w0,a0,[u,v,k]');
+%                 if norm(logSO3(R1'*Rf)) < cost
+%                     cost = norm(logSO3(R1'*Rf));
+%                     minuvk = [u,v,k]';
+%                 end
+%             end
+%         end
+%     end
+%     Rf = numrical_integration(R0,w0,a0,minuvk)
+%     R1
+%     minuvk
+
+%     tspan = 0:0.1:10;
+%     x0 = 1;
+%     each = 2;
+%     [t,x]=ode45(@fun,tspan,[0,x0],[],each);
+%     kk = 1;
+%     for u = -3:0.1:3
+%         for v = -3:0.1:3
+%             for k = -3:0.1:3
+%                 cost(kk)=solver(R0,w0,a0,[u,v,k]',R1);
+%                 kk = kk+1;
+%                 disp(kk)
+%             end
+%         end
+%     end
+
+    [wdd0,fval] = fminsearch(@solver,[0,0,0]');
+    disp(wdd0);
+    disp(fval);
+    
+    r0 = [0.2,0.1,0.1]';
+    r1 = [0.6,0.4,0.4]';
+    R0 = expSO3(r0);
+    R1 = expSO3(r1);
+    w0 = [5,0.1,0.1]';
+    wd0 = [0.5,0.1,0.1]';
+    [t,x]=ode45(@fun,[0 1],[vec(R0);w0;wd0;wdd0],[]);
+    s = length(t);
+    reshape(x(s,1:9),3,3)
+    R1
+end
+
+%%% test
+function F=solver(wdd0)
     % example
     r0 = [0.2,0.1,0.1]';
     r1 = [0.6,0.4,0.4]';
     R0 = expSO3(r0);
     R1 = expSO3(r1);
+    w0 = [5,0.1,0.1]';
+    wd0 = [0.5,0.1,0.1]';
+
+    tspan = [0 1];
+    [t,x]=ode45(@fun,tspan,[vec(R0);w0;wd0;wdd0],[]);
+    s = length(t);
+    F = norm(reshape(x(s,1:9),3,3)-R1,'fro');
     
-    w0 = [0.5,0.1,0.1]';
-    a0 = [0.5,0.1,0.1]';
-    
-    cost = 1e6;
-    minuvk = [0;0;0];
-    
-    for u = -10:0.1:10
-        for v = -10:0.1:10
-            for k = -10:0.1:10
-                Rf = numrical_integration(R0,w0,a0,[u,v,k]');
-                if norm(logSO3(R1'*Rf)) < cost
-                    cost = norm(logSO3(R1'*Rf));
-                    minuvk = [u,v,k]';
-                end
-            end
-        end
-    end
-    Rf = numrical_integration(R0,w0,a0,minuvk)
-    R1
-    minuvk
+%     figure(1);
+%     plot(cost);
 end
+
+%%%
+function dy = fun(t,y)
+    dy = zeros(3*3+9,1);
+    dyb = zeros(9,1);
+    
+    R = reshape(y(1:9),3,3);
+    % y in global sense
+    yb = R*reshape(y(10:end),3,3);
+    yb = yb(:);
+    
+    dy(1:9) = vec(R*hat(yb(1:3)));
+    dyb(1:3) = yb(4:6);%dw
+    dyb(4:6) = yb(7:9);%ddw
+    dyb(7:9) = -cross(yb(1:3),yb(7:9));
+    
+    dy(10:end) = vec(R'*reshape(dyb,3,3));
+end
+
 
 function R1 = numrical_integration(R0,w0,wd0,wdd0)
     t = 0;
