@@ -20,7 +20,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 50;
+    Nd = 97;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -37,13 +37,13 @@ function dsicrete_trajectory_regression_on_manifold
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 0;
+    lambda = 1e0;
 
     % Weight of the acceleration regularization term (nonnegative). The larger
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 1e-2;%1e-2;
+    mu = 0;%1e-2;%1e-2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -101,10 +101,10 @@ function dsicrete_trajectory_regression_on_manifold
 %     cheeseboard_id(2:2:N2) = 0;
     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
         
-    tr = 0.001;
+    tr = 1;
     
 %     [speed0, acc0] = compute_profiles(problem, X0);
-    
+    options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-3,'StepTolerance',1e-3,'Display','off');
     tic
     while iter < maxiter
 %         xi = data_term_error(Rdata,Rreg,indices);
@@ -134,55 +134,57 @@ function dsicrete_trajectory_regression_on_manifold
 %         cheeseboard_id = ~cheeseboard_id;
         
         % sequential update
-%         newcost = 0;
-%         ids = randperm(N2,N2);
-%         for j = 1:N2
-%             id = j;%ids(j);
-%             xi = data_term_error(Rdata,Rreg,indices,id);
-%             v = numerical_diff_v(Rreg,id);
-%             [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N2, id,Rreg);
-% %             dxis = -LHS(id*3-2:id*3,id*3-2:id*3)\RHS(id*3-2:id*3);
-%             dxi = -LHS\RHS;
-%             if norm(dxi) > tr
-%                 dxi = dxi ./ norm(dxi) .* tr;
+        newcost = 0;
+        ids = randperm(N2,N2);
+        for j = 1:N2
+            id = j;%ids(j);
+            xi = data_term_error(Rdata,Rreg,indices,id);
+            v = numerical_diff_v(Rreg,id);
+            dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id,Rreg,options);
+%             dxis = -LHS(id*3-2:id*3,id*3-2:id*3)\RHS(id*3-2:id*3);
+            % 
+            if norm(dxi) > tr
+                dxi = dxi ./ norm(dxi) .* tr;
+            end
+            dxis(:,id)=dxi;
+%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+%             if norm(dxis) > newcost
+%                 newcost = norm(dxis);
 %             end
-%             dxis(:,id)=dxi;
-% %             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxis);
-% %             if norm(dxis) > newcost
-% %                 newcost = norm(dxis);
-% %             end
-%         end
-%         for j = 1:N2
-%             id = j;
-%             dxi = dxis(:,id).*cheeseboard_id(id);
-%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(Rreg(:,id*3-2:id*3)'*dxi);
-%         end
+        end
+        for j = 1:N2
+            id = j;
+            dxi = dxis(:,id).*cheeseboard_id(id);
+            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(Rreg(:,id*3-2:id*3)'*dxi);
+        end
 %         cheeseboard_id = ~cheeseboard_id;
         
         %%%% new method of expansion
-        dxis = zeros(3,N2);
-        [LHS, RHS] = seq_sol2(Rdata,Rreg,indices,tau,lambda,miu,N2);
-        dxis = -LHS\RHS;
-%         ids = randperm(N2,N2);
+%         dxis = zeros(3,N2);
+%         [LHS, RHS] = seq_sol2(Rdata,Rreg,indices,tau,lambda,miu,N2);
+%         dxis = -LHS\RHS;
+% %         ids = randperm(N2,N2);
+% %         for j = 1:N2
+% %             id = ids(j);
+% %             dxi = -LHS\RHS;
+% %             if norm(dxi) > tr
+% %                 dxi = dxi ./ norm(dxi) .* tr;
+% %             end
+% %             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+% %             dxis(:,id)=dxi;
+% %         end
 %         for j = 1:N2
-%             id = ids(j);
-%             dxi = -LHS\RHS;
+%             id = j;
+%             dxi = dxis(id*3-2:id*3).*cheeseboard_id(id);
 %             if norm(dxi) > tr
 %                 dxi = dxi ./ norm(dxi) .* tr;
 %             end
 %             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-%             dxis(:,id)=dxi;
 %         end
-        for j = 1:N2
-            id = j;
-            dxi = dxis(id*3-2:id*3).*cheeseboard_id(id);
-            if norm(dxi) > tr
-                dxi = dxi ./ norm(dxi) .* tr;
-            end
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-        end
 %         cheeseboard_id = ~cheeseboard_id;
 
+        % doesnot work
+%         Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N2);
         
         xi = data_term_error(Rdata,Rreg,indices);
         v = numerical_diff_v(Rreg);
@@ -448,7 +450,7 @@ function [LHS, RHS] = seq_sol2(Rdata,Rreg,indices,tau,lambda,miu,N,varargin)
     end
 end
 
-function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
+function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     lhs = zeros(3,3);
     rhs = zeros(3,1);
     
@@ -458,25 +460,35 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
         rhs = rhs + Jr'*xi;
     end
     
+    v = Rreg(:,id*3-2:id*3) * v;
+    
     % second term
     % endpoints 
     c1 = lambda / tau;
     if lambda ~= 0
         if id == 1
-            Jr = rightJinv(-v(:,1));
+            Jr = rightJinv(v(:,1));
             lhs = lhs + Jr'*Jr.*c1;
-            rhs = rhs + Jr'*(-v(:,1)).*c1;
+            rhs = rhs + Jr'*(v(:,1)).*c1;
         elseif id == N
             Jr = rightJinv(v(:,end));
             lhs = lhs + Jr'*Jr.*c1;
             rhs = rhs + Jr'*(v(:,end)).*c1;
         else
-            Jr1 = rightJinv(v(:,1));
-            Jr2 = rightJinv(-v(:,2));
+            if id == 2
+                id1 = 1;
+                id2 = 2;
+            else
+                id1 = 2;
+                id2 = 3;
+            end
+                
+            Jr1 = rightJinv(v(:,id1));
+            Jr2 = rightJinv(v(:,id2));
             A1 = Jr1'*Jr1;
-            b1 = Jr1'*v(:,1);
+            b1 = Jr1'*v(:,id1);
             A2 = Jr2'*Jr2;
-            b2 = Jr2'*(-v(:,2));
+            b2 = Jr2'*(v(:,id2));
             lhs = lhs + (A1+A2).*c1;
             rhs = rhs + (b1+b2).*c1;
         end
@@ -561,15 +573,29 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
 
     %% new, use parallel transport and unify all +/-
     ss = 1;
-    v = Rreg(:,id*3-2:id*3) * v;
+    
+    
+%     Aineq = zeros(3*3,3);
+%     bineq = zeros(3*3,1);
+%     dummy1 = 0;
+    
     if id == 1
         Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
+        
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,1)+v(:,2);
+        
     elseif id == N
         Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end)';
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
+        
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,end-1)+v(:,end);
     elseif id == 2
         % 2, two times
         Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)'; 
@@ -582,6 +608,13 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
 
         lhs = lhs + (A1+A2).*c2;
         rhs = rhs + (b1+b2).*c2;
+        
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1+Jr2;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,2)+v(:,1);
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr2;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,3)+v(:,2);
     elseif id == N-1
         % end - 1, two times
         Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)'; 
@@ -594,6 +627,13 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
 
         lhs = lhs + (A1+A2).*c2;
         rhs = rhs + (b1+b2).*c2;
+        
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1+Jr2;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,end)+v(:,end-1);
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,end-2)+v(:,end-1);
     else
         % 3 times
         Jr1 = rightJinv(v(:,2));% * Rreg(:,id*3-2:id*3)';
@@ -609,6 +649,17 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
 
         lhs = lhs + (A1+A2+A3).*c2;
         rhs = rhs + (b1+b2+b3).*c2;
+        
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1+Jr2;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,3) + v(:,2);
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,2)+v(:,1);
+%         
+%         dummy1 = dummy1 + 1;
+%         Aineq(dummy1*3-2:dummy1*3,:) = Jr2;
+%         bineq(dummy1*3-2:dummy1*3,:) = v(:,4)+v(:,3);
     end
 
     if c1 == 0 && c2 == 0
@@ -620,6 +671,17 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
     
     LHS = lhs;
     RHS = rhs;
+    
+    dxi = -LHS\RHS;% unconstrained optimization
+    
+%     %% what if I use constrained optimization.
+%     Aineq(dummy1*3+1:end,:) = [];
+%     bineq(dummy1*3+1:end,:) = [];
+%     amax = 0.01;%sqrt(1000)/2*tau*tau;
+%     Aineq2 = [Aineq;-Aineq];
+%     bineq2 = [amax-bineq;amax+bineq];
+% %     
+%     dxi = quadprog(2.*LHS,2*RHS',Aineq2,bineq2,[],[],[],[],[],options);
 end
 
 function [LHS, RHS] = batch_sol(xi, v, indices, tau, lambda, miu, N, Rreg)
@@ -821,8 +883,69 @@ function y = cost(xi,v,tau,lambda,miu)
     y = cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
 end
 
-
-
-
-
-
+function Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N)
+    % here, try optimization based regression
+    order = 0;
+    Nopt = (N-1) * 3 * (order + 1) + round(size(Rdata,2));
+    Q = zeros(Nopt,Nopt);
+    
+    % formulate the quadratic form
+    Nd = size(Rdata,2)/3;
+    Q1 = eye(3);
+    for i = 1:Nd
+        Q(i*3-2:i*3,i*3-2:i*3) = Q1;
+    end
+    
+    c1 = lambda / tau;
+    c2 = miu / tau^3;
+    
+    baseid = round(size(Rdata,2));
+    n1 = 3*(order+1);
+    
+    s = 1;
+    ss = [1 s s^2 s^3 s^4 s^5]';
+    Q2 = ss(1:order+1)*ss(1:order+1)';
+    
+    s1 = 1;
+    s2 = 1;
+    ss1 = [1 s1 s1^2 s1^3 s1^4 s1^5]';
+    ss2 = [1 s2 s2^2 s2^3 s2^4 s2^5]';
+    Q3 = ss2(1:order+1)*ss1(1:order+1)';
+    Q3full = zeros(n1*2,n1*2);
+    Q3full(1:n1,n1+1:end) = blkdiag(Q3,Q3,Q3);
+    Q3full(n1+1:end,1:n1) = blkdiag(Q3,Q3,Q3);
+    Qc = blkdiag(Q2,Q2,Q2);% 3 axis
+    for i = 2:N-1
+        % ascending
+        cid = baseid+(i-2)*n1;
+        nid = baseid+(i+1-2)*n1;
+        Q(cid+1:cid+n1,cid+1:cid+n1) = Q(cid+1:cid+n1,cid+1:cid+n1)+Qc;% i^2        
+        Q(nid+1:nid+n1,nid+1:nid+n1) = Q(nid+1:nid+n1,nid+1:nid+n1)+Qc;% (i+1)^2
+        Q(cid+1:nid+n1,cid+1:nid+n1) = Q(cid+1:nid+n1,cid+1:nid+n1) - Q3full;%<i+1,i>
+    end
+    
+    % solve Qp
+    Q = sparse(Q);
+    x = quadprog(2*Q,[],[],[]);
+    
+    % recover Rreg
+    Rreg = zeros(3,3*N);
+    for i=1:Nd
+        Rreg(:,indices(i)*3-2:indices(i)*3) = Rdata(:,i*3-2:i*3)*expSO3(x(i*3-2:i*3));
+    end
+    k = 2;
+    j = indices(k+1);
+    for i = 2:N-1
+        if i == j 
+            k = k + 1;
+            j = indices(k);
+            continue;
+        end
+        cid = baseid+(i-2)*n1;
+        xi = x(cid+1:cid+n1);
+        w1 = ss'*xi(1:6);
+        w2 = ss'*xi(7:12);
+        w3 = ss'*xi(13:18);
+        Rreg(:,i*3-2:i*3) = Rreg(:,i*3-5:i*3-3)*expSO3([w1;w2;w3]);
+    end
+end
