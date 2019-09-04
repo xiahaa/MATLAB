@@ -20,7 +20,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 97;
+    Nd = 50;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -37,7 +37,7 @@ function dsicrete_trajectory_regression_on_manifold
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 1e0;
+    lambda = 0;
 
     % Weight of the acceleration regularization term (nonnegative). The larger
     % it is, the more acceleration along the discrete curve is penalized. A
@@ -881,71 +881,4 @@ function y = cost(xi,v,tau,lambda,miu)
     cost3 = sum(vecnorm(a,2).^2.*(2/tau^3));
     
     y = cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
-end
-
-function Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N)
-    % here, try optimization based regression
-    order = 0;
-    Nopt = (N-1) * 3 * (order + 1) + round(size(Rdata,2));
-    Q = zeros(Nopt,Nopt);
-    
-    % formulate the quadratic form
-    Nd = size(Rdata,2)/3;
-    Q1 = eye(3);
-    for i = 1:Nd
-        Q(i*3-2:i*3,i*3-2:i*3) = Q1;
-    end
-    
-    c1 = lambda / tau;
-    c2 = miu / tau^3;
-    
-    baseid = round(size(Rdata,2));
-    n1 = 3*(order+1);
-    
-    s = 1;
-    ss = [1 s s^2 s^3 s^4 s^5]';
-    Q2 = ss(1:order+1)*ss(1:order+1)';
-    
-    s1 = 1;
-    s2 = 1;
-    ss1 = [1 s1 s1^2 s1^3 s1^4 s1^5]';
-    ss2 = [1 s2 s2^2 s2^3 s2^4 s2^5]';
-    Q3 = ss2(1:order+1)*ss1(1:order+1)';
-    Q3full = zeros(n1*2,n1*2);
-    Q3full(1:n1,n1+1:end) = blkdiag(Q3,Q3,Q3);
-    Q3full(n1+1:end,1:n1) = blkdiag(Q3,Q3,Q3);
-    Qc = blkdiag(Q2,Q2,Q2);% 3 axis
-    for i = 2:N-1
-        % ascending
-        cid = baseid+(i-2)*n1;
-        nid = baseid+(i+1-2)*n1;
-        Q(cid+1:cid+n1,cid+1:cid+n1) = Q(cid+1:cid+n1,cid+1:cid+n1)+Qc;% i^2        
-        Q(nid+1:nid+n1,nid+1:nid+n1) = Q(nid+1:nid+n1,nid+1:nid+n1)+Qc;% (i+1)^2
-        Q(cid+1:nid+n1,cid+1:nid+n1) = Q(cid+1:nid+n1,cid+1:nid+n1) - Q3full;%<i+1,i>
-    end
-    
-    % solve Qp
-    Q = sparse(Q);
-    x = quadprog(2*Q,[],[],[]);
-    
-    % recover Rreg
-    Rreg = zeros(3,3*N);
-    for i=1:Nd
-        Rreg(:,indices(i)*3-2:indices(i)*3) = Rdata(:,i*3-2:i*3)*expSO3(x(i*3-2:i*3));
-    end
-    k = 2;
-    j = indices(k+1);
-    for i = 2:N-1
-        if i == j 
-            k = k + 1;
-            j = indices(k);
-            continue;
-        end
-        cid = baseid+(i-2)*n1;
-        xi = x(cid+1:cid+n1);
-        w1 = ss'*xi(1:6);
-        w2 = ss'*xi(7:12);
-        w3 = ss'*xi(13:18);
-        Rreg(:,i*3-2:i*3) = Rreg(:,i*3-5:i*3-3)*expSO3([w1;w2;w3]);
-    end
 end
