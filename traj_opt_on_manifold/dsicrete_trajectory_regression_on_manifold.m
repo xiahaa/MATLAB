@@ -118,23 +118,6 @@ function dsicrete_trajectory_regression_on_manifold
 %             break;
 %         end
 %         oldcost = newcost;
-%         
-%         % compute gradient, batch optimization
-%         % here, I will compute graduate for all so3s and then update as a
-%         % batch. I think perhaps sequencial update could be another option
-%         % since somehow this is a nonconvex optimization, no global minimum
-%         % is guaranteed.
-%         [LHS, RHS] = batch_sol(xi, v, indices, tau, lambda, miu, N2, Rreg);
-%         dxis = -LHS\RHS;
-%         % update
-%         for j = 1:N2
-%             dxi = dxis(j*3-2:j*3).*cheeseboard_id(j);
-%             if norm(dxi) > tr
-%                 dxi = dxi ./ norm(dxi) .* tr;
-%             end
-%             Rreg(:,j*3-2:j*3) = Rreg(:,j*3-2:j*3) * expSO3(dxi);
-%         end
-%         cheeseboard_id = ~cheeseboard_id;
         
         % sequential update
         newcost = 0;
@@ -162,30 +145,6 @@ function dsicrete_trajectory_regression_on_manifold
         end
 %         cheeseboard_id = ~cheeseboard_id;
         
-        %%%% new method of expansion
-%         dxis = zeros(3,N2);
-%         [LHS, RHS] = seq_sol2(Rdata,Rreg,indices,tau,lambda,miu,N2);
-%         dxis = -LHS\RHS;
-% %         ids = randperm(N2,N2);
-% %         for j = 1:N2
-% %             id = ids(j);
-% %             dxi = -LHS\RHS;
-% %             if norm(dxi) > tr
-% %                 dxi = dxi ./ norm(dxi) .* tr;
-% %             end
-% %             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-% %             dxis(:,id)=dxi;
-% %         end
-%         for j = 1:N2
-%             id = j;
-%             dxi = dxis(id*3-2:id*3).*cheeseboard_id(id);
-%             if norm(dxi) > tr
-%                 dxi = dxi ./ norm(dxi) .* tr;
-%             end
-%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-%         end
-%         cheeseboard_id = ~cheeseboard_id;
-
         % doesnot work
 %         Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N2);
         
