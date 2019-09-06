@@ -4,6 +4,7 @@ function dsicrete_trajectory_regression_on_manifold
         addpath './SOn_regression-master/STL'
     else
         addpath './SOn_regression-master\SOn_regression-master/'
+        addpath './jiachao/'
     end
     clc;close all;clear all;
     
@@ -103,6 +104,8 @@ function dsicrete_trajectory_regression_on_manifold
         
     tr = 1;
     
+%     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
+        
 %     [speed0, acc0] = compute_profiles(problem, X0);
     options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-3,'StepTolerance',1e-3,'Display','off');
     tic
@@ -496,81 +499,6 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     
     % third term
     c2 = miu / (tau^3);
-    % end points
-%     if id == 1
-%         Jr = rightJinv(-v(:,1));
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jr'*(-v(:,1)+v(:,2)).*c2;
-%     elseif id == N
-%         Jr = rightJinv(v(:,end));
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jr'*(-v(:,end-1)+v(:,end)).*c2;
-%     else
-%         Jr1 = rightJinv(v(:,2));
-%         Jr2 = rightJinv(-v(:,3));
-%         Jr = Jr1+Jr2;
-%         Jrtb = Jr'*(-v(:,3) + v(:,2));
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jrtb.*c2;
-%     end
-
-
-    % parallel transport
-%     if id == 1
-% %         pt = Rreg(:,1:3)*Rreg(:,4:6)';
-%         Jr = rightJinv(-v(:,1));% * Rreg(:,1:3);
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jr'*(-v(:,1)+v(:,2)).*c2;
-%     elseif id == N
-% %         pt = Rreg(:,end-2:end)*Rreg(:,end-5:end-3)';
-%         Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end);
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jr'*(-v(:,end-1)+v(:,end)).*c2;
-%     elseif id == 2
-%         % 2, two times
-%         Jr1 = rightJinv(v(:,1));% * Rreg(:,1:3); 
-%         Jr2 = rightJinv(-v(:,2));% * Rreg(:,1:3);
-%         A1 = Jr1+Jr2; 
-%         b1 = A1'*(-v(:,2)+v(:,1));A1 = A1'*A1;
-%     
-% %         pt = Rreg(:,4:6)*Rreg(:,7:9)';
-%         A2 = Jr2'*Jr2;
-%         b2 = Jr2'*(v(:,3)-v(:,2));
-% 
-%         lhs = lhs + (A1+A2).*c2;
-%         rhs = rhs + (b1+b2).*c2;
-%     elseif id == N-1
-%         % end - 1, two times
-%         Jr1 = rightJinv(v(:,end-1));% * Rreg(:,1:3); 
-%         Jr2 = rightJinv(-v(:,end));% * Rreg(:,1:3);
-%         A1 = Jr1+Jr2; 
-%         b1 = A1'*(-v(:,end)+v(:,end-1));A1 = A1'*A1;
-% 
-% %         pt = Rreg(:,end-5:end-3)*Rreg(:,end-8:end-6)';
-%         A2 = Jr1'*Jr1;
-%         b2 = Jr1'*(-v(:,end-2)+v(:,end-1));
-% 
-%         lhs = lhs + (A1+A2).*c2;
-%         rhs = rhs + (b1+b2).*c2;
-%     else
-%         % 3 times
-%         Jr1 = rightJinv(v(:,2));% * Rreg(:,i*3-2:i*3);
-%         Jr2 = rightJinv(-v(:,3));% * Rreg(:,i*3-2:i*3);
-%         A1 = Jr1+Jr2;
-%         b1 = A1'*(-v(:,3) + v(:,2));A1 = A1'*A1;
-% 
-% %         pt = Rreg(:,id*3-2:id*3)*Rreg(:,id*3-5:id*3-3)';
-%         A2 = Jr1;
-%         b2 = A2'*(v(:,2)-v(:,1));A2 = A2'*A2;
-% 
-% %         pt = Rreg(:,id*3-2:id*3)*Rreg(:,id*3+1:id*3+3)';
-%         A3 = Jr2;
-%         b3 = A3'*(v(:,4)-v(:,3));A3 = A3'*A3;
-% 
-%         lhs = lhs + (A1+A2+A3).*c2;
-%         rhs = rhs + (b1+b2+b3).*c2;
-%     end
-
     %% new, use parallel transport and unify all +/-
     ss = 1;
     
