@@ -14,23 +14,14 @@ function v = numerical_diff_v(Rreg,varargin)
             
             v(:,1) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,1));% tgt2 to 1
             v(:,2) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,2));% tgt2 to 1
-
-            % old code
-%             v(:,1) = logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));
-%             v(:,2) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));
         elseif i == N
             v(:,1) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-8):(i*3-6)));%e-1 -- e-2
             v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));%e-1 -- e
             
             v(:,1) = para_trans(Rreg(:,(i*3-5):i*3-3),Rreg(:,(i*3-2):i*3),v(:,1));% e-1 -- e
             v(:,2) = para_trans(Rreg(:,(i*3-5):i*3-3),Rreg(:,(i*3-2):i*3),v(:,2));
-            
-%             v(:,1) = logSO3(Rreg(:,(i*3-8):i*3-6)'*Rreg(:,(i*3-5):(i*3-3)));
-%             % tangent plane n-1
-%             v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));
-%             
         elseif i == 2
-            % little trick, 1--2 parallel to 2 equals to -(1--2)
+            % little trick, 1--2 parallel to 2 equals to (1--2)
             v(:,1) = -logSO3(Rreg(:,(i*3-2):(i*3))'*Rreg(:,(i*3-5):(i*3-3)));% 1 -- 2 pt to 2
             v(:,2) = -logSO3(Rreg(:,(i*3-2):(i*3))'*Rreg(:,(i*3+1):(i*3+3)));% 3 -- 2 pt to 2
             v(:,3) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));% 3 -- 4

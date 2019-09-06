@@ -268,28 +268,14 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     %% new, use parallel transport and unify all +/-
     ss = 1;
     
-    
-%     Aineq = zeros(3*3,3);
-%     bineq = zeros(3*3,1);
-%     dummy1 = 0;
-    
     if id == 1
         Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
-        
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,1)+v(:,2);
-        
     elseif id == N
         Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end)';
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
-        
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,end-1)+v(:,end);
     elseif id == 2
         % 2, two times
         Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)'; 
@@ -302,13 +288,6 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
 
         lhs = lhs + (A1+A2).*c2;
         rhs = rhs + (b1+b2).*c2;
-        
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1+Jr2;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,2)+v(:,1);
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr2;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,3)+v(:,2);
     elseif id == N-1
         % end - 1, two times
         Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)'; 
@@ -321,13 +300,6 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
 
         lhs = lhs + (A1+A2).*c2;
         rhs = rhs + (b1+b2).*c2;
-        
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1+Jr2;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,end)+v(:,end-1);
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,end-2)+v(:,end-1);
     else
         % 3 times
         Jr1 = rightJinv(v(:,2));% * Rreg(:,id*3-2:id*3)';
@@ -343,17 +315,6 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
 
         lhs = lhs + (A1+A2+A3).*c2;
         rhs = rhs + (b1+b2+b3).*c2;
-        
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1+Jr2;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,3) + v(:,2);
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr1;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,2)+v(:,1);
-%         
-%         dummy1 = dummy1 + 1;
-%         Aineq(dummy1*3-2:dummy1*3,:) = Jr2;
-%         bineq(dummy1*3-2:dummy1*3,:) = v(:,4)+v(:,3);
     end
 
     if c1 == 0 && c2 == 0
