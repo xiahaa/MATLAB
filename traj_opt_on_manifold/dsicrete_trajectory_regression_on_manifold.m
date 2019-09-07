@@ -20,7 +20,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 4*n;
+    Nd = 20;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -87,7 +87,7 @@ function dsicrete_trajectory_regression_on_manifold
     
     % start optimization
     iter = 1;
-    maxiter = 500;
+    maxiter = 1000;
     
     oldcost = -1e6;
     newcost = 1e6;
@@ -98,7 +98,7 @@ function dsicrete_trajectory_regression_on_manifold
     % try with sequential update
     % try with quasi-parallel update
     cheeseboard_id = ones(1,N2);
-    cheeseboard_id(2:2:N2) = 0;
+%     cheeseboard_id(2:2:N2) = 0;
     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
 %     cheeseboard_id = zeros(1,N2);
 %     valid = 1;
@@ -107,7 +107,7 @@ function dsicrete_trajectory_regression_on_manifold
 %         valid=valid+1;if valid>3 valid=1;end
 %     end
 
-    tr = 10;
+    tr = 0.001;
     
 %     [speed0, acc0] = compute_profiles(problem, X0);
     valid = 1;
@@ -165,7 +165,7 @@ function dsicrete_trajectory_regression_on_manifold
             dxi = dxis(:,id).*cheeseboard_id(id);
             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
         end
-        cheeseboard_id = ~cheeseboard_id;
+%         cheeseboard_id = ~cheeseboard_id;
         
         xi = data_term_error(Rdata,Rreg,indices);
         v = numerical_diff_v(Rreg);
@@ -242,7 +242,7 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
     rhs = zeros(3,1);
     
     if ~isempty(xi)
-        Jr = rightJinv(xi);
+        Jr = approxRightJinv(xi);
         lhs = lhs + Jr'*Jr;
         rhs = rhs + Jr'*xi;
     end
@@ -252,16 +252,16 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
     c1 = lambda / tau;
     if lambda ~= 0
         if id == 1
-            Jr = rightJinv(-v(:,1));
+            Jr = approxRightJinv(-v(:,1));
             lhs = lhs + Jr'*Jr.*c1;
             rhs = rhs + Jr'*(-v(:,1)).*c1;
         elseif id == N
-            Jr = rightJinv(v(:,end));
+            Jr = approxRightJinv(v(:,end));
             lhs = lhs + Jr'*Jr.*c1;
             rhs = rhs + Jr'*(v(:,end)).*c1;
         else
-            Jr1 = rightJinv(v(:,1));
-            Jr2 = rightJinv(-v(:,2));
+            Jr1 = approxRightJinv(v(:,1));
+            Jr2 = approxRightJinv(-v(:,2));
             A1 = Jr1'*Jr1;
             b1 = Jr1'*v(:,1);
             A2 = Jr2'*Jr2;
@@ -350,18 +350,19 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
 
     %% new, use parallel transport and unify all +/-
     ss = 1;
+    sss = 1;
     if id == 1
-        Jr = rightJinv(v(:,1));% * Rreg(:,1:3);
+        Jr = approxRightJinv(v(:,1));% * Rreg(:,1:3);
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
     elseif id == N
-        Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end);
+        Jr = approxRightJinv(v(:,end));% * Rreg(:,end-2:end);
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
     elseif id == 2
         % 2, two times
-        Jr1 = rightJinv(v(:,1));% * Rreg(:,1:3); 
-        Jr2 = rightJinv(v(:,2));% * Rreg(:,1:3);
+        Jr1 = approxRightJinv(v(:,1));% * Rreg(:,1:3); 
+        Jr2 = approxRightJinv(v(:,2));% * Rreg(:,1:3);
         A1 = Jr1+Jr2; 
         b1 = A1'*(v(:,2)+v(:,1));A1 = A1'*A1;
     
@@ -372,8 +373,8 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
         rhs = rhs + (b1+b2).*c2;
     elseif id == N-1
         % end - 1, two times
-        Jr1 = rightJinv(v(:,end-1));% * Rreg(:,1:3); 
-        Jr2 = rightJinv(v(:,end));% * Rreg(:,1:3);
+        Jr1 = approxRightJinv(v(:,end-1));% * Rreg(:,1:3); 
+        Jr2 = approxRightJinv(v(:,end));% * Rreg(:,1:3);
         A1 = Jr1+Jr2; 
         b1 = A1'*(v(:,end)+v(:,end-1));A1 = A1'*A1;
 
@@ -384,16 +385,16 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
         rhs = rhs + (b1+b2).*c2;
     else
         % 3 times
-        Jr1 = rightJinv(v(:,2));% * Rreg(:,i*3-2:i*3);
-        Jr2 = rightJinv(v(:,3));% * Rreg(:,i*3-2:i*3);
+        Jr1 = approxRightJinv(v(:,2));% * Rreg(:,i*3-2:i*3);
+        Jr2 = approxRightJinv(v(:,3));% * Rreg(:,i*3-2:i*3);
         A1 = Jr1+Jr2;
         b1 = A1'*(v(:,3) + v(:,2));A1 = A1'*A1;
 
-        A2 = Jr1;
-        b2 = A2'*(v(:,2)+v(:,1).*ss);A2 = A2'*A2;
+        A2 = Jr1 .* sss;
+        b2 = A2'*(v(:,2)+v(:,1).*sss);A2 = A2'*A2;
 
-        A3 = Jr2;
-        b3 = A3'*(v(:,4).*ss+v(:,3));A3 = A3'*A3;
+        A3 = Jr2 .* sss;
+        b3 = A3'*(v(:,4).*sss+v(:,3));A3 = A3'*A3;
 
         lhs = lhs + (A1+A2+A3).*c2;
         rhs = rhs + (b1+b2+b3).*c2;
@@ -408,6 +409,10 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
     
     LHS = lhs;
     RHS = rhs;
+end
+
+function Jinv = approxRightJinv(v)
+    Jinv = eye(3)+hat(v).*0.5;
 end
 
 function [LHS, RHS] = batch_sol(xi, v, indices, tau, lambda, miu, N, Rreg)
