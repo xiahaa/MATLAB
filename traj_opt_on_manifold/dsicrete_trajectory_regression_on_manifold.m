@@ -4,6 +4,8 @@ function dsicrete_trajectory_regression_on_manifold
         addpath './SOn_regression-master/STL'
     else
         addpath './SOn_regression-master\SOn_regression-master/'
+        addpath './jiachao/'
+        addpath './utils/'
     end
     clc;close all;clear all;
     
@@ -20,7 +22,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 20;
+    Nd = 50;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -43,7 +45,7 @@ function dsicrete_trajectory_regression_on_manifold
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 1e-2;%1e-2;
+    mu = 1e-1;%1e-2;%1e-2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -80,7 +82,7 @@ function dsicrete_trajectory_regression_on_manifold
         Rdata(:,i*3-2:i*3) = X0(:,:,indices(i));
     end
     for i = 1:N2
-        Rreg(:,i*3-2:i*3) = X0(:,:,i);%expSO3(rand(3,1));
+        Rreg(:,i*3-2:i*3) = X0(:,:,i);%*expSO3(0.1*rand(3,1));
     end
     
     % initialize with piecewise geodesic path using park's method
@@ -92,7 +94,7 @@ function dsicrete_trajectory_regression_on_manifold
     oldcost = -1e6;
     newcost = 1e6;
     
-    tol1 = 1e-3;
+    tol1 = 1e-5;
     
     % seems without trust-region, parallel update will be oscillate.
     % try with sequential update
@@ -100,17 +102,17 @@ function dsicrete_trajectory_regression_on_manifold
     cheeseboard_id = ones(1,N2);
 %     cheeseboard_id(2:2:N2) = 0;
     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
-%     cheeseboard_id = zeros(1,N2);
-%     valid = 1;
-%     for i = 1:N2
-%         cheeseboard_id(i)=valid;
-%         valid=valid+1;if valid>3 valid=1;end
-%     end
-
+        
     tr = 0.001;
     
+    Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
+    
+    if 0
+%     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
+        
 %     [speed0, acc0] = compute_profiles(problem, X0);
-    valid = 1;
+    options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-3,'StepTolerance',1e-3,'Display','off');
+
     tic
     while iter < maxiter
 %         xi = data_term_error(Rdata,Rreg,indices);
@@ -121,39 +123,22 @@ function dsicrete_trajectory_regression_on_manifold
 %             break;
 %         end
 %         oldcost = newcost;
-%         
-%         % compute gradient, batch optimization
-%         % here, I will compute graduate for all so3s and then update as a
-%         % batch. I think perhaps sequencial update could be another option
-%         % since somehow this is a nonconvex optimization, no global minimum
-%         % is guaranteed.
-%         [LHS, RHS] = batch_sol(xi, v, indices, tau, lambda, miu, N2, Rreg);
-%         dxis = -LHS\RHS;
-%         % update
-%         for j = 1:N2
-%             dxi = dxis(j*3-2:j*3).*cheeseboard_id(j);
-%             if norm(dxi) > tr
-%                 dxi = dxi ./ norm(dxi) .* tr;
-%             end
-%             Rreg(:,j*3-2:j*3) = Rreg(:,j*3-2:j*3) * expSO3(dxi);
-%         end
-%         cheeseboard_id = ~cheeseboard_id;
         
         % sequential update
-%         newcost = 0;
-%         ids = randperm(N2,N2);
+        newcost = 0;
+        ids = randperm(N2,N2);
         for j = 1:N2
             id = j;%ids(j);
             xi = data_term_error(Rdata,Rreg,indices,id);
             v = numerical_diff_v(Rreg,id);
-            [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N2, id,Rreg);
+            dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id,Rreg,options);
 %             dxis = -LHS(id*3-2:id*3,id*3-2:id*3)\RHS(id*3-2:id*3);
-            dxi = -LHS\RHS;
+            % 
             if norm(dxi) > tr
                 dxi = dxi ./ norm(dxi) .* tr;
             end
             dxis(:,id)=dxi;
-%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxis);
+%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
 %             if norm(dxis) > newcost
 %                 newcost = norm(dxis);
 %             end
@@ -163,9 +148,12 @@ function dsicrete_trajectory_regression_on_manifold
         for j = 1:N2
             id = j;
             dxi = dxis(:,id).*cheeseboard_id(id);
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(Rreg(:,id*3-2:id*3)'*dxi);
         end
 %         cheeseboard_id = ~cheeseboard_id;
+
+        % doesnot work
+%         Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N2);
         
         xi = data_term_error(Rdata,Rreg,indices);
         v = numerical_diff_v(Rreg);
@@ -186,6 +174,7 @@ function dsicrete_trajectory_regression_on_manifold
     
     figure(7);
     plot(newcosts,'r-o','LineWidth',2);
+    end
     
     figure(1);
     plotrotations(X0(:, :, 1:4:Nd));
@@ -237,7 +226,8 @@ function dsicrete_trajectory_regression_on_manifold
     
 end
 
-function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
+
+function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     lhs = zeros(3,3);
     rhs = zeros(3,1);
     
@@ -247,25 +237,35 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
         rhs = rhs + Jr'*xi;
     end
     
+    v = Rreg(:,id*3-2:id*3) * v;
+    
     % second term
     % endpoints 
     c1 = lambda / tau;
     if lambda ~= 0
         if id == 1
-            Jr = approxRightJinv(-v(:,1));
+            Jr = rightJinv(v(:,1));
             lhs = lhs + Jr'*Jr.*c1;
-            rhs = rhs + Jr'*(-v(:,1)).*c1;
+            rhs = rhs + Jr'*(v(:,1)).*c1;
         elseif id == N
             Jr = approxRightJinv(v(:,end));
             lhs = lhs + Jr'*Jr.*c1;
             rhs = rhs + Jr'*(v(:,end)).*c1;
         else
-            Jr1 = approxRightJinv(v(:,1));
-            Jr2 = approxRightJinv(-v(:,2));
+            if id == 2
+                id1 = 1;
+                id2 = 2;
+            else
+                id1 = 2;
+                id2 = 3;
+            end
+                
+            Jr1 = rightJinv(v(:,id1));
+            Jr2 = rightJinv(v(:,id2));
             A1 = Jr1'*Jr1;
-            b1 = Jr1'*v(:,1);
+            b1 = Jr1'*v(:,id1);
             A2 = Jr2'*Jr2;
-            b2 = Jr2'*(-v(:,2));
+            b2 = Jr2'*(v(:,id2));
             lhs = lhs + (A1+A2).*c1;
             rhs = rhs + (b1+b2).*c1;
         end
@@ -273,96 +273,21 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
     
     % third term
     c2 = miu / (tau^3);
-    % end points
-%     if id == 1
-%         Jr = rightJinv(-v(:,1));
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jr'*(-v(:,1)+v(:,2)).*c2;
-%     elseif id == N
-%         Jr = rightJinv(v(:,end));
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jr'*(-v(:,end-1)+v(:,end)).*c2;
-%     else
-%         Jr1 = rightJinv(v(:,2));
-%         Jr2 = rightJinv(-v(:,3));
-%         Jr = Jr1+Jr2;
-%         Jrtb = Jr'*(-v(:,3) + v(:,2));
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jrtb.*c2;
-%     end
-
-
-    % parallel transport
-%     if id == 1
-% %         pt = Rreg(:,1:3)*Rreg(:,4:6)';
-%         Jr = rightJinv(-v(:,1));% * Rreg(:,1:3);
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jr'*(-v(:,1)+v(:,2)).*c2;
-%     elseif id == N
-% %         pt = Rreg(:,end-2:end)*Rreg(:,end-5:end-3)';
-%         Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end);
-%         lhs = lhs + Jr'*Jr.*c2;
-%         rhs = rhs + Jr'*(-v(:,end-1)+v(:,end)).*c2;
-%     elseif id == 2
-%         % 2, two times
-%         Jr1 = rightJinv(v(:,1));% * Rreg(:,1:3); 
-%         Jr2 = rightJinv(-v(:,2));% * Rreg(:,1:3);
-%         A1 = Jr1+Jr2; 
-%         b1 = A1'*(-v(:,2)+v(:,1));A1 = A1'*A1;
-%     
-% %         pt = Rreg(:,4:6)*Rreg(:,7:9)';
-%         A2 = Jr2'*Jr2;
-%         b2 = Jr2'*(v(:,3)-v(:,2));
-% 
-%         lhs = lhs + (A1+A2).*c2;
-%         rhs = rhs + (b1+b2).*c2;
-%     elseif id == N-1
-%         % end - 1, two times
-%         Jr1 = rightJinv(v(:,end-1));% * Rreg(:,1:3); 
-%         Jr2 = rightJinv(-v(:,end));% * Rreg(:,1:3);
-%         A1 = Jr1+Jr2; 
-%         b1 = A1'*(-v(:,end)+v(:,end-1));A1 = A1'*A1;
-% 
-% %         pt = Rreg(:,end-5:end-3)*Rreg(:,end-8:end-6)';
-%         A2 = Jr1'*Jr1;
-%         b2 = Jr1'*(-v(:,end-2)+v(:,end-1));
-% 
-%         lhs = lhs + (A1+A2).*c2;
-%         rhs = rhs + (b1+b2).*c2;
-%     else
-%         % 3 times
-%         Jr1 = rightJinv(v(:,2));% * Rreg(:,i*3-2:i*3);
-%         Jr2 = rightJinv(-v(:,3));% * Rreg(:,i*3-2:i*3);
-%         A1 = Jr1+Jr2;
-%         b1 = A1'*(-v(:,3) + v(:,2));A1 = A1'*A1;
-% 
-% %         pt = Rreg(:,id*3-2:id*3)*Rreg(:,id*3-5:id*3-3)';
-%         A2 = Jr1;
-%         b2 = A2'*(v(:,2)-v(:,1));A2 = A2'*A2;
-% 
-% %         pt = Rreg(:,id*3-2:id*3)*Rreg(:,id*3+1:id*3+3)';
-%         A3 = Jr2;
-%         b3 = A3'*(v(:,4)-v(:,3));A3 = A3'*A3;
-% 
-%         lhs = lhs + (A1+A2+A3).*c2;
-%         rhs = rhs + (b1+b2+b3).*c2;
-%     end
-
     %% new, use parallel transport and unify all +/-
     ss = 1;
-    sss = 1;
+
     if id == 1
-        Jr = approxRightJinv(v(:,1));% * Rreg(:,1:3);
+        Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
     elseif id == N
-        Jr = approxRightJinv(v(:,end));% * Rreg(:,end-2:end);
+        Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end)';
         lhs = lhs + Jr'*Jr.*c2;
         rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
     elseif id == 2
         % 2, two times
-        Jr1 = approxRightJinv(v(:,1));% * Rreg(:,1:3); 
-        Jr2 = approxRightJinv(v(:,2));% * Rreg(:,1:3);
+        Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)'; 
+        Jr2 = rightJinv(v(:,2));% * Rreg(:,4:6)';
         A1 = Jr1+Jr2; 
         b1 = A1'*(v(:,2)+v(:,1));A1 = A1'*A1;
     
@@ -373,8 +298,8 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
         rhs = rhs + (b1+b2).*c2;
     elseif id == N-1
         % end - 1, two times
-        Jr1 = approxRightJinv(v(:,end-1));% * Rreg(:,1:3); 
-        Jr2 = approxRightJinv(v(:,end));% * Rreg(:,1:3);
+        Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)'; 
+        Jr2 = rightJinv(v(:,end));% * Rreg(:,end-5:end-3)';
         A1 = Jr1+Jr2; 
         b1 = A1'*(v(:,end)+v(:,end-1));A1 = A1'*A1;
 
@@ -385,8 +310,8 @@ function [LHS, RHS] = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg)
         rhs = rhs + (b1+b2).*c2;
     else
         % 3 times
-        Jr1 = approxRightJinv(v(:,2));% * Rreg(:,i*3-2:i*3);
-        Jr2 = approxRightJinv(v(:,3));% * Rreg(:,i*3-2:i*3);
+        Jr1 = rightJinv(v(:,2));% * Rreg(:,id*3-2:id*3)';
+        Jr2 = rightJinv(v(:,3));% * Rreg(:,id*3-2:id*3)';
         A1 = Jr1+Jr2;
         b1 = A1'*(v(:,3) + v(:,2));A1 = A1'*A1;
 
@@ -457,140 +382,20 @@ function [LHS, RHS] = batch_sol(xi, v, indices, tau, lambda, miu, N, Rreg)
     Jr = rightJinv(-v(:,1));% * Rreg(:,1:3);
     lhs(:,:,1) = lhs(:,:,1) + Jr'*Jr.*c2;
     rhs(:,1) = rhs(:,1) + Jr'*(-v(:,1)+v(:,2)).*c2;
+
+    dxi = -LHS\RHS;% unconstrained optimization
     
-    Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end);
-    lhs(:,:,end) = lhs(:,:,end) + Jr'*Jr.*c2;
-    rhs(:,end) = rhs(:,end) + Jr'*(-v(:,end-1)+v(:,end)).*c2;
-    
-    % 2, two times
-    Jr1 = rightJinv(v(:,1));% * Rreg(:,1:3); 
-    Jr2 = rightJinv(-v(:,2));% * Rreg(:,1:3);
-    A1 = Jr1+Jr2; 
-    b1 = A1'*(-v(:,2)+v(:,1));A1 = A1'*A1;
-    
-    A2 = Jr2'*Jr2;
-    b2 = Jr2'*(v(:,3)-v(:,2));
-    
-    lhs(:,:,2) = lhs(:,:,2) + (A1+A2).*c2;
-    rhs(:,2) = rhs(:,2) + (b1+b2).*c2;
-    % end - 1, two times
-    Jr1 = rightJinv(v(:,end-1));% * Rreg(:,1:3); 
-    Jr2 = rightJinv(-v(:,end));% * Rreg(:,1:3);
-    A1 = Jr1+Jr2; 
-    b1 = A1'*(-v(:,end)+v(:,end-1));A1 = A1'*A1;
-    
-    A2 = Jr1'*Jr1;
-    b2 = Jr1'*(-v(:,end-2)+v(:,end-1));
-    
-    lhs(:,:,end-1) = lhs(:,:,end-1) + (A1+A2).*c2;
-    rhs(:,end-1) = rhs(:,end-1) + (b1+b2).*c2;
-    
-    % 3 times
-    for i = 3:N-2
-        Jr1 = rightJinv(v(:,i-1));% * Rreg(:,i*3-2:i*3);
-        Jr2 = rightJinv(-v(:,i));% * Rreg(:,i*3-2:i*3);
-        A1 = Jr1+Jr2;
-        b1 = A1'*(-v(:,i) + v(:,i-1));A1 = A1'*A1;
-        
-        A2 = Jr1;
-        b2 = A2'*(v(:,i-1)-v(:,i-2));A2 = A2'*A2;
-        
-        A3 = Jr2;
-        b3 = A3'*(v(:,i+1)-v(:,i));A3 = A3'*A3;
-        
-        lhs(:,:,i) = lhs(:,:,i) + (A1+A2+A3).*c2;
-        rhs(:,i) = rhs(:,i) + (b1+b2+b3).*c2;
-    end
-    
-    if c1 == 0 && c2 == 0
-        ii = 1:N;
-        ii(indices) = [];
-        for i = 1:length(ii)
-            lhs(:,:,ii(i)) = eye(3);
-        end
-    end
-    
-    LHS = spblkdiag(lhs);
-    RHS = rhs(:);
+%     %% what if I use constrained optimization.
+%     Aineq(dummy1*3+1:end,:) = [];
+%     bineq(dummy1*3+1:end,:) = [];
+%     amax = 0.01;%sqrt(1000)/2*tau*tau;
+%     Aineq2 = [Aineq;-Aineq];
+%     bineq2 = [amax-bineq;amax+bineq];
+% %     
+%     dxi = quadprog(2.*LHS,2*RHS',Aineq2,bineq2,[],[],[],[],[],options);
 end
 
-function xi = data_term_error(Rdata,Rreg,indices,varargin)
-    if nargin == 3
-        xi = zeros(3,length(indices));
-        for i = 1:length(indices)
-            ii = indices(i);
-            xi(:,i) = logSO3(Rdata(:,(i*3-2):i*3)'*Rreg(:,(ii*3-2):ii*3));
-            xi(:,i) = para_trans(Rdata(:,(i*3-2):i*3),Rreg(:,(ii*3-2):ii*3),xi(:,i));
-        end
-    else
-        id = find(indices == varargin{1},1);
-        if isempty(id) 
-            xi = [];
-        else
-            ii = indices(id);
-            xi = logSO3(Rdata(:,(id*3-2):id*3)'*Rreg(:,(ii*3-2):ii*3));
-            xi = para_trans(Rdata(:,(id*3-2):id*3),Rreg(:,(ii*3-2):ii*3),xi);
-        end
-    end
-end
 
-function v = numerical_diff_v(Rreg,varargin)
-    N = round(size(Rreg,2)/3);
-    if nargin == 1
-        v = zeros(3,N-1);
-        for i = 1:N-1
-            v(:,i) = logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));
-        end
-    else
-        i = varargin{1};
-        if i == 1
-            % tangent plane 2
-            v(:,1) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3-2):(i*3)));% 2 -- 1            
-            v(:,2) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));% 2 -- 3
-            
-            v(:,1) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,1));% tgt2 to 1
-            v(:,2) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,2));% tgt2 to 1
-
-            % old code
-%             v(:,1) = logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));
-%             v(:,2) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));
-        elseif i == N
-            v(:,1) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-8):(i*3-6)));%e-1 -- e-2
-            v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));%e-1 -- e
-            
-            v(:,1) = para_trans(Rreg(:,(i*3-5):i*3-3),Rreg(:,(i*3-2):i*3),v(:,1));% e-1 -- e
-            v(:,2) = para_trans(Rreg(:,(i*3-5):i*3-3),Rreg(:,(i*3-2):i*3),v(:,2));
-            
-%             v(:,1) = logSO3(Rreg(:,(i*3-8):i*3-6)'*Rreg(:,(i*3-5):(i*3-3)));
-%             % tangent plane n-1
-%             v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3)));
-%             
-        elseif i == 2
-            % little trick, 1--2 parallel to 2 equals to -(1--2)
-            v(:,1) = -logSO3(Rreg(:,(i*3-2):(i*3))'*Rreg(:,(i*3-5):(i*3-3)));% 1 -- 2 pt to 2
-            v(:,2) = -logSO3(Rreg(:,(i*3-2):(i*3))'*Rreg(:,(i*3+1):(i*3+3)));% 3 -- 2 pt to 2
-            v(:,3) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6)));% 3 -- 4
-            
-            v(:,3) = para_trans(Rreg(:,(i*3+1):i*3+3),Rreg(:,(i*3-2):i*3),v(:,3));% pt to 2
-        elseif i == N-1
-            v(:,1) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-8):(i*3-6)));% e-2 -- e-3
-            v(:,2) = -logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3-5):(i*3-3)));% e-2 -- e-1 to e-1
-            v(:,3) = -logSO3(Rreg(:,(i*3-2):i*3)'*Rreg(:,(i*3+1):(i*3+3)));% e -- e-1 to e-1
-            
-            v(:,1) = para_trans(Rreg(:,(i*3-5):(i*3-3)),Rreg(:,(i*3-2):i*3),v(:,1));% pt from e-2 to e-1
-        else
-            v(:,1) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-8):(i*3-6)));% i-1 -- i-2
-            v(:,2) = logSO3(Rreg(:,(i*3-5):i*3-3)'*Rreg(:,(i*3-2):(i*3))); % i-1 -- i
-            v(:,3) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3-2):(i*3))); % i+1 -- i
-            v(:,4) = logSO3(Rreg(:,(i*3+1):i*3+3)'*Rreg(:,(i*3+4):(i*3+6))); % i+1 -- i+2
-            
-            v(:,1) = para_trans(Rreg(:,(i*3-5):(i*3-3)),Rreg(:,(i*3-2):i*3),v(:,1));% pt from i-1 to i
-            v(:,2) = para_trans(Rreg(:,(i*3-5):(i*3-3)),Rreg(:,(i*3-2):i*3),v(:,2));% pt from i-1 to i
-            v(:,3) = para_trans(Rreg(:,(i*3+1):(i*3+3)),Rreg(:,(i*3-2):i*3),v(:,3));% pt from i+1 to i
-            v(:,4) = para_trans(Rreg(:,(i*3+1):(i*3+3)),Rreg(:,(i*3-2):i*3),v(:,4));% pt from i+1 to i
-        end
-    end
-end
 
 
 function y = cost(xi,v,tau,lambda,miu)
@@ -613,9 +418,3 @@ function y = cost(xi,v,tau,lambda,miu)
     
     y = cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
 end
-
-
-
-
-
-
