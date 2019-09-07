@@ -5,6 +5,7 @@ function dsicrete_trajectory_regression_on_manifold
     else
         addpath './SOn_regression-master\SOn_regression-master/'
         addpath './jiachao/'
+        addpath './utils/'
     end
     clc;close all;clear all;
     
@@ -44,7 +45,7 @@ function dsicrete_trajectory_regression_on_manifold
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 0;%1e-2;%1e-2;
+    mu = 1e-1;%1e-2;%1e-2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -81,7 +82,7 @@ function dsicrete_trajectory_regression_on_manifold
         Rdata(:,i*3-2:i*3) = X0(:,:,indices(i));
     end
     for i = 1:N2
-        Rreg(:,i*3-2:i*3) = X0(:,:,i);%expSO3(rand(3,1));
+        Rreg(:,i*3-2:i*3) = X0(:,:,i);%*expSO3(0.1*rand(3,1));
     end
     
     % initialize with piecewise geodesic path using park's method
@@ -102,8 +103,11 @@ function dsicrete_trajectory_regression_on_manifold
 %     cheeseboard_id(2:2:N2) = 0;
     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
         
-    tr = 1;
+    tr = 0.001;
     
+    Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
+    
+    if 0
 %     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
         
 %     [speed0, acc0] = compute_profiles(problem, X0);
@@ -167,6 +171,7 @@ function dsicrete_trajectory_regression_on_manifold
     
     figure(7);
     plot(newcosts,'r-o','LineWidth',2);
+    end
     
     figure(1);
     plotrotations(X0(:, :, 1:4:Nd));
@@ -340,25 +345,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
 end
 
 
-function xi = data_term_error(Rdata,Rreg,indices,varargin)
-    if nargin == 3
-        xi = zeros(3,length(indices));
-        for i = 1:length(indices)
-            ii = indices(i);
-            xi(:,i) = logSO3(Rdata(:,(i*3-2):i*3)'*Rreg(:,(ii*3-2):ii*3));
-            xi(:,i) = para_trans(Rdata(:,(i*3-2):i*3),Rreg(:,(ii*3-2):ii*3),xi(:,i));
-        end
-    else
-        id = find(indices == varargin{1},1);
-        if isempty(id) 
-            xi = [];
-        else
-            ii = indices(id);
-            xi = logSO3(Rdata(:,(id*3-2):id*3)'*Rreg(:,(ii*3-2):ii*3));
-            xi = para_trans(Rdata(:,(id*3-2):id*3),Rreg(:,(ii*3-2):ii*3),xi);
-        end
-    end
-end
+
 
 function y = cost(xi,v,tau,lambda,miu)
     % cost term 1, data cost
