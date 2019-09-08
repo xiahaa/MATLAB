@@ -91,7 +91,7 @@ function dsicrete_trajectory_regression_on_manifold
     
     % start optimization
     iter = 1;
-    maxiter = 1000;
+    maxiter = 500;
     
     oldcost = -1e6;
     newcost = 1e6;
@@ -114,7 +114,6 @@ function dsicrete_trajectory_regression_on_manifold
         
 %     [speed0, acc0] = compute_profiles(problem, X0);
     options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-3,'StepTolerance',1e-3,'Display','off');
-
     tic
     while iter < maxiter
 %         xi = data_term_error(Rdata,Rreg,indices);
@@ -145,15 +144,13 @@ function dsicrete_trajectory_regression_on_manifold
 %                 newcost = norm(dxis);
 %             end
         end
-%         updateid = cheeseboard_id == valid;
-%         valid = valid+1;if valid>3 valid=1;end
         for j = 1:N2
             id = j;
             dxi = dxis(:,id).*cheeseboard_id(id);
             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(Rreg(:,id*3-2:id*3)'*dxi);
         end
 %         cheeseboard_id = ~cheeseboard_id;
-
+        
         % doesnot work
 %         Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N2);
         
@@ -170,7 +167,7 @@ function dsicrete_trajectory_regression_on_manifold
         % the norm of gradient is lower than a threshold.
         
         iter = iter + 1;
-%         disp(iter);
+        disp(iter);
     end
     toc
     
@@ -277,7 +274,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     c2 = miu / (tau^3);
     %% new, use parallel transport and unify all +/-
     ss = 1;
-
+    
     if id == 1
         Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
         lhs = lhs + Jr'*Jr.*c2;
@@ -317,11 +314,11 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
         A1 = Jr1+Jr2;
         b1 = A1'*(v(:,3) + v(:,2));A1 = A1'*A1;
 
-        A2 = Jr1 .* sss;
-        b2 = A2'*(v(:,2)+v(:,1).*sss);A2 = A2'*A2;
+        A2 = Jr1;
+        b2 = A2'*(v(:,2)+v(:,1).*ss);A2 = A2'*A2;
 
-        A3 = Jr2 .* sss;
-        b3 = A3'*(v(:,4).*sss+v(:,3));A3 = A3'*A3;
+        A3 = Jr2;
+        b3 = A3'*(v(:,4).*ss+v(:,3));A3 = A3'*A3;
 
         lhs = lhs + (A1+A2+A3).*c2;
         rhs = rhs + (b1+b2+b3).*c2;
@@ -336,55 +333,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     
     LHS = lhs;
     RHS = rhs;
-end
-
-function Jinv = approxRightJinv(v)
-    Jinv = eye(3)+hat(v).*0.5;
-end
-
-function [LHS, RHS] = batch_sol(xi, v, indices, tau, lambda, miu, N, Rreg)
-    lhs = zeros(3,3,N);
-    rhs = zeros(3,N);
     
-    % fist deal with term 1
-    for i = 1:length(indices)
-        Jr = rightJinv(xi(:,i));% * Rreg(:,indices(i)*3-2:indices(i)*3);
-        lhs(:,:,indices(i)) = lhs(:,:,indices(i)) + Jr'*Jr;
-        rhs(:,indices(i)) = rhs(:,indices(i)) + Jr'*xi(:,i);
-    end
-    
-    % second term
-    % endpoints 
-    c1 = lambda / tau;
-    if lambda ~= 0
-        Jr = rightJinv(-v(:,1)) * Rreg(:,1:3);
-        lhs(:,:,1) = lhs(:,:,1) + Jr'*Jr.*c1;
-        rhs(:,1) = rhs(:,1) + Jr'*(-v(:,1)).*c1;
-
-        Jr = rightJinv(v(:,end)) * Rreg(:,end-2:end);
-        lhs(:,:,end) = lhs(:,:,end) + Jr'*Jr.*c1;
-        rhs(:,end) = rhs(:,end) + Jr'*(v(:,end)).*c1;
-
-        for i = 2:N-1
-            Jr1 = rightJinv(v(:,i-1)) * Rreg(:,i*3-2:i*3);
-            Jr2 = rightJinv(-v(:,i)) * Rreg(:,i*3-2:i*3);
-            A1 = Jr1'*Jr1;
-            b1 = Jr1'*v(:,i-1);
-            A2 = Jr2'*Jr2;
-            b2 = Jr2'*(-v(:,i));
-            lhs(:,:,i) = lhs(:,:,i) + (A1+A2).*c1;
-            rhs(:,i) = rhs(:,i) + (b1+b2).*c1;
-        end
-    end
-    
-    
-    % third term
-    c2 = miu / (tau^3);
-    % end points
-    Jr = rightJinv(-v(:,1));% * Rreg(:,1:3);
-    lhs(:,:,1) = lhs(:,:,1) + Jr'*Jr.*c2;
-    rhs(:,1) = rhs(:,1) + Jr'*(-v(:,1)+v(:,2)).*c2;
-
     dxi = -LHS\RHS;% unconstrained optimization
     
 %     %% what if I use constrained optimization.
