@@ -2,6 +2,8 @@ function dsicrete_trajectory_regression_on_manifold
     if ismac
         addpath './SOn_regression-master/'
         addpath './SOn_regression-master/STL'
+        addpath './utils/'
+        addpath './libso3'
     else
         addpath './SOn_regression-master\SOn_regression-master/'
         addpath './jiachao/'
@@ -45,7 +47,7 @@ function dsicrete_trajectory_regression_on_manifold
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 1e-1;%1e-2;%1e-2;
+    mu = 1e-2;%1e-2;%1e-2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -232,7 +234,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     rhs = zeros(3,1);
     
     if ~isempty(xi)
-        Jr = approxRightJinv(xi);
+        Jr = rightJinv(xi);
         lhs = lhs + Jr'*Jr;
         rhs = rhs + Jr'*xi;
     end
@@ -248,7 +250,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
             lhs = lhs + Jr'*Jr.*c1;
             rhs = rhs + Jr'*(v(:,1)).*c1;
         elseif id == N
-            Jr = approxRightJinv(v(:,end));
+            Jr = rightJinv(v(:,end));
             lhs = lhs + Jr'*Jr.*c1;
             rhs = rhs + Jr'*(v(:,end)).*c1;
         else

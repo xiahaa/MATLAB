@@ -8,9 +8,15 @@ function varargout = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau)
     oldnorm = Inf;
     maxiter = 50;
     costs = [];
+    
+    options = optimoptions('quadprog', ...
+                'MaxIterations',100, ...
+                'OptimalityTolerance',1e-3,'StepTolerance',1e-3,'Display','off');
+
+    
     for i = 1:maxiter
         % qp 
-        [xi,cost] = qp_sol(xreg, miu, N, xid, indices);
+        [xi,cost] = qp_sol(xreg, miu, N, xid, indices, tau, options);
 %         cost = ncost(Rdata,Rreg,tau,0,miu,indices);
         costs = [costs cost];
         % update
@@ -83,13 +89,13 @@ function y = ncost(Rdata,Rreg,tau,lambda,miu,indices)
     y = cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
 end
 
-function [x,cost] = qp_sol(xinit, miu, N, xid, indices)
+function [x,cost] = qp_sol(xinit, miu, N, xid, indices, tau, options)
     % plan from local chart, then right jacobian will be identity
 %     Jr = eye(3);
     
     % firstly, form cost function, T make no pysical meaning in this case
     % could provide different T to weight pysically
-    Q = lut_angular_acceleration(1);
+    Q = lut_angular_acceleration(tau);
     Qt = [];
     for i = 1:N-1
         Qt = blkdiag(Qt,Q);
@@ -117,7 +123,7 @@ function [x,cost] = qp_sol(xinit, miu, N, xid, indices)
         end
         costterm = costterm + xitmp'*xitmp;
     end
-    ll = 0.001;
+    ll = 1;
     Qfull = miu.*Qt + ll*Qd*2;
     f = f.*ll;
     costterm = costterm*ll;
@@ -126,7 +132,7 @@ function [x,cost] = qp_sol(xinit, miu, N, xid, indices)
     Aeq = zeros(9*(N-2),size(Qt,2));
     beq = zeros(size(Aeq,1),1);
     for i = 1:N-2
-        [Astart,Aend] = lut_pva(1,1);
+        [Astart,Aend] = lut_pva(tau,tau);
         Aeq((i-1)*9+1:i*9, (i-1)*18+1:(i-1)*18+36) = [Aend -Astart];
         % r equal plus rd, rdd equal
         beq((i-1)*9+1:i*9,:) = [-xinit(:,i)+xinit(:,i+1);zeros(6,1)];
@@ -139,7 +145,7 @@ function [x,cost] = qp_sol(xinit, miu, N, xid, indices)
            1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0; ...
            0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0; ...
            0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1];
-    eps = 0.05;
+    eps = 0.001;
     Aineq = zeros(12*(N-1),size(Qt,2));
     bineq = zeros(12*(N-1),1);
     for i = 1:N-1
