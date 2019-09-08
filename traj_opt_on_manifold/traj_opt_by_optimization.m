@@ -104,21 +104,27 @@ function [x,cost] = qp_sol(xinit, miu, N, xid, indices)
              0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1];
     f = zeros(size(Qt,1),1);
     costterm = 0;
+    % test
+%     a = rand(size(Qt,1),1);
+%     suma = 0;
     for i = 1:size(xid,2)
         % data term loss
-        xitmp = logSO3(expSO3(xid(:,i))'*expSO3(xinit(:,indices(i))));
-        Jr = rightJinv(xitmp);
+        AA = (eye(3)-0.5.*hat(xid(:,i)));
+        bb = xinit(:,indices(i))-xid(:,i)-0.5.*hat(xid(:,i))*xinit(:,indices(i));
         if indices(i) ~= N
-            Qd((indices(i)-1)*18+1:indices(i)*18, (indices(i)-1)*18+1:indices(i)*18) = Atmp2'*(Jr'*Jr)*Atmp2;
-            f((indices(i)-1)*18+1:indices(i)*18,:) = 2.*(xitmp'*Jr*Atmp2)';
+            Qd((indices(i)-1)*18+1:indices(i)*18, (indices(i)-1)*18+1:indices(i)*18) = (AA*Atmp2)'*(AA*Atmp2);
+            f((indices(i)-1)*18+1:indices(i)*18,:) = 2.*(bb'*AA*Atmp2)';
+%             suma = suma+a((indices(i)-1)*18+16:(indices(i))*18)'*AA'*AA*a((indices(i)-1)*18+16:(indices(i))*18) + 2*bb'*AA*a((indices(i)-1)*18+16:(indices(i))*18) + bb'*bb;
         else
-            Qd((N-2)*18+1:(N-1)*18, (N-2)*18+1:(N-1)*18) = Qd((N-2)*18+1:(N-1)*18, (N-2)*18+1:(N-1)*18)+Atmp1'*(Jr'*Jr)*Atmp1;
-            f((N-2)*18+1:(N-1)*18,:) = 2.*(xitmp'*Jr*Atmp1)';
+            Qd((N-2)*18+1:(N-1)*18, (N-2)*18+1:(N-1)*18) = Qd((N-2)*18+1:(N-1)*18, (N-2)*18+1:(N-1)*18)+(AA*Atmp1)'*(AA*Atmp1);
+            f((N-2)*18+1:(N-1)*18,:) = 2.*(bb'*AA*Atmp1)';
+%             suma = suma+sum(reshape(a(end-17:end),3,6),2)'*AA'*AA*sum(reshape(a(end-17:end),3,6),2) + 2*bb'*AA*sum(reshape(a(end-17:end),3,6),2)+bb'*bb;
         end
-        costterm = costterm + xitmp'*xitmp;
+        costterm = costterm + bb'*bb;        
     end
-    ll = 0.001;
-    Qfull = miu.*Qt + ll*Qd*2;
+%     disp(suma-a'*Qd*a-f'*a-costterm);
+    ll = 1;
+    Qfull = 0*miu.*Qt + ll*Qd*2;
     f = f.*ll;
     costterm = costterm*ll;
     
