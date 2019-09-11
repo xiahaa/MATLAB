@@ -24,7 +24,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 50;
+    Nd = 60;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -47,7 +47,7 @@ function dsicrete_trajectory_regression_on_manifold
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 1e-2;%1e-2;%1e-2;
+    mu = 1e-2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -102,18 +102,18 @@ function dsicrete_trajectory_regression_on_manifold
     % try with sequential update
     % try with quasi-parallel update
     cheeseboard_id = ones(1,N2);
-%     cheeseboard_id(2:2:N2) = 0;
+    cheeseboard_id(2:2:N2) = 0;
     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
         
-    tr = 0.001;
+    tr = 1;
     
-    Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
-    
+%     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
+    Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
     if 0
 %     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
         
 %     [speed0, acc0] = compute_profiles(problem, X0);
-    options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-3,'StepTolerance',1e-3,'Display','off');
+    options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-5,'StepTolerance',1e-5,'Display','off');
     tic
     while iter < maxiter
 %         xi = data_term_error(Rdata,Rreg,indices);
@@ -127,7 +127,7 @@ function dsicrete_trajectory_regression_on_manifold
         
         % sequential update
         newcost = 0;
-        ids = randperm(N2,N2);
+%         ids = randperm(N2,N2);
         for j = 1:N2
             id = j;%ids(j);
             xi = data_term_error(Rdata,Rreg,indices,id);
@@ -139,16 +139,16 @@ function dsicrete_trajectory_regression_on_manifold
                 dxi = dxi ./ norm(dxi) .* tr;
             end
             dxis(:,id)=dxi;
-%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
 %             if norm(dxis) > newcost
 %                 newcost = norm(dxis);
 %             end
         end
-        for j = 1:N2
-            id = j;
-            dxi = dxis(:,id).*cheeseboard_id(id);
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(Rreg(:,id*3-2:id*3)'*dxi);
-        end
+%         for j = 1:N2
+%             id = j;
+%             dxi = dxis(:,id).*cheeseboard_id(id);
+%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+%         end
 %         cheeseboard_id = ~cheeseboard_id;
         
         % doesnot work
@@ -225,6 +225,157 @@ function dsicrete_trajectory_regression_on_manifold
     
 end
 
+function Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)
+    Rreg = reshape(Rreg,3,3,[]);
+    options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-5,'StepTolerance',1e-5,'Display','off');
+    cost2 = inf;
+    for k = 1:10
+        for i = 2:length(indices)-1
+            Ncur = indices(i-1):indices(i+1);
+            indicescur = [];
+            for ii = 1:length(indices)
+                indicescur = [indicescur find(Ncur==indices(ii),1)];
+            end
+            
+            iter = 1;
+            maxiter = 200;
+            oldcost = inf;
+            tol1 = 1e-6;
+    %         tr = 1;
+            N2 = length(Ncur);
+            Rregcur = Rreg(:,:,Ncur);
+            Rregcur = reshape(Rregcur,3,[]);
+            while iter < maxiter
+                newcost = -1e6;
+                stidx = 1;
+                if i > 2
+                    stidx = N2 - (indices(i+1)-indices(i)) + 1;
+                end
+                for j = stidx:N2
+                    id = j;
+                    xi = data_term_error(Rdata,Rregcur,indicescur,id);
+                    v = numerical_diff_v(Rregcur,id);
+                    dxi = seq_sol(xi, v, indicescur, tau, lambda, miu, N2, id, Rregcur, options);
+    %                 if norm(dxi) > tr
+    %                     dxi = dxi ./ norm(dxi) .* tr;
+    %                 end
+                    Rregcur(:,id*3-2:id*3) = Rregcur(:,id*3-2:id*3) * expSO3(dxi);
+                    if norm(dxi) > newcost
+                        newcost = norm(dxi);
+                    end
+                end
+                if abs(newcost - oldcost) < tol1
+                    break;
+                else
+                    oldcost = newcost;
+                end
+                iter = iter + 1;
+            end
+            Rregcur = reshape(Rregcur,3,3,[]);
+            [speed0, acc0] = compute_profiles_fast(tau,Rregcur);
+            figure(1);
+            plot(1:N2,speed0,1:N2,acc0);
+            Rreg(:,:,Ncur) = Rregcur;
+        end
+        xi = data_term_error(Rdata,Rreg,indices);
+        v = numerical_diff_v(Rreg);
+        cost1 = cost(xi,v,tau,lambda,miu);
+        if abs(cost1 - cost2) < 1e-3
+            break;
+        else
+            cost2 = cost1;
+        end
+    end
+    Rreg = reshape(Rreg,3,[]);
+end
+
+function Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)
+    % start from 30
+    Ns = 20;
+    N0 = Ns;
+    Rreg = reshape(Rreg,3,3,[]);
+    options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-5,'StepTolerance',1e-5,'Display','off');
+    while N0 <= N
+        Ncur = round(linspace(1,N,N0));
+        for i = 1:length(indices)
+            if isempty(find(Ncur == indices(i),1))
+                Ncur = [Ncur indices(i)];
+            end
+        end
+        Ncur = sort(Ncur,'ascend');
+        indicescur = indices;
+        for i = 1:length(indices)
+            indicescur(i) = find(Ncur==indices(i),1);
+        end
+        
+        iter = 1;
+        maxiter = 200;
+        oldcost = inf;
+        tol1 = 1e-6;
+%         tr = 1;
+        N2 = length(Ncur);
+        Rregcur = Rreg(:,:,Ncur);
+        Rregcur = reshape(Rregcur,3,[]);
+        while iter < maxiter
+            newcost = -1e6;
+            for j = 1:N2
+                id = j;
+                xi = data_term_error(Rdata,Rregcur,indicescur,id);
+                v = numerical_diff_v(Rregcur,id);
+                dxi = seq_sol(xi, v, indicescur, tau, lambda, miu, N2, id, Rregcur, options);
+%                 if norm(dxi) > tr
+%                     dxi = dxi ./ norm(dxi) .* tr;
+%                 end
+                Rregcur(:,id*3-2:id*3) = Rregcur(:,id*3-2:id*3) * expSO3(dxi);
+                if norm(dxi) > newcost
+                    newcost = norm(dxi);
+                end
+            end
+            if abs(newcost - oldcost) < tol1
+                break;
+            else
+                oldcost = newcost;
+            end
+            iter = iter + 1;
+        end
+        Rregcur = reshape(Rregcur,3,3,[]);
+%         [speed0, acc0] = compute_profiles_fast(tau,Rregcur);
+%         figure(1);
+%         plot(1:N2,speed0,1:N2,acc0);
+        Rreg(:,:,Ncur) = Rregcur;
+        if N0 >= N
+            break;
+        else
+            N0 = min(N0+Ns,N);
+        end
+        
+    end
+    Rreg = reshape(Rreg,3,[]);
+end
+
+function [speed, acc] = compute_profiles_fast(dtau,X)
+    Nd = size(X,3);
+    speed = zeros(1, Nd);
+    for k = 1 : Nd-1
+        fw = logSO3(X(:, :, k)'*X(:, :, k+1));
+        v = fw/dtau;
+        speed(k) = sqrt(2)*norm(v);
+    end
+    % Backward difference for last point.
+    speed(end) = speed(end-1);
+    % Acceleration is NaN at first and last point. For all the others,
+    % using a symmetric difference formula.
+    acc = NaN(1, Nd);
+    for k = 2 : Nd-1
+        fw = logSO3(X(:, :, k)'*X(:, :, k+1));
+        bw = logSO3(X(:, :, k)'*X(:, :, k-1));
+        a = ( fw + bw ) / ( dtau^2 );
+        acc(k) = sqrt(2)*norm(a);
+    end
+
+end
+
+
 
 function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     lhs = zeros(3,3);
@@ -235,9 +386,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
         lhs = lhs + Jr'*Jr;
         rhs = rhs + Jr'*xi;
     end
-    
-    v = Rreg(:,id*3-2:id*3) * v;
-    
+        
     % second term
     % endpoints 
     c1 = lambda / tau;
@@ -269,6 +418,28 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
             rhs = rhs + (b1+b2).*c1;
         end
     end
+    
+    % add angular velocity constraint
+%     eps = 5;
+%     if id == 1
+%         Jr = rightJinv(v(:,1));
+%         Aineq = [Jr./tau;-Jr./tau];
+%         bineq = [eps-v(:,1)./tau;eps+v(:,1)./tau];
+%     elseif id == N
+%         Jr = rightJinv(v(:,end));
+%         Aineq = [Jr./tau;-Jr./tau];
+%         bineq = [eps-v(:,end)./tau;eps+v(:,end)./tau];
+%     else
+%         if id == 2
+%             id1 = 1;id2 = 2;
+%         else
+%             id1 = 2;id2 = 3;
+%         end
+%         Jr1 = rightJinv(v(:,id1));
+%         Jr2 = rightJinv(v(:,id2));
+%         Aineq = [Jr1./tau;-Jr1./tau;Jr2./tau;-Jr2./tau];
+%         bineq = [eps-v(:,id1)./tau;eps+v(:,id1)./tau;eps-v(:,id2)./tau;eps+v(:,id2)./tau];
+%     end
     
     % third term
     c2 = miu / (tau^3);
@@ -343,7 +514,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
 %     Aineq2 = [Aineq;-Aineq];
 %     bineq2 = [amax-bineq;amax+bineq];
 % %     
-%     dxi = quadprog(2.*LHS,2*RHS',Aineq2,bineq2,[],[],[],[],[],options);
+%     dxi = quadprog(2.*LHS,2*RHS',Aineq,bineq,[],[],[],[],[],options);
 end
 
 
