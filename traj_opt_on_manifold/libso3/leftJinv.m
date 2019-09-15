@@ -7,8 +7,8 @@ function Jinv = leftJinv(r)
         % If the angle is small, fall back on the series representation        
         Jinv = eye(3);
         pxn = eye(3);
-        px = hat(vec);
-        for n = 1:N
+        px = hat(phi);
+        for n = 1:10
             pxn = pxn * px/n;
             Jinv = Jinv + lut_bernoullinumber(n) * pxn;
         end
