@@ -24,7 +24,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 60;
+    Nd = 50;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -84,7 +84,7 @@ function dsicrete_trajectory_regression_on_manifold
         Rdata(:,i*3-2:i*3) = X0(:,:,indices(i));
     end
     for i = 1:N2
-        Rreg(:,i*3-2:i*3) = X0(:,:,i);%*expSO3(0.1*rand(3,1));
+        Rreg(:,i*3-2:i*3) = X0(:,:,i)*expSO3(0.1*rand(3,1));
     end
     
     % initialize with piecewise geodesic path using park's method
@@ -108,8 +108,12 @@ function dsicrete_trajectory_regression_on_manifold
     tr = 1;
     
 %     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
-    Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
-    if 0
+%     Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
+    if 1
+
+    tr = 0.001;
+    
+%     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
 %     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
         
 %     [speed0, acc0] = compute_profiles(problem, X0);
@@ -175,6 +179,8 @@ function dsicrete_trajectory_regression_on_manifold
     plot(newcosts,'r-o','LineWidth',2);
     end
     
+    showSO3(Rdata,Rreg);
+    
     figure(1);
     plotrotations(X0(:, :, 1:4:Nd));
     view(0, 0);
@@ -223,6 +229,84 @@ function dsicrete_trajectory_regression_on_manifold
 
     ylim([0, 100]);
     
+    % Extend final sample to delay end of animation
+    Rdata = reshape(Rdata,3,3,[]);
+    Rreg = reshape(Rreg,3,3,[]);
+    
+    for i = 1:size(Rreg,3)
+        quat(i,:) = rot2quat(Rreg(:,:,i))';
+        pos(i,:) = (i-1).*[0.01,0.01,0.01];
+    end
+    
+    for i = 1:size(Rdata,3)
+        quatd(i,:) = rot2quat(Rdata(:,:,i))';
+    end
+    posd = pos(indices,:);
+
+    
+    posPlot = pos;
+    quatPlot = quat;
+
+    
+    
+    extraTime = 1;
+    samplePeriod = 1/100;
+    onesVector = ones(extraTime*(1/samplePeriod), 1);
+    posPlot = [posPlot; [posPlot(end, 1)*onesVector, posPlot(end, 2)*onesVector, posPlot(end, 3)*onesVector]];
+    quatPlot = [quatPlot; [quatPlot(end, 1)*onesVector, quatPlot(end, 2)*onesVector, quatPlot(end, 3)*onesVector, quatPlot(end, 4)*onesVector]];
+
+    % Create 6 DOF animation
+    SamplePlotFreq = 2;
+    Spin = 120;
+    filename = 'gait.mp4';
+    SixDOFanimation(posPlot, quat2rotm(quatPlot), posd, quat2rotm(quatd),...
+                    'SamplePlotFreq', SamplePlotFreq, 'Trail', 'All', ...
+                    'Position', [9 39 1280 768], 'View', [(100:(Spin/(length(posPlot)-1)):(100+Spin))', 10*ones(length(posPlot), 1)], ...
+                    'AxisLength', 0.1, 'ShowArrowHead', false, ...
+                    'Xlabel', 'X (m)', 'Ylabel', 'Y (m)', 'Zlabel', 'Z (m)', 'ShowLegend', false, ...
+                    'CreateAVI', false, 'AVIfileNameEnum', filename, 'AVIfps', ((1/samplePeriod) / SamplePlotFreq));
+
+                
+    for i = 1:size(X0,3)
+        quat0(i,:) = rot2quat(X0(:,:,i))';
+    end
+    ts = linspace(0,1,size(Rreg,3));
+    td = ts(indices);
+    t0 = ts;
+    
+    figure
+    subplot(2,2,1);
+    plot(ts, quat(:,1),'r-','LineWidth',1.5);
+    hold on;grid on;
+    plot(td, quatd(:,1),'bs','MarkerSize',5);
+    plot(t0, quat0(:,1),'g--','LineWidth',1.5);
+    legend({'Regression','Anchor','Geodesics'},'FontName','Arial','FontSize',15);
+    title('q0','FontName','Arial','FontSize',15);
+    
+    subplot(2,2,2);
+    plot(ts, quat(:,2),'r-','LineWidth',1.5);
+    hold on;grid on;
+    plot(td, quatd(:,2),'bs','MarkerSize',5);
+    plot(t0, quat0(:,2),'g--','LineWidth',1.5);
+    title('q1','FontName','Arial','FontSize',15);
+
+    
+    subplot(2,2,3);
+    plot(ts, quat(:,3),'r-','LineWidth',1.5);
+    hold on;grid on;
+    plot(td, quatd(:,3),'bs','MarkerSize',5);
+    plot(t0, quat0(:,3),'g--','LineWidth',1.5);
+    title('q2','FontName','Arial','FontSize',15);
+
+    
+    subplot(2,2,4);
+    plot(ts, quat(:,4),'r-','LineWidth',1.5);
+    hold on;grid on;
+    plot(td, quatd(:,4),'bs','MarkerSize',5);
+    plot(t0, quat0(:,4),'g--','LineWidth',1.5);
+    title('q3','FontName','Arial','FontSize',15);
+
+                
 end
 
 function Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)
