@@ -24,7 +24,7 @@ function dsicrete_trajectory_regression_on_manifold
     %% Define parameters of the discrete regression curve
 
     % The curve has Nd points on SO(n)
-    Nd = 50;
+    Nd = 97;
 
     % Each control point attracts one particular point of the regression curve.
     % Specifically, control point k (in 1:N) attracts curve point s(k).
@@ -41,7 +41,7 @@ function dsicrete_trajectory_regression_on_manifold
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 0;
+    lambda = 0.1;
 
     % Weight of the acceleration regularization term (nonnegative). The larger
     % it is, the more acceleration along the discrete curve is penalized. A
@@ -111,7 +111,7 @@ function dsicrete_trajectory_regression_on_manifold
 %     Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
     if 1
 
-    tr = 0.001;
+    tr = 0.1;
     
 %     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
 %     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);

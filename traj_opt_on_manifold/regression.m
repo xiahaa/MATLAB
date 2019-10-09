@@ -17,7 +17,7 @@ function costret = regression(R0,R1)
     
     w = ones(N, 1);
     % The curve has Nd points on SO(n)
-    Nd = 50;
+    Nd = 100;
     s = round(linspace(1, Nd, N));
 
     % Time interval between two discretization points of the regression curve.
@@ -29,7 +29,7 @@ function costret = regression(R0,R1)
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 0;
+    lambda = 0.1;
 
     mu = 1e-2;
         
@@ -74,7 +74,7 @@ function costret = regression(R0,R1)
     oldcost = -1e6;
     newcost = 1e6;
     
-    tol1 = 1e-5;
+    tol1 = 1e-6;
     
     % seems without trust-region, parallel update will be oscillate.
     % try with sequential update
@@ -157,6 +157,24 @@ function costret = regression(R0,R1)
     [speed0, acc0] = compute_profiles(problem, X0);
     [speed1, acc1] = compute_profiles(problem, X1);
     costret = sum(acc1(~isnan(acc1)).^2);
+    
+    subplot(1, 2, 1);
+    plot(1:N2,speed0,1:N2,speed1);
+%     plot(time, speed0, time, speed1);
+    title('Speed of initial curve and optimized curve');
+    xlabel('Time');
+    ylabel('Speed');
+    legend('Initial curve', 'Optimized curve', 'Location', 'SouthEast');
+    pbaspect([1.6, 1, 1]);
+
+    subplot(1, 2, 2);
+    plot(1:N2,acc0,1:N2,acc1);
+%     plot(time, acc0, time, acc1);
+    title('Acceleration of initial curve and optimized curve');
+    xlabel('Time');
+    ylabel('Acceleration');
+    legend('Initial curve', 'Optimized curve', 'Location', 'NorthWest');
+    pbaspect([1.6, 1, 1]);
                 
     end
 end
