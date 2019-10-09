@@ -6,7 +6,7 @@ function shooting_method()
 %     disp(fval);
 %     
     r0 = [0.2,0.1,0.1]';
-    r1 = [0.6,0.4,0.4]';
+    r1 = [1.5,0.4,0.4]';
 %     
     w0 = [1.5,0.1,0.1]';
     wd0 = [0.5,0.1,0.1]';
@@ -22,6 +22,8 @@ function shooting_method()
     R0 = expSO3(r0);
     R1 = expSO3(r1);
     cost_cubic = traj_gen_by_cubic(R0,R1,w0,R1*w1opt',tspan);
+    
+    cost = regression(R0,R1);
     
 %     cost_cubic
     
@@ -183,7 +185,7 @@ end
 
 function Ar = calcAr(r)
     theta = norm(r);
-    rskew = skew(r);
+    rskew = skewm(r);
     if theta < 1e-6
         Ar = eye(3);
     else
@@ -197,7 +199,7 @@ function varargout = traj_gen_by_shooting(r0,r1,w0,wd0)
     
     function F=solver_shooting(wdd0)
         tspan = [0 1];
-        [t,x]=ode45(@fun,tspan,[vec(R0);w0;wd0;wdd0],[]);
+        [t,x]=ode45(@fun,tspan,[(R0(:));w0;wd0;wdd0],[]);
         s = length(t);
         F = norm(reshape(x(s,1:9),3,3)-R1,'fro');
     end
@@ -205,7 +207,7 @@ function varargout = traj_gen_by_shooting(r0,r1,w0,wd0)
     [wdd0,fval] = fminsearch(@solver_shooting,[0,0,0]');
     % re-integrate using ode45
     tspan = 0:0.001:1;
-    [t,x]=ode45(@fun,tspan,[vec(R0);w0;wd0;wdd0],[]);
+    [t,x]=ode45(@fun,tspan,[(R0(:));w0;wd0;wdd0],[]);
     % some results
     s = length(t);
     R1opt = reshape(x(s,1:9),3,3);
@@ -246,10 +248,11 @@ function dy = fun(t,y)
     yb = R*reshape(y(10:end),3,3);
     yb = yb(:);
     
-    dy(1:9) = vec(R*hat(yb(1:3)));
+    a=(R*hat(yb(1:3)));
+    dy(1:9) = a(:);
     dyb(1:3) = yb(4:6);%dw
     dyb(4:6) = yb(7:9);%ddw
     dyb(7:9) = -cross(yb(1:3),yb(7:9));
-    
-    dy(10:end) = vec(R'*reshape(dyb,3,3));
+    a = R'*reshape(dyb,3,3);
+    dy(10:end) = a(:);
 end
