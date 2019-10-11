@@ -1,4 +1,4 @@
-function costret = regression(R0,R1)
+function varargout = regression(R0,R1)
     if ismac
         addpath './SOn_regression-master/'
         addpath './SOn_regression-master/STL'
@@ -17,7 +17,7 @@ function costret = regression(R0,R1)
     
     w = ones(N, 1);
     % The curve has Nd points on SO(n)
-    Nd = 100;
+    Nd = 300;
     s = round(linspace(1, Nd, N));
 
     % Time interval between two discretization points of the regression curve.
@@ -29,9 +29,9 @@ function costret = regression(R0,R1)
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 0.1;
+    lambda = 100;
 
-    mu = 1e-2;
+    mu = 1e-0;
         
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -69,12 +69,12 @@ function costret = regression(R0,R1)
     
     % start optimization
     iter = 1;
-    maxiter = 500;
+    maxiter = 100;
     
     oldcost = -1e6;
     newcost = 1e6;
     
-    tol1 = 1e-6;
+    tol1 = 1e-10;
     
     % seems without trust-region, parallel update will be oscillate.
     % try with sequential update
@@ -89,7 +89,7 @@ function costret = regression(R0,R1)
 %     Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
     if 1
 
-    tr = 0.001;
+    tr = 0.1;
     
 %     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
 %     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
@@ -121,16 +121,17 @@ function costret = regression(R0,R1)
                 dxi = dxi ./ norm(dxi) .* tr;
             end
             dxis(:,id)=dxi;
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+
 %             if norm(dxis) > newcost
 %                 newcost = norm(dxis);
 %             end
         end
-%         for j = 1:N2
-%             id = j;
+        for j = 1:N2
+            id = j;
 %             dxi = dxis(:,id).*cheeseboard_id(id);
-%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-%         end
+            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+        end
 %         cheeseboard_id = ~cheeseboard_id;
         
         % doesnot work
@@ -177,6 +178,12 @@ function costret = regression(R0,R1)
     pbaspect([1.6, 1, 1]);
                 
     end
+    
+    varargout{1} = costret;
+    varargout{2} = X1;
+    varargout{3} = v./tau;
+    varargout{4} = acc1;
+    varargout{5} = tau;
 end
 
 function Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)

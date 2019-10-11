@@ -6,30 +6,56 @@ function shooting_method()
 %     disp(fval);
 %     
     r0 = [0.2,0.1,0.1]';
-    r1 = [1.5,0.4,0.4]';
-%     
+    r1 = [1.5,0.4,0.4]';     
     w0 = [1.5,0.1,0.1]';
     wd0 = [0.5,0.1,0.1]';
-%     [t,x]=ode45(@fun,[0 1],[vec(R0);w0;wd0;wdd0],[]);
-%     s = length(t);
-%     reshape(x(s,1:9),3,3)
-%     R1
 
-    [R1opt,w1opt,~,costopt,tspan] = traj_gen_by_shooting(r0,r1,w0,wd0);
-    
-%     costopt
-    
     R0 = expSO3(r0);
     R1 = expSO3(r1);
-    cost_cubic = traj_gen_by_cubic(R0,R1,w0,R1*w1opt',tspan);
+
+    % shooting 
+    [R1opt,w1opt,~,costopt,tspan,wshooting,wdshooting] = traj_gen_by_shooting(r0,r1,w0,wd0);        
+
+    % cubic interpolation
+%     cost_cubic = traj_gen_by_cubic(R0,R1,w0,R1*w1opt',tspan);
     
-    cost = regression(R0,R1);
-    
-%     cost_cubic
+    % discrete regression
+    [cost,Rreg,v,~,tau] = regression(R0,R1);
+    RR1 = reshape(Rreg(:,:,1),3,3);
+    RR2 = reshape(Rreg(:,:,2),3,3);
+    Ar1 = calcAr(logSO3(RR1));
+    Ar2 = calcAr(logSO3(RR2));
+    w0 = Ar1*v(:,1);
+    w1 = Ar2*v(:,2);
+    wd0 = (RR1*RR2'*w1-w0)./tau;
+%     for i = 1:length(v)
+%         RRi = reshape(Rreg(:,:,i),3,3);
+%         so3reg(logSO3(RRi))
+%         Ari = calcAr(logSO3(RRi));
+%         wreg(:,i)=Ari*v(:,i);
+%     end
+    for i = 1:size(Rreg,3)
+        so3reg(:,i)=logSO3(reshape(Rreg(:,:,i),3,3));
+    end
+    [R1opt,w1opt,~,costopt,tspan,wshooting,wdshooting,Rshooting] = traj_gen_by_shooting(r0,r1,w0,wd0);   
+    for i = 1:size(Rshooting,3)
+        so3shooting(:,i)=logSO3(reshape(Rshooting(:,:,i),3,3));
+    end
+    figure(3);
+    subplot(3,1,1);plot(linspace(0,1,length(so3reg)),(so3reg(1,:)),'LineWidth',2);hold on;
+    plot(tspan,(so3shooting(1,:)),'-.','LineWidth',1);hold on;legend({'so3reg','so3shoot'});
+    subplot(3,1,2);plot(linspace(0,1,length(so3reg)),(so3reg(2,:)),'LineWidth',2);hold on;
+    plot(tspan,(so3shooting(2,:)),'-.','LineWidth',1);hold on;legend({'so3reg','so3shoot'});
+    subplot(3,1,3);plot(linspace(0,1,length(so3reg)),(so3reg(3,:)),'LineWidth',2);hold on;
+    plot(tspan,(so3shooting(3,:)),'-.','LineWidth',1);hold on;legend({'so3reg','so3shoot'});
+
+%     subplot(3,1,1);plot(linspace(0,1,length(v)),(wreg(1,:)));hold on;plot(tspan,(wshooting(:,1)));hold on;legend({'vreg','vshoot'});
+%     subplot(3,1,2);plot(linspace(0,1,length(v)),(wreg(2,:)));hold on;plot(tspan,(wshooting(:,2)));hold on;legend({'vreg','vshoot'});
+%     subplot(3,1,3);plot(linspace(0,1,length(v)),(wreg(3,:)));hold on;plot(tspan,(wshooting(:,3)));hold on;legend({'vreg','vshoot'});
+
+%     plot(tspan,vecnorm(wdshooting,2,2));legend({'vreg','vshoot','a'});
     
     [cost_quintic,R1quintic] = traj_gen_by_quintic(R0,R1,w0,R1*w1opt',tspan);
-    
-%     cost_quintic
     
     disp(['costopt: ',num2str(costopt),', cost_cubic: ',num2str(cost_cubic),', cost_quintic: ',num2str(cost_quintic)]);
     disp(['shooting: ',num2str(norm(logSO3(R1'*R1opt)))]);
@@ -88,10 +114,10 @@ function varargout = traj_gen_by_quintic(R0,R1,w0,w1,tspan)
     AA2 = 0.5.*hat(dr1)*AA1;
     Aineq = AA1-AA2;
     Aineq = [Aineq;-Aineq];
-    eps = 0.1;
+    eps = 0.001;
     bineq = [eps+dr1;eps-dr1];
     
-    x = quadprog(Q2,[],Aineq,bineq,Aeq,beq);
+    x = quadprog(Q2,[],Aineq,bineq,[],[]);
     a = x(1:3);b = x(4:6);c=x(7:9);d=x(10:12);e=x(13:15);
     
      % numerical integration
@@ -220,6 +246,12 @@ function varargout = traj_gen_by_shooting(r0,r1,w0,wd0)
     varargout{3} = x(s,13:15);% wd1
     varargout{4} = cost;
     varargout{5} = t;
+    varargout{6} = x(:,10:12);
+    varargout{7} = x(:,13:15);
+    for i = 1:length(tspan)
+        Rshooting(:,:,i)=reshape(x(i,1:9),3,3);
+    end
+    varargout{8} = Rshooting;
 end
 
 %%% test
