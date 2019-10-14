@@ -34,3 +34,24 @@ imgproc/pnp/test/formeSO32.m
 
 hand_eye_calib/stochastics/test/figures/*
 traj_opt_on_manifold/SOn_regression-master/*
+
+manifold_motion_smoothing/data/images/*.bmp
+
+manifold_motion_smoothing/data/*
+manifold_motion_smoothing/result/*
+manifold_motion_smoothing/gyro_processing
+manifold_motion_smoothing/manifold_opt
+
+
+
+manifold_motion_smoothing/COPYRIGHT.txt
+
+manifold_motion_smoothing/inverse_interp.m
+
+manifold_motion_smoothing/readgyro.m
+
+manifold_motion_smoothing/readme
+
+manifold_motion_smoothing/readts.m
+
+manifold_motion_smoothing/stabilization_demo.m

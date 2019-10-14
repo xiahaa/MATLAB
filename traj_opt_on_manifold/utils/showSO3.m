@@ -20,6 +20,8 @@ function showSO3(Rdata,Rreg)
     surf(x,y,z,'FaceAlpha',0.1,'FaceColor',[0.1,0.1,0.1],'EdgeColor','none')
     shading interp
     hold on;
-    plot3(x1(1,:),x1(2,:),x1(3,:),'-o','MarkerSize',10,'Color','k');
-    plot3(x2(1,:),x2(2,:),x2(3,:),'--s','MarkerSize',10,'Color','b');
+    plot3(x1(1,:),x1(2,:),x1(3,:),'o','MarkerSize',5,'Color','k');
+    plot3(x2(1,:),x2(2,:),x2(3,:),'--','LineWidth',1.5,'Color','b');
+    title('Regression');
+    legend({'Raw Motion','Regression'});
 end

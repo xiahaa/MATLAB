@@ -91,7 +91,7 @@ function dsicrete_trajectory_regression_on_manifold
     
     % start optimization
     iter = 1;
-    maxiter = 500;
+    maxiter = 100;
     
     oldcost = -1e6;
     newcost = 1e6;
@@ -144,6 +144,7 @@ function dsicrete_trajectory_regression_on_manifold
             end
             dxis(:,id)=dxi;
             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+
 %             if norm(dxis) > newcost
 %                 newcost = norm(dxis);
 %             end
@@ -182,7 +183,7 @@ function dsicrete_trajectory_regression_on_manifold
     showSO3(Rdata,Rreg);
     
     figure(1);
-    plotrotations(X0(:, :, 1:4:Nd));
+    plotrotations(X0(:, :, 1:8:Nd));
     view(0, 0);
     
     for i = 1:N2
