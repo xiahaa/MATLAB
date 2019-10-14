@@ -41,13 +41,13 @@ function dsicrete_trajectory_regression_on_manifold
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 0.1;
+    lambda = 1;
 
     % Weight of the acceleration regularization term (nonnegative). The larger
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 1e-2;
+    mu = 1e2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -91,7 +91,7 @@ function dsicrete_trajectory_regression_on_manifold
     
     % start optimization
     iter = 1;
-    maxiter = 500;
+    maxiter = 100;
     
     oldcost = -1e6;
     newcost = 1e6;
@@ -102,9 +102,11 @@ function dsicrete_trajectory_regression_on_manifold
     % try with sequential update
     % try with quasi-parallel update
     cheeseboard_id = ones(1,N2);
-    cheeseboard_id(2:2:N2) = 0;
-    cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
-        
+    cheeseboard_id(2:3:N2) = 2;
+    cheeseboard_id(3:3:N2) = 3;
+%     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
+    update_id = 1;
+
     tr = 1;
     
 %     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
@@ -143,16 +145,19 @@ function dsicrete_trajectory_regression_on_manifold
                 dxi = dxi ./ norm(dxi) .* tr;
             end
             dxis(:,id)=dxi;
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
 %             if norm(dxis) > newcost
 %                 newcost = norm(dxis);
 %             end
         end
-%         for j = 1:N2
-%             id = j;
-%             dxi = dxis(:,id).*cheeseboard_id(id);
-%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-%         end
+        
+        update_id = update_id + 1;
+        if update_id > 3, update_id = 1; end
+        for j = 1:N2
+            id = j;
+            dxi = dxis(:,id).*(cheeseboard_id(id)==update_id);
+            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+        end
 %         cheeseboard_id = ~cheeseboard_id;
         
         % doesnot work
