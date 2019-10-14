@@ -55,3 +55,5 @@ manifold_motion_smoothing/readme
 manifold_motion_smoothing/readts.m
 
 manifold_motion_smoothing/stabilization_demo.m
+
+manifold_motion_smoothing/so3_smoothing/
