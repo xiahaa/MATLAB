@@ -10,7 +10,7 @@ function dsicrete_trajectory_regression_on_manifold
         addpath './utils/'
     end
     clc;close all;clear all;
-    
+
     % Example 2: load from mat file
     data = load('controlpoints.mat');
     n = data.n;
@@ -67,7 +67,7 @@ function dsicrete_trajectory_regression_on_manifold
     % such that each slice X0(:, :, k) is a rotation matrix.
     %
     X0 = initguess(problem);
-    
+
 
     %% my part
     N1 = problem.N;
@@ -75,10 +75,10 @@ function dsicrete_trajectory_regression_on_manifold
     indices =  problem.s;
     tau = problem.delta_tau;
     miu = problem.mu;
-    
+
     Rdata = zeros(3,3*N1);
     Rreg = zeros(3,3*N2);
-    
+
     % fill in data to Rdata
     for i = 1:N1
         Rdata(:,i*3-2:i*3) = X0(:,:,indices(i));
@@ -86,18 +86,18 @@ function dsicrete_trajectory_regression_on_manifold
     for i = 1:N2
         Rreg(:,i*3-2:i*3) = X0(:,:,i)*expSO3(0.1*rand(3,1));
     end
-    
+
     % initialize with piecewise geodesic path using park's method
-    
+
     % start optimization
     iter = 1;
     maxiter = 100;
-    
+
     oldcost = -1e6;
     newcost = 1e6;
-    
+
     tol1 = 1e-5;
-    
+
     % seems without trust-region, parallel update will be oscillate.
     % try with sequential update
     % try with quasi-parallel update
@@ -108,16 +108,16 @@ function dsicrete_trajectory_regression_on_manifold
     update_id = 1;
 
     tr = 1;
-    
+
 %     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
 %     Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
     if 1
 
     tr = 0.1;
-    
+
 %     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
 %     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
-        
+
 %     [speed0, acc0] = compute_profiles(problem, X0);
     options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-5,'StepTolerance',1e-5,'Display','off');
     tic
@@ -125,12 +125,12 @@ function dsicrete_trajectory_regression_on_manifold
 %         xi = data_term_error(Rdata,Rreg,indices);
 %         v = numerical_diff_v(Rreg);
 %         newcost = cost(xi,v,tau,lambda,miu);
-%         
+%
 %         if abs(newcost - oldcost) < tol1
 %             break;
 %         end
 %         oldcost = newcost;
-        
+
         % sequential update
         newcost = 0;
 %         ids = randperm(N2,N2);
@@ -140,17 +140,18 @@ function dsicrete_trajectory_regression_on_manifold
             v = numerical_diff_v(Rreg,id);
             dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id,Rreg,options);
 %             dxis = -LHS(id*3-2:id*3,id*3-2:id*3)\RHS(id*3-2:id*3);
-            % 
+            %
             if norm(dxi) > tr
                 dxi = dxi ./ norm(dxi) .* tr;
             end
             dxis(:,id)=dxi;
 %             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+
 %             if norm(dxis) > newcost
 %                 newcost = norm(dxis);
 %             end
         end
-        
+
         update_id = update_id + 1;
         if update_id > 3, update_id = 1; end
         for j = 1:N2
@@ -159,10 +160,10 @@ function dsicrete_trajectory_regression_on_manifold
             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
         end
 %         cheeseboard_id = ~cheeseboard_id;
-        
+
         % doesnot work
 %         Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N2);
-        
+
         xi = data_term_error(Rdata,Rreg,indices);
         v = numerical_diff_v(Rreg);
         newcost = cost(xi,v,tau,lambda,miu);
@@ -171,25 +172,25 @@ function dsicrete_trajectory_regression_on_manifold
             break;
         end
         oldcost = newcost;
-        
+
         % TODO, do we need to check the norm of the gradient and exit if
         % the norm of gradient is lower than a threshold.
-        
+
         iter = iter + 1;
         disp(iter);
     end
     toc
-    
+
     figure(7);
     plot(newcosts,'r-o','LineWidth',2);
     end
-    
+
     showSO3(Rdata,Rreg);
-    
+
     figure(1);
-    plotrotations(X0(:, :, 1:4:Nd));
+    plotrotations(X0(:, :, 1:8:Nd));
     view(0, 0);
-    
+
     for i = 1:N2
         X1(:,:,i) = Rreg(:,i*3-2:i*3);
     end
@@ -197,15 +198,15 @@ function dsicrete_trajectory_regression_on_manifold
     figure(2);
     plotrotations(X1(:, :, 1:4:Nd));
     view(0, 0);
-    
+
     figure(3);
     plotrotations(X0(:, :, indices));
     view(0, 0);
     figure(4);
     plotrotations(X1(:, :, indices));
     view(0, 0);
-    
-    
+
+
     [speed0, acc0] = compute_profiles(problem, X0);
     [speed1, acc1] = compute_profiles(problem, X1);
 
@@ -233,27 +234,27 @@ function dsicrete_trajectory_regression_on_manifold
     pbaspect([1.6, 1, 1]);
 
     ylim([0, 100]);
-    
+
     % Extend final sample to delay end of animation
     Rdata = reshape(Rdata,3,3,[]);
     Rreg = reshape(Rreg,3,3,[]);
-    
+
     for i = 1:size(Rreg,3)
         quat(i,:) = rot2quat(Rreg(:,:,i))';
         pos(i,:) = (i-1).*[0.01,0.01,0.01];
     end
-    
+
     for i = 1:size(Rdata,3)
         quatd(i,:) = rot2quat(Rdata(:,:,i))';
     end
     posd = pos(indices,:);
 
-    
+
     posPlot = pos;
     quatPlot = quat;
 
-    
-    
+
+
     extraTime = 1;
     samplePeriod = 1/100;
     onesVector = ones(extraTime*(1/samplePeriod), 1);
@@ -271,14 +272,14 @@ function dsicrete_trajectory_regression_on_manifold
                     'Xlabel', 'X (m)', 'Ylabel', 'Y (m)', 'Zlabel', 'Z (m)', 'ShowLegend', false, ...
                     'CreateAVI', false, 'AVIfileNameEnum', filename, 'AVIfps', ((1/samplePeriod) / SamplePlotFreq));
 
-                
+
     for i = 1:size(X0,3)
         quat0(i,:) = rot2quat(X0(:,:,i))';
     end
     ts = linspace(0,1,size(Rreg,3));
     td = ts(indices);
     t0 = ts;
-    
+
     figure
     subplot(2,2,1);
     plot(ts, quat(:,1),'r-','LineWidth',1.5);
@@ -287,7 +288,7 @@ function dsicrete_trajectory_regression_on_manifold
     plot(t0, quat0(:,1),'g--','LineWidth',1.5);
     legend({'Regression','Anchor','Geodesics'},'FontName','Arial','FontSize',15);
     title('q0','FontName','Arial','FontSize',15);
-    
+
     subplot(2,2,2);
     plot(ts, quat(:,2),'r-','LineWidth',1.5);
     hold on;grid on;
@@ -295,7 +296,7 @@ function dsicrete_trajectory_regression_on_manifold
     plot(t0, quat0(:,2),'g--','LineWidth',1.5);
     title('q1','FontName','Arial','FontSize',15);
 
-    
+
     subplot(2,2,3);
     plot(ts, quat(:,3),'r-','LineWidth',1.5);
     hold on;grid on;
@@ -303,7 +304,7 @@ function dsicrete_trajectory_regression_on_manifold
     plot(t0, quat0(:,3),'g--','LineWidth',1.5);
     title('q2','FontName','Arial','FontSize',15);
 
-    
+
     subplot(2,2,4);
     plot(ts, quat(:,4),'r-','LineWidth',1.5);
     hold on;grid on;
@@ -311,7 +312,7 @@ function dsicrete_trajectory_regression_on_manifold
     plot(t0, quat0(:,4),'g--','LineWidth',1.5);
     title('q3','FontName','Arial','FontSize',15);
 
-                
+
 end
 
 function Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)
@@ -325,7 +326,7 @@ function Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)
             for ii = 1:length(indices)
                 indicescur = [indicescur find(Ncur==indices(ii),1)];
             end
-            
+
             iter = 1;
             maxiter = 200;
             oldcost = inf;
@@ -396,7 +397,7 @@ function Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N
         for i = 1:length(indices)
             indicescur(i) = find(Ncur==indices(i),1);
         end
-        
+
         iter = 1;
         maxiter = 200;
         oldcost = inf;
@@ -437,7 +438,7 @@ function Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N
         else
             N0 = min(N0+Ns,N);
         end
-        
+
     end
     Rreg = reshape(Rreg,3,[]);
 end
@@ -469,15 +470,15 @@ end
 function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
     lhs = zeros(3,3);
     rhs = zeros(3,1);
-    
+
     if ~isempty(xi)
         Jr = rightJinv(xi);
         lhs = lhs + Jr'*Jr;
         rhs = rhs + Jr'*xi;
     end
-        
+
     % second term
-    % endpoints 
+    % endpoints
     c1 = lambda / tau;
     if lambda ~= 0
         if id == 1
@@ -496,7 +497,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
                 id1 = 2;
                 id2 = 3;
             end
-                
+
             Jr1 = rightJinv(v(:,id1));
             Jr2 = rightJinv(v(:,id2));
             A1 = Jr1'*Jr1;
@@ -507,7 +508,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
             rhs = rhs + (b1+b2).*c1;
         end
     end
-    
+
     % add angular velocity constraint
 %     eps = 5;
 %     if id == 1
@@ -529,12 +530,12 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
 %         Aineq = [Jr1./tau;-Jr1./tau;Jr2./tau;-Jr2./tau];
 %         bineq = [eps-v(:,id1)./tau;eps+v(:,id1)./tau;eps-v(:,id2)./tau;eps+v(:,id2)./tau];
 %     end
-    
+
     % third term
     c2 = miu / (tau^3);
     %% new, use parallel transport and unify all +/-
     ss = 1;
-    
+
     if id == 1
         Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
         lhs = lhs + Jr'*Jr.*c2;
@@ -545,11 +546,11 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
         rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
     elseif id == 2
         % 2, two times
-        Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)'; 
+        Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)';
         Jr2 = rightJinv(v(:,2));% * Rreg(:,4:6)';
-        A1 = Jr1+Jr2; 
+        A1 = Jr1+Jr2;
         b1 = A1'*(v(:,2)+v(:,1));A1 = A1'*A1;
-    
+
         A2 = Jr2'*Jr2;
         b2 = Jr2'*(v(:,3).*ss+v(:,2));
 
@@ -557,9 +558,9 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
         rhs = rhs + (b1+b2).*c2;
     elseif id == N-1
         % end - 1, two times
-        Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)'; 
+        Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)';
         Jr2 = rightJinv(v(:,end));% * Rreg(:,end-5:end-3)';
-        A1 = Jr1+Jr2; 
+        A1 = Jr1+Jr2;
         b1 = A1'*(v(:,end)+v(:,end-1));A1 = A1'*A1;
 
         A2 = Jr1'*Jr1;
@@ -590,19 +591,19 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
             lhs = eye(3);
         end
     end
-    
+
     LHS = lhs;
     RHS = rhs;
-    
+
     dxi = -LHS\RHS;% unconstrained optimization
-    
+
 %     %% what if I use constrained optimization.
 %     Aineq(dummy1*3+1:end,:) = [];
 %     bineq(dummy1*3+1:end,:) = [];
 %     amax = 0.01;%sqrt(1000)/2*tau*tau;
 %     Aineq2 = [Aineq;-Aineq];
 %     bineq2 = [amax-bineq;amax+bineq];
-% %     
+% %
 %     dxi = quadprog(2.*LHS,2*RHS',Aineq,bineq,[],[],[],[],[],options);
 end
 
@@ -612,13 +613,13 @@ end
 function y = cost(xi,v,tau,lambda,miu)
     % cost term 1, data cost
     cost1 = sum(vecnorm(xi,2).^2.*2);
-    
+
     % cost term 2, first order smooth cost, integrate with trapezoidal
     % rule, consistent with Boumal's paper. TODO change in paper.
     N = size(v,2)+1;
     wv = [1 ones(1,N-2)];
     cost2 = sum(vecnorm(v,2).^2.*(2/tau).*wv);
-    
+
     % cost term 3, second order smooth cost, integrate with trapezoidal
     % rule
     a = zeros(3,N-2);
@@ -626,6 +627,6 @@ function y = cost(xi,v,tau,lambda,miu)
         a(:,i-1)=v(:,i)-v(:,i-1);
     end
     cost3 = sum(vecnorm(a,2).^2.*(2/tau^3));
-    
+
     y = cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
 end
