@@ -14,7 +14,7 @@ data = load('controlpoints.mat');
 
 %% Define parameters of the discrete regression curve
 % The curve has Nd points on SO(n)
-Nd = 10:10:100;
+Nd = 10:10:50;
 % Nd = 50;
 
 for i = 1:length(Nd)
@@ -93,7 +93,7 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
 
     % start optimization
     iter = 1;
-    maxiter = 100;
+    maxiter = N2*10;
     oldcost = -1e6;
     newcost = 1e6;
     tol1 = 1e-5;
@@ -101,37 +101,73 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     newcosts = zeros(1,maxiter);
     Rreg2 = Rreg;
     tic
-%     while iter <= maxiter
-%         % sequential update
-%         newcost = 0;
-% %         ids = randperm(N2,N2);
-%         for j = 1:N2
-%             id = j;%ids(j);
-%             xi = data_term_error(Rdata,Rreg2,indices,id);
-%             v = numerical_diff_v(Rreg2,id);
-%             dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id);
-%             % 
-%             if norm(dxi) > tr
-%                 dxi = dxi ./ norm(dxi) .* tr;
-%             end
-%             dxis(:,id)=dxi;
-%             Rreg2(:,id*3-2:id*3) = Rreg2(:,id*3-2:id*3) * expSO3(dxi);
-%         end
+    while iter <= maxiter
+        % sequential update
+        newcost = 0;
+%         ids = randperm(N2,N2);
+        dxis=[];
+        for j = 1:N2
+            id = j;%ids(j);
+            xi = data_term_error(Rdata,Rreg2,indices,id);
+            v = numerical_diff_v(Rreg2,id);
+            dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id);
+            % 
+            if norm(dxi) > tr
+                dxi = dxi ./ norm(dxi) .* tr;
+            end
+            dxis(:,id)=dxi;
+            Rreg2(:,id*3-2:id*3) = Rreg2(:,id*3-2:id*3) * expSO3(dxi);
+        end
+%         dxis = dxis(:);
+%         Rreg2 = group_update(Rreg2, dxis, N2, ones(1,N2), 1);	
+
+        xi = data_term_error(Rdata,Rreg2,indices);
+        v = numerical_diff_v(Rreg2);
+        newcost = cost(xi,v,tau,lambda,miu);
+        newcosts(iter) = newcost;
+        if abs(newcost - oldcost) < tol1
+            break;
+        end
+        oldcost = newcost;
+% 
+% %         grad = grad_descent_armoji(Rdata, Rreg2, indices, tau, lambda, miu, N2);
+% %         %% Armijo line search
+% %         % Armijo parameters
+% %         beta = 0.9;
+% %         sigma = 0.7;
+% %         %%%%%%%%%%%%%%%%% Armijo line search %%%%%%%%%%%%%%%%
+% %         fprintf('start Armijo ... ');
+% %         m = -1;
+% %         temp_fun_cost = inf;
+% %         tangent_inner = 0;
+% %         old_fun_cost = oldcost;
+% %         while old_fun_cost - temp_fun_cost < -sigma*tangent_inner
+% %             m = m+1;
+% %             alpha = beta^m;
+% %             d = alpha.*(grad);
+% %             temprotation = group_update(Rreg2, d, N, ones(1,N), 1);	
+% %             tangent_inner = d'*grad;
+% % 
+% %             xitmp = data_term_error(Rdata,temprotation,indices);
+% %             vtmp = numerical_diff_v(temprotation);
+% %             temp_fun_cost = cost(xitmp,vtmp,tau,lambda,miu);
+% %             if m > 1000
+% %                 break;
+% %             end
+% %         end
+% %         fprintf('\n');
+% %         if m > 1000
+% %             break;
+% %         end
+% %         Rreg2 = temprotation;
 %         
-%         xi = data_term_error(Rdata,Rreg2,indices);
-%         v = numerical_diff_v(Rreg2);
-%         newcost = cost(xi,v,tau,lambda,miu);
-%         newcosts(iter) = newcost;
-%         if abs(newcost - oldcost) < tol1
-%             break;
-%         end
-%         oldcost = newcost;
-%         iter = iter + 1;
-%     end
-    Rreg2 = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, Nd);
-    xi = data_term_error(Rdata,Rreg2,indices);
-    v = numerical_diff_v(Rreg2);
-    newcosts(1) = cost(xi,v,tau,lambda,miu);
+%         
+        iter = iter + 1;
+    end
+%     Rreg2 = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, Nd);
+%     xi = data_term_error(Rdata,Rreg2,indices);
+%     v = numerical_diff_v(Rreg2);
+%     newcosts(1) = cost(xi,v,tau,lambda,miu);
     cost2.time = toc;
     cost2.cost = newcosts(end);
     
@@ -168,6 +204,95 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     ylim([0,100]);
 end
 
+function new_group = group_update(old_group, d, N, coding, update_id)
+    % update the sequence of SO(3) matrices based on the direction d
+    new_group = old_group;
+    for j = 1:N
+        new_group(:,j*3-2:j*3) = old_group(:,j*3-2:j*3) * expSO3(d(j*3-2:j*3).*(coding(j)==update_id));
+    end
+end
+
+function grad = grad_descent_armoji(Rdata, Rreg, indices, tau, lambda, miu, N)
+    Rreg = reshape(Rreg,3,3,[]);
+    Rdata = reshape(Rreg,3,3,[]);
+    grad = zeros(3,N);
+    
+    so3reg = zeros(3,N);
+    for i = 1:N
+        so3reg(:,i)=logSO3(Rreg(:,:,i));
+    end
+    
+    %% data
+    for i = 1:length(indices)
+        e = logSO3(Rdata(i)'*Rreg(:,:,indices(i)));
+        Jr = rightJ(so3reg(:,indices(i)));
+        grad(:,indices(i)) = grad(:,indices(i)) + 2*Jr'*e;
+    end
+    
+    %% velocity
+    c1 = 0;%lambda / tau;
+    if lambda ~= 0
+        i = 1;
+        e = logSO3(Rreg(i)'*Rreg(:,:,i+1));
+        Jl = leftJ(-so3reg(:,i));
+        grad(:,i) = grad(:,i) + c1.*(-2*Jl'*e);
+        
+        i = N;
+        e = logSO3(Rreg(i-1)'*Rreg(:,:,i));
+        Jr = rightJ(so3reg(:,i));
+        grad(:,i) = grad(:,i) + c1.*(2*Jr'*e);
+        
+        for i = 2:N-1
+            e1 = logSO3(Rreg(i-1)'*Rreg(:,:,i));
+            e2 = logSO3(Rreg(i)'*Rreg(:,:,i+1));
+            Jr = rightJ(so3reg(:,i));
+            Jl = leftJ(-so3reg(:,i));
+            grad(:,i) = grad(:,i) + c1.*(-2*Jl'*e2+2*Jr'*e1);
+        end
+    end
+    
+    %% acceleration
+    c2 = 1;%miu / (tau^3);
+    if c2 ~= 0
+        i = 1;
+        e = logSO3(Rreg(i+1)'*Rreg(:,:,i))+logSO3(Rreg(i+1)'*Rreg(:,:,i+2));
+        Jr = rightJ(so3reg(:,i));
+        grad(:,i) = grad(:,i) + c2.*(2*Jr'*e);
+        
+        i = N;
+        e = logSO3(Rreg(i-1)'*Rreg(:,:,i))+logSO3(Rreg(i-1)'*Rreg(:,:,i-2));
+        Jr = rightJ(so3reg(:,i));
+        grad(:,i) = grad(:,i) + c2.*(2*Jr'*e);
+        
+        i = 2;
+        e1 = logSO3(Rreg(i)'*Rreg(:,:,i-1))+logSO3(Rreg(i)'*Rreg(:,:,i+1));
+        Jl = leftJ(-so3reg(:,i));
+        e2 = logSO3(Rreg(i+1)'*Rreg(:,:,i))+logSO3(Rreg(i+1)'*Rreg(:,:,i+2));
+        Jr = rightJ(so3reg(:,i));
+        grad(:,i) = grad(:,i) + c2.*(-4*Jl'*e1+2*Jr'*e2);
+        
+        i = N-1;
+        e1 = logSO3(Rreg(i)'*Rreg(:,:,i-1))+logSO3(Rreg(i)'*Rreg(:,:,i+1));
+        Jl = leftJ(-so3reg(:,i));
+        e2 = logSO3(Rreg(i-1)'*Rreg(:,:,i))+logSO3(Rreg(i-1)'*Rreg(:,:,i-2));
+        Jr = rightJ(so3reg(:,i));
+        grad(:,i) = grad(:,i) + c2.*(-4*Jl'*e1+2*Jr'*e2);
+        
+        for i = 3:N-2
+            e1 = logSO3(Rreg(i)'*Rreg(:,:,i-1))+logSO3(Rreg(i)'*Rreg(:,:,i+1));
+            Jl = leftJ(-so3reg(:,i));
+            
+            e2 = logSO3(Rreg(i-1)'*Rreg(:,:,i))+logSO3(Rreg(i-1)'*Rreg(:,:,i-2));
+            Jr = rightJ(so3reg(:,i));
+            
+            e3 = logSO3(Rreg(i+1)'*Rreg(:,:,i))+logSO3(Rreg(i+1)'*Rreg(:,:,i+2));
+            
+            grad(:,i) = grad(:,i) + c2.*(-4*Jl'*e1+2*Jr'*e2+2*Jr'*e3);
+        end
+    end
+    grad = -grad(:);
+end
+
 function Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)
     % start from 30
     Ns = 10;
@@ -188,7 +313,7 @@ function Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N
         end
         
         iter = 1;
-        maxiter = 50;
+        maxiter = 100;
         oldcost = inf;
         tol1 = 1e-6;
 %         tr = 1;
@@ -331,54 +456,55 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id)
     c2 = miu / (tau^3);
     %% new, use parallel transport and unify all +/-
     ss = 1;
-    
-    if id == 1
-        Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
-        lhs = lhs + Jr'*Jr.*c2;
-        rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
-    elseif id == N
-        Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end)';
-        lhs = lhs + Jr'*Jr.*c2;
-        rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
-    elseif id == 2
-        % 2, two times
-        Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)'; 
-        Jr2 = rightJinv(v(:,2));% * Rreg(:,4:6)';
-        A1 = Jr1+Jr2; 
-        b1 = A1'*(v(:,2)+v(:,1));A1 = A1'*A1;
-    
-        A2 = Jr2'*Jr2;
-        b2 = Jr2'*(v(:,3).*ss+v(:,2));
+    if c2~=0
+        if id == 1
+            Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
+            lhs = lhs + Jr'*Jr.*c2;
+            rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
+        elseif id == N
+            Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end)';
+            lhs = lhs + Jr'*Jr.*c2;
+            rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
+        elseif id == 2
+            % 2, two times
+            Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)'; 
+            Jr2 = rightJinv(v(:,2));% * Rreg(:,4:6)';
+            A1 = Jr1+Jr2; 
+            b1 = A1'*(v(:,2)+v(:,1));A1 = A1'*A1;
 
-        lhs = lhs + (A1+A2).*c2;
-        rhs = rhs + (b1+b2).*c2;
-    elseif id == N-1
-        % end - 1, two times
-        Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)'; 
-        Jr2 = rightJinv(v(:,end));% * Rreg(:,end-5:end-3)';
-        A1 = Jr1+Jr2; 
-        b1 = A1'*(v(:,end)+v(:,end-1));A1 = A1'*A1;
+            A2 = Jr2'*Jr2;
+            b2 = Jr2'*(v(:,3).*ss+v(:,2));
 
-        A2 = Jr1'*Jr1;
-        b2 = Jr1'*(v(:,end-2).*ss+v(:,end-1));
+            lhs = lhs + (A1+A2).*c2;
+            rhs = rhs + (b1+b2).*c2;
+        elseif id == N-1
+            % end - 1, two times
+            Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)'; 
+            Jr2 = rightJinv(v(:,end));% * Rreg(:,end-5:end-3)';
+            A1 = Jr1+Jr2; 
+            b1 = A1'*(v(:,end)+v(:,end-1));A1 = A1'*A1;
 
-        lhs = lhs + (A1+A2).*c2;
-        rhs = rhs + (b1+b2).*c2;
-    else
-        % 3 times
-        Jr1 = rightJinv(v(:,2));% * Rreg(:,id*3-2:id*3)';
-        Jr2 = rightJinv(v(:,3));% * Rreg(:,id*3-2:id*3)';
-        A1 = Jr1+Jr2;
-        b1 = A1'*(v(:,3) + v(:,2));A1 = A1'*A1;
+            A2 = Jr1'*Jr1;
+            b2 = Jr1'*(v(:,end-2).*ss+v(:,end-1));
 
-        A2 = Jr1;
-        b2 = A2'*(v(:,2)+v(:,1).*ss);A2 = A2'*A2;
+            lhs = lhs + (A1+A2).*c2;
+            rhs = rhs + (b1+b2).*c2;
+        else
+            % 3 times
+            Jr1 = rightJinv(v(:,2));% * Rreg(:,id*3-2:id*3)';
+            Jr2 = rightJinv(v(:,3));% * Rreg(:,id*3-2:id*3)';
+            A1 = Jr1+Jr2;
+            b1 = A1'*(v(:,3) + v(:,2));A1 = A1'*A1;
 
-        A3 = Jr2;
-        b3 = A3'*(v(:,4).*ss+v(:,3));A3 = A3'*A3;
+            A2 = Jr1;
+            b2 = A2'*(v(:,2)+v(:,1).*ss);A2 = A2'*A2;
 
-        lhs = lhs + (A1+A2+A3).*c2;
-        rhs = rhs + (b1+b2+b3).*c2;
+            A3 = Jr2;
+            b3 = A3'*(v(:,4).*ss+v(:,3));A3 = A3'*A3;
+
+            lhs = lhs + (A1+A2+A3).*c2;
+            rhs = rhs + (b1+b2+b3).*c2;
+        end
     end
 
     if c1 == 0 && c2 == 0
