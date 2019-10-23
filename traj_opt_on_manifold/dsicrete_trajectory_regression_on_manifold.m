@@ -41,13 +41,13 @@ function dsicrete_trajectory_regression_on_manifold
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 1;
+    lambda = 0;
 
     % Weight of the acceleration regularization term (nonnegative). The larger
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 1e2;
+    mu = 1e-2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -110,7 +110,7 @@ function dsicrete_trajectory_regression_on_manifold
     tr = 1;
 
 %     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
-%     Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
+    Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
     if 1
 
     tr = 0.1;
@@ -120,91 +120,91 @@ function dsicrete_trajectory_regression_on_manifold
 
 %     [speed0, acc0] = compute_profiles(problem, X0);
     options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-5,'StepTolerance',1e-5,'Display','off');
-    tic
-    while iter < maxiter
+%     tic
+%     while iter < maxiter
+% %         xi = data_term_error(Rdata,Rreg,indices);
+% %         v = numerical_diff_v(Rreg);
+% %         newcost = cost(xi,v,tau,lambda,miu);
+% %
+% %         if abs(newcost - oldcost) < tol1
+% %             break;
+% %         end
+% %         oldcost = newcost;
+% 
+%         % sequential update
+%         newcost = 0;
+% %         ids = randperm(N2,N2);
+%         for j = 1:N2
+%             id = j;%ids(j);
+%             xi = data_term_error(Rdata,Rreg,indices,id);
+%             v = numerical_diff_v(Rreg,id);
+%             dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id,Rreg,options);
+% %             dxis = -LHS(id*3-2:id*3,id*3-2:id*3)\RHS(id*3-2:id*3);
+%             %
+%             if norm(dxi) > tr
+%                 dxi = dxi ./ norm(dxi) .* tr;
+%             end
+%             dxis(:,id)=dxi;
+% %             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+% 
+% %             if norm(dxis) > newcost
+% %                 newcost = norm(dxis);
+% %             end
+%         end
+% 
+%         update_id = update_id + 1;
+%         if update_id > 3, update_id = 1; end
+%         for j = 1:N2
+%             id = j;
+%             dxi = dxis(:,id).*(cheeseboard_id(id)==update_id);
+%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+%         end
+% %         cheeseboard_id = ~cheeseboard_id;
+% 
+%         % doesnot work
+% %         Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N2);
+% 
 %         xi = data_term_error(Rdata,Rreg,indices);
 %         v = numerical_diff_v(Rreg);
 %         newcost = cost(xi,v,tau,lambda,miu);
-%
+%         newcosts(iter) = newcost;
 %         if abs(newcost - oldcost) < tol1
 %             break;
 %         end
 %         oldcost = newcost;
+% 
+%         % TODO, do we need to check the norm of the gradient and exit if
+%         % the norm of gradient is lower than a threshold.
+% 
+%         iter = iter + 1;
+%         disp(iter);
+%     end
+%     toc
 
-        % sequential update
-        newcost = 0;
-%         ids = randperm(N2,N2);
-        for j = 1:N2
-            id = j;%ids(j);
-            xi = data_term_error(Rdata,Rreg,indices,id);
-            v = numerical_diff_v(Rreg,id);
-            dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id,Rreg,options);
-%             dxis = -LHS(id*3-2:id*3,id*3-2:id*3)\RHS(id*3-2:id*3);
-            %
-            if norm(dxi) > tr
-                dxi = dxi ./ norm(dxi) .* tr;
-            end
-            dxis(:,id)=dxi;
-%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-
-%             if norm(dxis) > newcost
-%                 newcost = norm(dxis);
-%             end
-        end
-
-        update_id = update_id + 1;
-        if update_id > 3, update_id = 1; end
-        for j = 1:N2
-            id = j;
-            dxi = dxis(:,id).*(cheeseboard_id(id)==update_id);
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-        end
-%         cheeseboard_id = ~cheeseboard_id;
-
-        % doesnot work
-%         Rreg = opt_regression(Rdata, indices, tau, lambda, miu, N2);
-
-        xi = data_term_error(Rdata,Rreg,indices);
-        v = numerical_diff_v(Rreg);
-        newcost = cost(xi,v,tau,lambda,miu);
-        newcosts(iter) = newcost;
-        if abs(newcost - oldcost) < tol1
-            break;
-        end
-        oldcost = newcost;
-
-        % TODO, do we need to check the norm of the gradient and exit if
-        % the norm of gradient is lower than a threshold.
-
-        iter = iter + 1;
-        disp(iter);
+%     [Rreg,newcosts] = pure_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau);
+    
+%     figure(7);
+%     plot(newcosts,'r-o','LineWidth',2);
     end
-    toc
-
-    figure(7);
-    plot(newcosts,'r-o','LineWidth',2);
-    end
-
-    showSO3(Rdata,Rreg);
-
-    figure(1);
-    plotrotations(X0(:, :, 1:8:Nd));
-    view(0, 0);
 
     for i = 1:N2
         X1(:,:,i) = Rreg(:,i*3-2:i*3);
     end
 
-    figure(2);
-    plotrotations(X1(:, :, 1:4:Nd));
-    view(0, 0);
+    showSO3(Rdata,Rreg);
 
-    figure(3);
-    plotrotations(X0(:, :, indices));
-    view(0, 0);
-    figure(4);
-    plotrotations(X1(:, :, indices));
-    view(0, 0);
+%     figure(1);
+%     plotrotations(X0(:, :, 1:8:Nd));
+%     view(0, 0);
+%     figure(2);
+%     plotrotations(X1(:, :, 1:4:Nd));
+%     view(0, 0);
+%     figure(3);
+%     plotrotations(X0(:, :, indices));
+%     view(0, 0);
+%     figure(4);
+%     plotrotations(X1(:, :, indices));
+%     view(0, 0);
 
 
     [speed0, acc0] = compute_profiles(problem, X0);
@@ -381,7 +381,7 @@ end
 
 function Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)
     % start from 30
-    Ns = 20;
+    Ns = 10;
     N0 = Ns;
     Rreg = reshape(Rreg,3,3,[]);
     options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-5,'StepTolerance',1e-5,'Display','off');
@@ -603,7 +603,7 @@ function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id,Rreg,options)
 %     amax = 0.01;%sqrt(1000)/2*tau*tau;
 %     Aineq2 = [Aineq;-Aineq];
 %     bineq2 = [amax-bineq;amax+bineq];
-% %
+%
 %     dxi = quadprog(2.*LHS,2*RHS',Aineq,bineq,[],[],[],[],[],options);
 end
 
