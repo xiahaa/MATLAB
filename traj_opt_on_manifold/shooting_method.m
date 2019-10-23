@@ -25,9 +25,9 @@ function shooting_method()
     RR2 = reshape(Rreg(:,:,2),3,3);
     Ar1 = calcAr(logSO3(RR1));
     Ar2 = calcAr(logSO3(RR2));
-    w0 = Ar1*v(:,1);
-    w1 = Ar2*v(:,2);
-    wd0 = (RR1*RR2'*w1-w0)./tau;
+    w0 = v(:,1);
+    w1 = v(:,2);
+    wd0 = (w1-w0)./tau;
 %     for i = 1:length(v)
 %         RRi = reshape(Rreg(:,:,i),3,3);
 %         so3reg(logSO3(RRi))
@@ -277,7 +277,7 @@ function dy = fun(t,y)
     
     R = reshape(y(1:9),3,3);
     % y in global sense
-    yb = R*reshape(y(10:end),3,3);
+    yb = R'*reshape(y(10:end),3,3);
     yb = yb(:);
     
     a=(R*hat(yb(1:3)));
@@ -285,6 +285,6 @@ function dy = fun(t,y)
     dyb(1:3) = yb(4:6);%dw
     dyb(4:6) = yb(7:9);%ddw
     dyb(7:9) = -cross(yb(1:3),yb(7:9));
-    a = R'*reshape(dyb,3,3);
+    a = R*reshape(dyb,3,3);
     dy(10:end) = a(:);
 end
