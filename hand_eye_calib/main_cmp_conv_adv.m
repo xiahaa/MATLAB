@@ -37,11 +37,11 @@ if 1
             numPair = naaray(i);
             noisylv = num2str(usedstd(j));
             noisylv = replace(noisylv,'.','_');
-            
+
             rotError100 = zeros(N,nsols);
             tranError100 = zeros(N,nsols);
             fError100 = zeros(N,nsols);
-            
+
             for k = 1:nsols
                 clear dat;
                 filename = strcat(prefix, folders{k},'/convCmp_',num2str(numPair), '_', noisylv, '.mat');
@@ -53,13 +53,13 @@ if 1
                         advts(i,k) = advts(i,k) + dat.tsols{kk};
                         rotError100(kk,k) = roterror(Xs{kk}, dat.xsols{kk}(:,:));
                         tranError100(kk,k) = tranerror(Xs{kk}, dat.xsols{kk}(:,:));
-                        fError100(kk,k) = ferror(Xs{kk}, dat.xsols{kk}(:,:));
+                        fError100(kk,k) = f_rot_error(Xs{kk}, dat.xsols{kk}(:,:));
                     else
                         disp('no solution');
                     end
                 end
             end
-            
+
             advrotErrors{j,i} = rotError100;
             advtranErrors{j,i} = tranError100;
             advfErrors{j,i} = fError100;
@@ -99,7 +99,7 @@ if 1
                         convts(i,k) = convts(i,k) + dat.tsols{kk}(k);
                         rotError100(kk,k) = roterror(Xs{kk}, dat.xsols{kk}(:,:,k));
                         tranError100(kk,k) = tranerror(Xs{kk}, dat.xsols{kk}(:,:,k));
-                        fError100(kk,k) = ferror(Xs{kk}, dat.xsols{kk}(:,:,k));
+                        fError100(kk,k) = f_rot_error(Xs{kk}, dat.xsols{kk}(:,:,k));
                     else
                         disp('no solution');
                     end
