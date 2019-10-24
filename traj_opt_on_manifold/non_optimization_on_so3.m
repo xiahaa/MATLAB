@@ -2,49 +2,14 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
     Rdata = reshape(Rdata,3,3,[]);
     Rreg = reshape(Rreg,3,3,[]);
     
-    %     
     x0 = zeros(18*(size(Rreg,3)-1),1);
-    for i = 1:size(Rreg,3)
-        so3reg(:,i) = logSO3(Rreg(:,:,i));
-%         x0(i*9-8 + [0 3 6]) = so3reg(:,i);
-    end
-    
-%     lb = -1*ones(9*size(Rreg,3),1);
-%     ub =  1*ones(9*size(Rreg,3),1);
-%     margin = 0.1;
-    for i = 1:size(Rdata,3)
-        so3data(:,i) = logSO3(Rdata(:,:,i));
-%         ii = indices(i);
-%         lb(ii*9-8 + [0 3 6]) = so3data(:,i) - margin;
-%         ub(ii*9-8 + [0 3 6]) = so3data(:,i) + margin;
-    end
 
-    maxiter = 100;
-    oldcost = -1e6;
-    newcost = 1e6;
-    
-    N = round(size(Rreg,3));
-    
 %     fobj = @(x) (objfunx(x, tau, lambda, miu, indices, Rdata, Rreg));
 %     fcons = @(x) (constraint(x, Rreg));
-    
     %% nonlinear optimization using continuous representation
     options = optimoptions('quadprog',...
         'Algorithm','interior-point-convex','Display','iter');
     for i = 1:2
-%         xi = data_term_error(Rdata,Rreg,indices);
-%         v = numerical_diff_v(Rreg);
-%         newcost = cost(xi,v,tau,lambda,miu);
-%         newcosts(i) = newcost;
-%         if abs(newcost - oldcost) < 1e-6
-%             break;
-%         end
-%         oldcost = newcost;
-        
-%         if i > 1
-%             x0 = x;
-%         end
-
         %% nonlinear optimization
 %         x = fmincon(fobj, x0, [], [], [], []);% -1e-1.*ones(length(x0),1), 1e-1.*ones(length(x0),1), []
 %         Rreg = fromso3(Rreg, x);
@@ -68,25 +33,11 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
             if norm(oldx-x)<1e-10, break; end
         end
         oldx = x;
-        
-%         newcosts(i) = x'*A*x+f'*x;
-        
     end
-%     Rreg = fromso3(Rreg, x);
     Rreg = reshape(Rreg,3,[]);
 end
 
 function [Q,fg] = objfunx(x, tau, lambda, mu, indices, Rdata, Rreg)
-%     A = [1     0     0     0     0     0; ...
-%           [0     1     0     0     0     0]; ...
-%           [0     0     2     0     0     0]; ...
-%           1     1     1     1     1     1; ...
-%           [0     1     2     3     4     5]; ...
-%           [0     0     2     6    12    20]];
-% 
-%     invA = inv(A);
-% 
-%     biginvA = blkdiag(invA,invA,invA);
     Q1 = [[ 0, 0,   0,    0,    0,    0, 0, 0,   0,    0,    0,    0, 0, 0,   0,    0,    0,    0]; ...
             [ 0, 1,   1,    1,    1,    1, 0, 0,   0,    0,    0,    0, 0, 0,   0,    0,    0,    0]; ...
             [ 0, 1, 4/3,  3/2,  8/5,  5/3, 0, 0,   0,    0,    0,    0, 0, 0,   0,    0,    0,    0]; ...
@@ -133,29 +84,6 @@ function [Q,fg] = objfunx(x, tau, lambda, mu, indices, Rdata, Rreg)
 
     Q2Cell = repmat({Q2}, 1, N);
     BigQ2 = blkdiag(Q2Cell{:});
-    
-    
-%     Q1 = biginvA'*Q1*biginvA;
-%     Q2 = biginvA'*Q2*biginvA;
-%     Q1 = (Q1+Q1')/2;
-%     Q2 = (Q2+Q2')/2;
-    
-%     N = length(x)/9;
-%     BigQ1 = zeros(9*N,9*N);
-%     BigQ2 = zeros(9*N,9*N);
-%     % map
-%     C = [eye(3) zeros(3,15); ...
-%          zeros(3,9) eye(3) zeros(3,6); ...
-%          zeros(3) eye(3) zeros(3,12); ...
-%          zeros(3,12) eye(3) zeros(3); ...
-%          zeros(3,6) eye(3) zeros(3,9); ...
-%          zeros(3,9) zeros(3,6) eye(3)];
-%     for i = 1:N-1
-% %         Call = zeros(18, 9*N);
-% %         Call(:,i*9-8:i*9+9) = C;
-%         BigQ1(i*9-8:i*9+9,i*9-8:i*9+9) = BigQ1(i*9-8:i*9+9,i*9-8:i*9+9)+C'*Q1*C;
-%         BigQ2(i*9-8:i*9+9,i*9-8:i*9+9) = BigQ1(i*9-8:i*9+9,i*9-8:i*9+9)+C'*Q2*C;
-%     end
     
     % smoothing terms
 %     f = x'*BigQ1*x + x'*BigQ2*x;
