@@ -7,6 +7,9 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
 %     fcons = @(x) (constraint(x, Rreg));
 %     x0 = genNaiveSol(Rreg);
 
+%     fobj = @(x) (objfunx_endpoint_new(x, tau, lambda, miu, indices, Rdata, Rreg));
+%     fcons = @(x) (constraint_end1_new(x, Rdata, Rreg, indices));
+
     %% use qp
     options = optimoptions('quadprog',...
         'Algorithm','interior-point-convex','Display','iter');
@@ -33,13 +36,12 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
         if size(Rreg,3)==1
             Rreg = reshape(Rreg,3,3,[]);
         end
-        if i == 1
-            x0 = zeros(3*size(Rreg,3),1);
-        end
+        x0 = zeros(3*size(Rreg,3),1);
         [A,f] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
         [Aeq,beq] = constraint_end2(x0);
-        [Aieq,bieq] = constraint_end1_new(x0, Rdata, indices);
+        [Aieq,bieq] = constraint_end1_new(x0, Rdata, Rreg, indices);
         x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
+%         x = fmincon(fobj, x0, Aieq, bieq, Aeq, beq);% -1e-1.*ones(length(x0),1), 1e-1.*ones(length(x0),1), []
         Rreg = fromso3_end_new(Rreg, x);
 
         %% nonlinear optimization, extremelt slow
@@ -479,21 +481,40 @@ end
 
 function [Q,fg] = objfunx_endpoint_new(x, tau, lambda, mu, indices, Rdata, Rreg)
 % objective of endpoint representation
+
     Q1 = [eye(3) -eye(3);-eye(3) eye(3)];
     Q2 = [eye(3) -2*eye(3) eye(3);-2*eye(3) 4*eye(3) -2*eye(3);eye(3) -2*eye(3) eye(3)];
 
     Q1 = Q1 ./ tau * lambda;
     Q2 = Q2 ./ (tau^3) * mu;
     
+% %     Rregnew = fromso3_end_new(Rreg, x);
+
     N = round(length(x)/3);
     BigQ = zeros(3*N,3*N);
      
     % for v
     for i = 1:N-1
+%         v1 = logSO3(Rregnew(:,:,i)'*Rregnew(:,:,i+1));
+%         Jl = leftJinv(v1);
+%         Jr = rightJinv(v1);
+%         Q1 = [-Jl;Jr];
+%         Q1 = (Q1*Q1') ./ tau * lambda;
         BigQ(i*3-2:i*3+3,i*3-2:i*3+3) = BigQ(i*3-2:i*3+3,i*3-2:i*3+3) + Q1;
     end
     
     for i = 2:N-1
+%         v1 = logSO3(Rregnew(:,:,i)'*Rregnew(:,:,i-1));
+%         Jl1 = -leftJinv(v1);
+%         Jr1 = rightJinv(v1);
+%         
+%         v2 = logSO3(Rregnew(:,:,i)'*Rregnew(:,:,i+1));
+%         Jl2 = -leftJinv(v2);
+%         Jr2 = rightJinv(v2);
+%         
+%         Q2 = [Jr1;Jl1+Jl2;Jr2];
+%         Q2 = (Q2*Q2') ./ (tau^3) * mu;
+        
         BigQ(i*3-5:i*3+3,i*3-5:i*3+3) = BigQ(i*3-5:i*3+3,i*3-5:i*3+3) + Q2;
     end
     
@@ -503,9 +524,11 @@ function [Q,fg] = objfunx_endpoint_new(x, tau, lambda, mu, indices, Rdata, Rreg)
 
     Q = BigQ + Q3;
     Q = (Q+Q')/2;
+    
+%     f = x'*Q*x;
 end
 
-function [Aeq,beq] = constraint_end1_new(x, Rdata, indices)
+function [Aeq,beq] = constraint_end1_new(x, Rdata, Rreg, indices)
 % endpoint bound constraints
     P0 = [[1 0 0]; ...
           [0 1 0]; ...
@@ -517,8 +540,8 @@ function [Aeq,beq] = constraint_end1_new(x, Rdata, indices)
     tol = 0.2;
     for i = 1:length(indices)
         ii = indices(i);
-        v1 = logSO3(Rdata(:,:,i)');
-        
+        v1 = logSO3(Rdata(:,:,i)');%*Rreg(:,:,ii));
+%         Jr = rightJinv(v1);
         Aeq(i*6-5:i*6-3, (ii*3-2:ii*3)) = P0;
         Aeq(i*6-2:i*6, (ii*3-2:ii*3)) = -P0;
         
