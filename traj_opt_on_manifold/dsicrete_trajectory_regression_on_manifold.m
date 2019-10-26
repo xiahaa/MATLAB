@@ -10,7 +10,7 @@ function dsicrete_trajectory_regression_on_manifold
         addpath './utils/'
     end
     clc;close all;clear all;
-
+    warning off;
     % Example 2: load from mat file
     data = load('controlpoints.mat');
     n = data.n;
@@ -110,7 +110,7 @@ function dsicrete_trajectory_regression_on_manifold
     tr = 1;
 
 %     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
-    Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
+%     Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
     if 1
 
     tr = 0.1;
@@ -312,7 +312,7 @@ function dsicrete_trajectory_regression_on_manifold
     plot(t0, quat0(:,4),'g--','LineWidth',1.5);
     title('q3','FontName','Arial','FontSize',15);
 
-
+    warning on;
 end
 
 function Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)

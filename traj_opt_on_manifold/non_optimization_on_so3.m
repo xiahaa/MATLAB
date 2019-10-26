@@ -21,13 +21,26 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
 %         Rreg = fromso3(Rreg, x);
 
         %% qp with end-point representation
-        x0 = zeros(9*(size(Rreg,3)),1);
-        Rreg = reshape(Rreg,3,3,[]);
-        [A,f] = objfunx_endpoint(x0, tau, lambda, miu, indices, Rdata, Rreg);
+%         x0 = zeros(9*(size(Rreg,3)),1);
+%         Rreg = reshape(Rreg,3,3,[]);
+%         [A,f] = objfunx_endpoint(x0, tau, lambda, miu, indices, Rdata, Rreg);
+%         [Aeq,beq] = constraint_end2(x0);
+%         [Aieq,bieq] = constraint_end1(x0, Rdata, indices);
+%         x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
+%         Rreg = fromso3_end(Rreg, x);
+
+        %% end-point
+        if size(Rreg,3)==1
+            Rreg = reshape(Rreg,3,3,[]);
+        end
+        if i == 1
+            x0 = zeros(3*size(Rreg,3),1);
+        end
+        [A,f] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
         [Aeq,beq] = constraint_end2(x0);
-        [Aieq,bieq] = constraint_end1(x0, Rdata, indices);
+        [Aieq,bieq] = constraint_end1_new(x0, Rdata, indices);
         x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
-        Rreg = fromso3_end(Rreg, x);
+        Rreg = fromso3_end_new(Rreg, x);
 
         %% nonlinear optimization, extremelt slow
 %         if i~= 1
@@ -464,3 +477,63 @@ function Rreg = fromso3_end(Rreg, x)
     end
 end
 
+function [Q,fg] = objfunx_endpoint_new(x, tau, lambda, mu, indices, Rdata, Rreg)
+% objective of endpoint representation
+    Q1 = [eye(3) -eye(3);-eye(3) eye(3)];
+    Q2 = [eye(3) -2*eye(3) eye(3);-2*eye(3) 4*eye(3) -2*eye(3);eye(3) -2*eye(3) eye(3)];
+
+    Q1 = Q1 ./ tau * lambda;
+    Q2 = Q2 ./ (tau^3) * mu;
+    
+    N = round(length(x)/3);
+    BigQ = zeros(3*N,3*N);
+     
+    % for v
+    for i = 1:N-1
+        BigQ(i*3-2:i*3+3,i*3-2:i*3+3) = BigQ(i*3-2:i*3+3,i*3-2:i*3+3) + Q1;
+    end
+    
+    for i = 2:N-1
+        BigQ(i*3-5:i*3+3,i*3-5:i*3+3) = BigQ(i*3-5:i*3+3,i*3-5:i*3+3) + Q2;
+    end
+    
+    %% data terms
+    Q3 = zeros(size(BigQ));
+    fg = zeros(size(BigQ,1),1);
+
+    Q = BigQ + Q3;
+    Q = (Q+Q')/2;
+end
+
+function [Aeq,beq] = constraint_end1_new(x, Rdata, indices)
+% endpoint bound constraints
+    P0 = [[1 0 0]; ...
+          [0 1 0]; ...
+          [0 0 1]];
+      
+    N = round(length(x)/3);
+    Aeq = zeros(6*length(indices), length(x));
+    beq = zeros(6*length(indices), 1);
+    tol = 0.2;
+    for i = 1:length(indices)
+        ii = indices(i);
+        v1 = logSO3(Rdata(:,:,i)');
+        
+        Aeq(i*6-5:i*6-3, (ii*3-2:ii*3)) = P0;
+        Aeq(i*6-2:i*6, (ii*3-2:ii*3)) = -P0;
+        
+        beq(i*6-5:i*6-3) = -v1 + tol;
+        beq(i*6-2:i*6) = v1 + tol;
+    end
+end
+
+function Rreg = fromso3_end_new(Rreg, x)
+% recover SO3 from endpoint representation.
+    P0 = [[1 0 0]; ...
+          [0 1 0]; ...
+          [0 0 1]];
+    N = round(length(x)/3);
+    for i = 1:N
+        Rreg(:,:,i) = expSO3(P0 * x(i*3-2:i*3));
+    end
+end
