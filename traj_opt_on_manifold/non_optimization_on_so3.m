@@ -13,13 +13,16 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
     %% use qp
     options = optimoptions('quadprog',...
         'Algorithm','interior-point-convex','Display','iter');
-    for i = 1:1
+    for i = 1:20
+        if size(Rreg,3)==1
+            Rreg = reshape(Rreg,3,3,[]);
+        end
+        
         %% qp with polynomial parameters
 %         x0 = zeros(18*(size(Rreg,3)-1),1);
-%         Rreg = reshape(Rreg,3,3,[]);
 %         [A,f] = objfunx(x0, tau, lambda, miu, indices, Rdata, Rreg);
-%         [Aeq,beq] = constraint2(x0);
-%         [Aieq,bieq] = constraint1(x0, Rdata, indices);
+%         [Aeq,beq] = constraint2(x0, Rreg);
+%         [Aieq,bieq] = constraint1(x0, Rdata, indices, Rreg);
 %         x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
 %         Rreg = fromso3(Rreg, x);
 
@@ -33,9 +36,6 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
 %         Rreg = fromso3_end(Rreg, x);
 
         %% end-point
-        if size(Rreg,3)==1
-            Rreg = reshape(Rreg,3,3,[]);
-        end
         x0 = zeros(3*size(Rreg,3),1);
         [A,f] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
         [Aeq,beq] = constraint_end2(x0);
@@ -278,12 +278,12 @@ function Rreg = fromso3(Rreg, x)
           [0 0 0 0 0 0], [0 0 0 0 0 0], [1 1 1 1 1 1]];
     N = round(length(x)/18);
     for i = 1:N
-        Rreg(:,:,i) = expSO3(P0 * x(i*18-17:i*18));
+        Rreg(:,:,i) = Rreg(:,:,i)*expSO3(P0 * x(i*18-17:i*18));
     end
-    Rreg(:,:,i+1) = expSO3(P1 * x(i*18-17:i*18));
+    Rreg(:,:,i+1) = Rreg(:,:,i)*expSO3(P1 * x(i*18-17:i*18));
 end
 
-function [Aeq,beq] = constraint2(x)
+function [Aeq,beq] = constraint2(x,Rreg)
 % continuity constraints
     P0 = [[1 0 0 0 0 0], [0 0 0 0 0 0], [0 0 0 0 0 0]; ...
           [0 0 0 0 0 0], [1 0 0 0 0 0], [0 0 0 0 0 0]; ...
@@ -309,8 +309,12 @@ function [Aeq,beq] = constraint2(x)
     Aeq = zeros(9*(N-1), length(x));
     beq = zeros(9*(N-1), 1);
     for i = 1:N-1
-        Aeq(i*9-8:i*9-6, i*18-17:i*18) = P1;
-        Aeq(i*9-8:i*9-6, i*18+1:i*18+18) = -P0;
+        v1 = logSO3(Rreg(:,:,i+1)'*Rreg(:,:,i));
+        beq(i*9-8:i*9-6) = -v1;
+        Jl = leftJinv(v1);
+        Jr = rightJinv(v1);
+        Aeq(i*9-8:i*9-6, i*18-17:i*18) = Jr*P1;
+        Aeq(i*9-8:i*9-6, i*18+1:i*18+18) = -Jl*P0;
         
         Aeq(i*9-5:i*9-3, i*18-17:i*18) = V1;
         Aeq(i*9-5:i*9-3, i*18+1:i*18+18) = -V0;
@@ -320,7 +324,7 @@ function [Aeq,beq] = constraint2(x)
     end
 end
 
-function [Aeq,beq] = constraint1(x, Rdata, indices)
+function [Aeq,beq] = constraint1(x, Rdata, indices, Rreg)
 % endpoint bound constraints
     P0 = [[1 0 0 0 0 0], [0 0 0 0 0 0], [0 0 0 0 0 0]; ...
           [0 0 0 0 0 0], [1 0 0 0 0 0], [0 0 0 0 0 0]; ...
@@ -333,20 +337,24 @@ function [Aeq,beq] = constraint1(x, Rdata, indices)
     N = round(length(x)/18);
     Aeq = zeros(6*length(indices), length(x));
     beq = zeros(6*length(indices), 1);
+    tol = 0.1;
     for i = 1:length(indices)
         ii = indices(i);
-        v1 = logSO3(Rdata(:,:,i)');
         
         if ii <= N
-            Aeq(i*6-5:i*6-3, (ii*18-17:ii*18)) = P0;
-            Aeq(i*6-2:i*6, (ii*18-17:ii*18)) = -P0;
+            v1 = logSO3(Rdata(:,:,i)'*Rreg(:,:,ii));
+            Jr = eye(3);%rightJinv(v1);
+            Aeq(i*6-5:i*6-3, (ii*18-17:ii*18)) = Jr*P0;
+            Aeq(i*6-2:i*6, (ii*18-17:ii*18)) = -Jr*P0;
         else
             ii = ii - 1;
-            Aeq(i*6-5:i*6-3, (ii*18-17:ii*18)) = P1;
-            Aeq(i*6-2:i*6, (ii*18-17:ii*18)) = -P1;
+            v1 = logSO3(Rdata(:,:,i)'*Rreg(:,:,ii));
+            Jr = eye(3);%rightJinv(v1);
+            Aeq(i*6-5:i*6-3, (ii*18-17:ii*18)) = Jr*P1;
+            Aeq(i*6-2:i*6, (ii*18-17:ii*18)) = -Jr*P1;
         end
-            beq(i*6-5:i*6-3) = -v1 + 0.2;
-            beq(i*6-2:i*6) = v1 + 0.2;
+        beq(i*6-5:i*6-3) = -v1 + tol;
+        beq(i*6-2:i*6) = v1 + tol;
     end
 end
 
@@ -537,7 +545,7 @@ function [Aeq,beq] = constraint_end1_new(x, Rdata, Rreg, indices)
     N = round(length(x)/3);
     Aeq = zeros(6*length(indices), length(x));
     beq = zeros(6*length(indices), 1);
-    tol = 0.2;
+    tol = [0.2 0.5 0.5 0.8];
     for i = 1:length(indices)
         ii = indices(i);
         v1 = logSO3(Rdata(:,:,i)');%*Rreg(:,:,ii));
@@ -545,8 +553,8 @@ function [Aeq,beq] = constraint_end1_new(x, Rdata, Rreg, indices)
         Aeq(i*6-5:i*6-3, (ii*3-2:ii*3)) = P0;
         Aeq(i*6-2:i*6, (ii*3-2:ii*3)) = -P0;
         
-        beq(i*6-5:i*6-3) = -v1 + tol;
-        beq(i*6-2:i*6) = v1 + tol;
+        beq(i*6-5:i*6-3) = -v1 + tol(i);
+        beq(i*6-2:i*6) = v1 + tol(i);
     end
 end
 
