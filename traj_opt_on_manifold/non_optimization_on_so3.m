@@ -13,18 +13,18 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
     %% use qp
     options = optimoptions('quadprog',...
         'Algorithm','interior-point-convex','Display','iter');
-    for i = 1:20
+    for i = 1:100
         if size(Rreg,3)==1
             Rreg = reshape(Rreg,3,3,[]);
         end
         
         %% qp with polynomial parameters
-%         x0 = zeros(18*(size(Rreg,3)-1),1);
-%         [A,f] = objfunx(x0, tau, lambda, miu, indices, Rdata, Rreg);
-%         [Aeq,beq] = constraint2(x0, Rreg);
-%         [Aieq,bieq] = constraint1(x0, Rdata, indices, Rreg);
-%         x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
-%         Rreg = fromso3(Rreg, x);
+        x0 = zeros(18*(size(Rreg,3)-1),1);
+        [A,f] = objfunx(x0, tau, lambda, miu, indices, Rdata, Rreg);
+        [Aeq,beq] = constraint2(x0, Rreg);
+        [Aieq,bieq] = constraint1(x0, Rdata, indices, Rreg);
+        x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
+        Rreg = fromso3(Rreg, x);
 
         %% qp with end-point representation
 %         x0 = zeros(9*(size(Rreg,3)),1);
@@ -36,13 +36,13 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
 %         Rreg = fromso3_end(Rreg, x);
 
         %% end-point
-        x0 = zeros(3*size(Rreg,3),1);
-        [A,f] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
-        [Aeq,beq] = constraint_end2(x0);
-        [Aieq,bieq] = constraint_end1_new(x0, Rdata, Rreg, indices);
-        x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
-%         x = fmincon(fobj, x0, Aieq, bieq, Aeq, beq);% -1e-1.*ones(length(x0),1), 1e-1.*ones(length(x0),1), []
-        Rreg = fromso3_end_new(Rreg, x);
+%         x0 = zeros(3*size(Rreg,3),1);
+%         [A,f] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
+%         [Aeq,beq] = constraint_end2(x0);
+%         [Aieq,bieq] = constraint_end1_new(x0, Rdata, Rreg, indices);
+%         x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
+% %         x = fmincon(fobj, x0, Aieq, bieq, Aeq, beq);% -1e-1.*ones(length(x0),1), 1e-1.*ones(length(x0),1), []
+%         Rreg = fromso3_end_new(Rreg, x);
 
         %% nonlinear optimization, extremelt slow
 %         if i~= 1
@@ -59,10 +59,12 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
         newcosts(i) = newcost;
         
         if i > 1
-            disp(norm(oldx-x));
-            if norm(oldx-x)<1e-10, break; end
+            disp(['norm diff:', num2str(norm(oldx-x)), ' cost diff:', num2str(abs(oldcost-newcost))]);
+            if norm(oldx-x)<1e-6, break; end
+            if abs(oldcost-newcost) < 1e-6, break; end
         end
         oldx = x;
+        oldcost=newcost;
     end
     Rreg = reshape(Rreg,3,[]);
 end
@@ -316,11 +318,11 @@ function [Aeq,beq] = constraint2(x,Rreg)
         Aeq(i*9-8:i*9-6, i*18-17:i*18) = Jr*P1;
         Aeq(i*9-8:i*9-6, i*18+1:i*18+18) = -Jl*P0;
         
-        Aeq(i*9-5:i*9-3, i*18-17:i*18) = V1;
-        Aeq(i*9-5:i*9-3, i*18+1:i*18+18) = -V0;
+        Aeq(i*9-5:i*9-3, i*18-17:i*18) = Rreg(:,:,i)*V1;
+        Aeq(i*9-5:i*9-3, i*18+1:i*18+18) = -Rreg(:,:,i+1)*V0;
         
-        Aeq(i*9-2:i*9, i*18-17:i*18) = A1;
-        Aeq(i*9-2:i*9, i*18+1:i*18+18) = -A0;
+        Aeq(i*9-2:i*9, i*18-17:i*18) = Rreg(:,:,i)*A1;
+        Aeq(i*9-2:i*9, i*18+1:i*18+18) = -Rreg(:,:,i+1)*A0;
     end
 end
 
@@ -337,19 +339,19 @@ function [Aeq,beq] = constraint1(x, Rdata, indices, Rreg)
     N = round(length(x)/18);
     Aeq = zeros(6*length(indices), length(x));
     beq = zeros(6*length(indices), 1);
-    tol = 0.1;
+    tol = 0.5;
     for i = 1:length(indices)
         ii = indices(i);
         
         if ii <= N
             v1 = logSO3(Rdata(:,:,i)'*Rreg(:,:,ii));
-            Jr = eye(3);%rightJinv(v1);
+            Jr = rightJinv(v1);
             Aeq(i*6-5:i*6-3, (ii*18-17:ii*18)) = Jr*P0;
             Aeq(i*6-2:i*6, (ii*18-17:ii*18)) = -Jr*P0;
         else
             ii = ii - 1;
             v1 = logSO3(Rdata(:,:,i)'*Rreg(:,:,ii));
-            Jr = eye(3);%rightJinv(v1);
+            Jr = rightJinv(v1);% use eye(3) gets almost the same reuslt
             Aeq(i*6-5:i*6-3, (ii*18-17:ii*18)) = Jr*P1;
             Aeq(i*6-2:i*6, (ii*18-17:ii*18)) = -Jr*P1;
         end
@@ -463,7 +465,7 @@ function [Aeq,beq] = constraint_end1(x, Rdata, indices)
     N = round(length(x)/9);
     Aeq = zeros(6*length(indices), length(x));
     beq = zeros(6*length(indices), 1);
-    tol = 0.1;
+    tol = 0.3;
     for i = 1:length(indices)
         ii = indices(i);
         v1 = logSO3(Rdata(:,:,i)');
