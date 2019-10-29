@@ -183,8 +183,8 @@ function dsicrete_trajectory_regression_on_manifold
 
     [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau);
     
-%     figure(7);
-%     plot(newcosts,'r-o','LineWidth',2);
+    figure(7);
+    plot(newcosts,'r-o','LineWidth',2);
     end
 
     for i = 1:N2
