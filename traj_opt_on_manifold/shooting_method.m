@@ -9,15 +9,31 @@ function shooting_method()
     r1 = [1.5,0.4,0.4]';     
     w0 = [1.5,0.1,0.1]';
     wd0 = [0.5,0.1,0.1]';
+%     r0 = [0.1,0.1,0.1]';
+%     r1 = [1.8,0.4,0.4]';     
+%     w0 = [0,0.0,0.0]';
+%     wd0 = [0.0,0.0,0.0]';% this is for validating the shooting method
+%     since the analytical solution can be obtained, so does the optimum
+%     cost
 
     R0 = expSO3(r0);
     R1 = expSO3(r1);
 
     % shooting 
-    [R1opt,w1opt,~,costopt,tspan,wshooting,wdshooting] = traj_gen_by_shooting(r0,r1,w0,wd0);        
+    [R1opt,w1opt,~,costopt,tspan,wshooting,wdshooting,Rshooting] = traj_gen_by_shooting(r0,r1,w0,wd0);        
 
+    % to validate the shooting method, by comparing the analytical angular
+    % velocity and the shooted angular velocity
+%     rc = logSO3(R0'*R1);
+%     for i = 1:length(tspan)
+%         r = rc*tspan(i);
+%         w(:,i) = calcAr(r)*(rc)*3*tspan(i)^2;
+%         w1(:,i) = Rshooting(:,:,i)' * wshooting(i,:)';
+%     end
+    
+    
     % cubic interpolation
-%     cost_cubic = traj_gen_by_cubic(R0,R1,w0,R1*w1opt',tspan);
+    cost_cubic = traj_gen_by_cubic(R0,R1,w0,R1'*w1opt',tspan);% found a bug, since shooted angular velocity is in global frame, so R1' is needed.
     
     % discrete regression
     [cost,Rreg,v,~,tau] = regression(R0,R1);
@@ -222,7 +238,6 @@ end
 function varargout = traj_gen_by_shooting(r0,r1,w0,wd0)
     R0 = expSO3(r0);
     R1 = expSO3(r1);
-    
     function F=solver_shooting(wdd0)
         tspan = [0 1];
         [t,x]=ode45(@fun,tspan,[(R0(:));w0;wd0;wdd0],[]);
@@ -232,7 +247,7 @@ function varargout = traj_gen_by_shooting(r0,r1,w0,wd0)
     % find wdd0 by shooting
     [wdd0,fval] = fminsearch(@solver_shooting,[0,0,0]');
     % re-integrate using ode45
-    tspan = 0:0.001:1;
+    tspan = 0:1e-5:1;
     [t,x]=ode45(@fun,tspan,[(R0(:));w0;wd0;wdd0],[]);
     % some results
     s = length(t);
