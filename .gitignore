@@ -59,3 +59,5 @@ manifold_motion_smoothing/stabilization_demo.m
 manifold_motion_smoothing/so3_smoothing/
 imgproc/pnp/test/eurasip/formeSO32.m
 imgproc/pnp/test/find_inliers_em.m
+
+traj_opt_on_manifold/nouse/*.m
