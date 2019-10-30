@@ -85,13 +85,11 @@ function varargout = regression(R0,R1)
         
     tr = 1;
     
-%     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
 %     Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
     if 1
 
     tr = 0.1;
     
-%     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
 %     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
         
 %     [speed0, acc0] = compute_profiles(problem, X0);
