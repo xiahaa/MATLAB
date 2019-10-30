@@ -114,13 +114,11 @@ function exp1_real_path_add_noise
         
     tr = 1;
     
-%     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
     Rreg = seg2seg_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N2);
     if 0
 
     tr = 0.001;
     
-%     Rreg = traj_opt_by_optimization(Rdata, Rreg, miu, indices, tau);
 %     Rreg = traj_smoothing_via_jc(Rreg, indices, 100000, 100);
         
 %     [speed0, acc0] = compute_profiles(problem, X0);
