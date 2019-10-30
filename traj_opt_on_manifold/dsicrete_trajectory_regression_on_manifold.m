@@ -104,7 +104,6 @@ function dsicrete_trajectory_regression_on_manifold
     cheeseboard_id = ones(1,N2);
     cheeseboard_id(2:3:N2) = 2;
     cheeseboard_id(3:3:N2) = 3;
-%     cheeseboard_id = logical(cheeseboard_id);% todo, I think I need to use the parallel transport for covariant vector
     update_id = 1;
 
     tr = 1;

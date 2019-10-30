@@ -130,39 +130,6 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
             break;
         end
         oldcost = newcost;
-% 
-% %         grad = grad_descent_armoji(Rdata, Rreg2, indices, tau, lambda, miu, N2);
-% %         %% Armijo line search
-% %         % Armijo parameters
-% %         beta = 0.9;
-% %         sigma = 0.7;
-% %         %%%%%%%%%%%%%%%%% Armijo line search %%%%%%%%%%%%%%%%
-% %         fprintf('start Armijo ... ');
-% %         m = -1;
-% %         temp_fun_cost = inf;
-% %         tangent_inner = 0;
-% %         old_fun_cost = oldcost;
-% %         while old_fun_cost - temp_fun_cost < -sigma*tangent_inner
-% %             m = m+1;
-% %             alpha = beta^m;
-% %             d = alpha.*(grad);
-% %             temprotation = group_update(Rreg2, d, N, ones(1,N), 1);	
-% %             tangent_inner = d'*grad;
-% % 
-% %             xitmp = data_term_error(Rdata,temprotation,indices);
-% %             vtmp = numerical_diff_v(temprotation);
-% %             temp_fun_cost = cost(xitmp,vtmp,tau,lambda,miu);
-% %             if m > 1000
-% %                 break;
-% %             end
-% %         end
-% %         fprintf('\n');
-% %         if m > 1000
-% %             break;
-% %         end
-% %         Rreg2 = temprotation;
-%         
-%         
         iter = iter + 1;
     end
 %     Rreg2 = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, Nd);
@@ -293,37 +260,4 @@ function grad = grad_descent_armoji(Rdata, Rreg, indices, tau, lambda, miu, N)
     end
     grad = -grad(:);
 end
-
-
-    
-    
-%   
-%    
-%     [speed0, acc0] = compute_profiles(problem, X0);
-%     [speed1, acc1] = compute_profiles(problem, X1);
-% 
-%     % Passage time of each point on the discrete curves.
-%     time = problem.delta_tau*( 0 : (problem.Nd-1) );
-% 
-%     figure(5);
-% 
-%     subplot(1, 2, 1);
-%     plot(1:N2,speed0,1:N2,speed1);
-% %     plot(time, speed0, time, speed1);
-%     title('Speed of initial curve and optimized curve');
-%     xlabel('Time');
-%     ylabel('Speed');
-%     legend('Initial curve', 'Optimized curve', 'Location', 'SouthEast');
-%     pbaspect([1.6, 1, 1]);
-% 
-%     subplot(1, 2, 2);
-%     plot(1:N2,acc0,1:N2,acc1);
-% %     plot(time, acc0, time, acc1);
-%     title('Acceleration of initial curve and optimized curve');
-%     xlabel('Time');
-%     ylabel('Acceleration');
-%     legend('Initial curve', 'Optimized curve', 'Location', 'NorthWest');
-%     pbaspect([1.6, 1, 1]);
-% 
-%     ylim([0, 100]);
 
