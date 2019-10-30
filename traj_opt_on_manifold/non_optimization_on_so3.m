@@ -1,4 +1,4 @@
-function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau)
+function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, solver)
     Rdata = reshape(Rdata,3,3,[]);
     Rreg = reshape(Rreg,3,3,[]);
 
@@ -19,38 +19,46 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
         end
         
         %% qp with polynomial parameters
-        x0 = zeros(18*(size(Rreg,3)-1),1);
-        [A,f] = objfunx(x0, tau, lambda, miu, indices, Rdata, Rreg);
-        [Aeq,beq] = constraint2(x0, Rreg);
-        [Aieq,bieq] = constraint1(x0, Rdata, indices, Rreg);
-        x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
-        Rreg = fromso3(Rreg, x);
-
+        if solver == 1
+            x0 = zeros(18*(size(Rreg,3)-1),1);
+            [A,f] = objfunx(x0, tau, lambda, miu, indices, Rdata, Rreg);
+            [Aeq,beq] = constraint2(x0, Rreg);
+            [Aieq,bieq] = constraint1(x0, Rdata, indices, Rreg);
+            x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
+            Rreg = fromso3(Rreg, x);
+        elseif solver == 2
         %% qp with end-point representation
-%         x0 = zeros(9*(size(Rreg,3)),1);
-%         Rreg = reshape(Rreg,3,3,[]);
-%         [A,f] = objfunx_endpoint(x0, tau, lambda, miu, indices, Rdata, Rreg);
-%         [Aeq,beq] = constraint_end2(x0);
-%         [Aieq,bieq] = constraint_end1(x0, Rdata, indices);
-%         x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
-%         Rreg = fromso3_end(Rreg, x);
-
+            x0 = zeros(9*(size(Rreg,3)),1);
+            Rreg = reshape(Rreg,3,3,[]);
+            [A,f] = objfunx_endpoint(x0, tau, lambda, miu, indices, Rdata, Rreg);
+            [Aeq,beq] = constraint_end2(x0);
+            [Aieq,bieq] = constraint_end1(x0, Rdata, indices);
+            x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
+            Rreg = fromso3_end(Rreg, x);
         %% end-point
-%         x0 = zeros(3*size(Rreg,3),1);
-%         [A,f] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
-%         [Aeq,beq] = constraint_end2(x0);
-%         [Aieq,bieq] = constraint_end1_new(x0, Rdata, Rreg, indices);
-%         x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
-% %         x = fmincon(fobj, x0, Aieq, bieq, Aeq, beq);% -1e-1.*ones(length(x0),1), 1e-1.*ones(length(x0),1), []
-%         Rreg = fromso3_end_new(Rreg, x);
-
-        %% nonlinear optimization, extremelt slow
-%         if i~= 1
-%             x0 = x;
-%         end
-%         x = fmincon(fobj, x0, Aieq, bieq, Aeq, beq);% -1e-1.*ones(length(x0),1), 1e-1.*ones(length(x0),1), []
-%         Rreg = fromso3(Rreg, x);
-        
+        elseif solver == 3
+            x0 = zeros(3*size(Rreg,3),1);
+            [~,~,A] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
+            [Aeq,beq] = constraint_end2(x0);
+            [Aieq,bieq] = constraint_end1_new_lin(x0, Rdata, Rreg, indices);
+            x = quadprog(2*A, [], Aieq, bieq, Aeq, beq, [], [], [], options);
+            Rreg = fromso3_end_new(Rreg, x);            
+        elseif solver == 4
+            x0 = zeros(3*size(Rreg,3),1);
+    %         for j = 1:size(Rreg,3)
+    %             x0(j*3-2:j*3)=logSO3(Rreg(:,:,j));
+    %         end
+            [~,~,A] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
+            [Aeq,beq] = constraint_end2(x0);
+            fobj = @(x) (objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg));
+            fhess = @(x,lambda) (hessinterior(x,lambda,A));
+            fcons = @(x) (constraint_end1_new(x, Rdata, Rreg, indices));
+            options = optimoptions(@fmincon,'Algorithm','interior-point',...
+                    'Display','final','SpecifyObjectiveGradient',true,'HessianFcn',fhess,'OptimalityTolerance',1e-10,...
+                    'StepTolerance',1e-10,'SpecifyConstraintGradient',true);
+            [x,fval2,exitflag2,output2]=fmincon(fobj,x0,[],[],[],[],[],[],fcons,options);
+            Rreg = fromso3_end_new(Rreg, x);
+        end
 
         Rreg = reshape(Rreg,3,[]);
         xi = data_term_error(Rdata,Rreg,indices);
@@ -489,7 +497,7 @@ function Rreg = fromso3_end(Rreg, x)
     end
 end
 
-function [Q,fg] = objfunx_endpoint_new(x, tau, lambda, mu, indices, Rdata, Rreg)
+function [f,gradf,Qout] = objfunx_endpoint_new(x, tau, lambda, mu, indices, Rdata, Rreg)
 % objective of endpoint representation
 
     Q1 = [eye(3) -eye(3);-eye(3) eye(3)];
@@ -499,65 +507,123 @@ function [Q,fg] = objfunx_endpoint_new(x, tau, lambda, mu, indices, Rdata, Rreg)
     Q2 = Q2 ./ (tau^3) * mu;
     
 % %     Rregnew = fromso3_end_new(Rreg, x);
+%     Rregnew=Rreg;
 
     N = round(length(x)/3);
     BigQ = zeros(3*N,3*N);
      
+    fg = zeros(size(BigQ,1),1);
+    
     % for v
     for i = 1:N-1
 %         v1 = logSO3(Rregnew(:,:,i)'*Rregnew(:,:,i+1));
-%         Jl = leftJinv(v1);
-%         Jr = rightJinv(v1);
-%         Q1 = [-Jl;Jr];
+%         Jl = -eye(3);%leftJinv(v1);
+%         Jr = eye(3);%rightJinv(v1);
+%         Q1 = [Jl';Jr'];
 %         Q1 = (Q1*Q1') ./ tau * lambda;
         BigQ(i*3-2:i*3+3,i*3-2:i*3+3) = BigQ(i*3-2:i*3+3,i*3-2:i*3+3) + Q1;
+%         fg(i*3-2:i*3+3,1) = [2.*Jl'*v1;2*Jr'*v1];
     end
     
     for i = 2:N-1
-%         v1 = logSO3(Rregnew(:,:,i)'*Rregnew(:,:,i-1));
-%         Jl1 = -leftJinv(v1);
-%         Jr1 = rightJinv(v1);
-%         
-%         v2 = logSO3(Rregnew(:,:,i)'*Rregnew(:,:,i+1));
-%         Jl2 = -leftJinv(v2);
-%         Jr2 = rightJinv(v2);
-%         
-%         Q2 = [Jr1;Jl1+Jl2;Jr2];
+% %         v1 = logSO3(Rregnew(:,:,i)'*Rregnew(:,:,i-1));
+%         Jl1 = -eye(3);%leftJinv(v1);
+%         Jr1 = eye(3);%rightJinv(v1);
+% %         
+% %         v2 = logSO3(Rregnew(:,:,i)'*Rregnew(:,:,i+1));
+%         Jl2 = -eye(3);%leftJinv(v2);
+%         Jr2 = eye(3);%rightJinv(v2);
+% %         
+%         Q2 = [Jr1';(Jl1+Jl2)';(Jr2)'];
 %         Q2 = (Q2*Q2') ./ (tau^3) * mu;
-        
+%         
         BigQ(i*3-5:i*3+3,i*3-5:i*3+3) = BigQ(i*3-5:i*3+3,i*3-5:i*3+3) + Q2;
+%         fg(i*3-5:i*3+3,1) = [2.*Jr1'*(v1+v2);2.*(Jl1+Jl2)'*(v1+v2);2.*(Jr2)'*(v1+v2)];
     end
     
     %% data terms
     Q3 = zeros(size(BigQ));
-    fg = zeros(size(BigQ,1),1);
+    
 
     Q = BigQ + Q3;
     Q = (Q+Q')/2;
     
 %     f = x'*Q*x;
+    f = x'*Q*x + fg'*x;
+    if nargout > 1
+        gradf=(Q+Q')*x+fg;
+    end
+    if nargout > 2
+        Qout = Q;
+    end
 end
 
-function [Aeq,beq] = constraint_end1_new(x, Rdata, Rreg, indices)
+function [Aieq, bieq] = constraint_end1_new_lin(x, Rdata, Rreg, indices)
 % endpoint bound constraints
     P0 = [[1 0 0]; ...
           [0 1 0]; ...
           [0 0 1]];
       
     N = round(length(x)/3);
-    Aeq = zeros(6*length(indices), length(x));
-    beq = zeros(6*length(indices), 1);
-    tol = [0.2 0.5 0.5 0.8];
+    Aieq = zeros(6*length(indices), length(x));
+    bieq = zeros(6*length(indices), 1);
+    tol = 0.1.*ones(1,N);%[0.2 0.5 0.5 0.2];
     for i = 1:length(indices)
         ii = indices(i);
-        v1 = logSO3(Rdata(:,:,i)');%*Rreg(:,:,ii));
-%         Jr = rightJinv(v1);
-        Aeq(i*6-5:i*6-3, (ii*3-2:ii*3)) = P0;
-        Aeq(i*6-2:i*6, (ii*3-2:ii*3)) = -P0;
-        
-        beq(i*6-5:i*6-3) = -v1 + tol(i);
-        beq(i*6-2:i*6) = v1 + tol(i);
+        v1 = logSO3(Rdata(:,:,i)');%*Rreg(:,:,ii)
+        Jr = eye(3);%rightJinv(v1);
+        Aieq(i*6-5:i*6-3, (ii*3-2:ii*3)) = (Jr+0.5.*hat(v1))*P0;
+        Aieq(i*6-2:i*6, (ii*3-2:ii*3)) = -(Jr+0.5.*hat(v1))*P0;
+        bieq(i*6-5:i*6-3) = -v1 + tol(i);
+        bieq(i*6-2:i*6) = v1 + tol(i);
     end
+end
+
+function [c, ceq, gradc, gradceq] = constraint_end1_new(x, Rdata, Rreg, indices)
+% endpoint bound constraints
+    P0 = [[1 0 0]; ...
+          [0 1 0]; ...
+          [0 0 1]];
+      
+    N = round(length(x)/3);
+%     Aieq = zeros(6*length(indices), length(x));
+%     bieq = zeros(6*length(indices), 1);
+%     tol = 0.1.*ones(1,N);%[0.2 0.5 0.5 0.2];
+%     for i = 1:length(indices)
+%         ii = indices(i);
+%         v1 = logSO3(Rdata(:,:,i)');%*Rreg(:,:,ii)
+%         Jr = eye(3);%rightJinv(v1);
+%         Aieq(i*6-5:i*6-3, (ii*3-2:ii*3)) = (Jr+0.5.*hat(v1))*P0;
+%         Aieq(i*6-2:i*6, (ii*3-2:ii*3)) = -(Jr+0.5.*hat(v1))*P0;
+%         
+%         bieq(i*6-5:i*6-3) = -v1 + tol(i);
+%         bieq(i*6-2:i*6) = v1 + tol(i);
+%     end
+    tol = 0.01.*ones(1,N);%[0.2 0.5 0.5 0.2];
+    c = zeros(6*length(indices),1);
+    for i = 1:length(indices)
+        ii = indices(i);
+        tmp = logSO3(Rdata(:,:,i)'*expSO3(P0*x(ii*3-2:ii*3)));
+        c(i*6-5:i*6-3) = tmp - tol(i);
+        c(i*6-2:i*6) = -tmp - tol(i);
+    end
+    ceq = [];
+    if nargout > 2
+        gradceq = [];
+        der = zeros(6*length(indices),length(x));
+        for i = 1:length(indices)
+            ii = indices(i);
+            v1 = P0*x(ii*3-2:ii*3);
+            v2 = logSO3(Rdata(:,:,i)'*expSO3(v1));
+            Jr1 = rightJ(v1);
+            Jr2 = rightJinv(v2);
+            Jr = Jr2*Jr1;
+            der(i*6-5:i*6-3, (ii*3-2:ii*3)) = Jr;
+            der(i*6-2:i*6, (ii*3-2:ii*3)) = -Jr;
+        end
+        gradc = der';
+    end
+    
 end
 
 function Rreg = fromso3_end_new(Rreg, x)
@@ -569,4 +635,8 @@ function Rreg = fromso3_end_new(Rreg, x)
     for i = 1:N
         Rreg(:,:,i) = expSO3(P0 * x(i*3-2:i*3));
     end
+end
+
+function h = hessinterior(x,lambda,A)
+    h = A+A';
 end
