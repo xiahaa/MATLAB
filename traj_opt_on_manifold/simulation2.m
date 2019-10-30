@@ -4,6 +4,7 @@ if ismac
     addpath './SOn_regression-master/STL'
     addpath './utils/'
     addpath './libso3'
+    addpath './jiachao/'
 else
     addpath './SOn_regression-master\SOn_regression-master/'
     addpath './jiachao/'
@@ -89,7 +90,7 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     Rreg1 = reshape(X11,3,[]);
     xi = data_term_error(Rdata,Rreg1,indices);
     v = numerical_diff_v(Rreg1);
-    cost1.cost = cost(xi,v,tau,lambda,miu);
+    cost1.cost = fcost(xi,v,tau,lambda,miu);
 
     % start optimization
     iter = 1;
@@ -123,7 +124,7 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
 
         xi = data_term_error(Rdata,Rreg2,indices);
         v = numerical_diff_v(Rreg2);
-        newcost = cost(xi,v,tau,lambda,miu);
+        newcost = fcost(xi,v,tau,lambda,miu);
         newcosts(iter) = newcost;
         if abs(newcost - oldcost) < tol1
             break;
@@ -177,7 +178,7 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     cost3.time = toc;
     xi = data_term_error(Rdata,Rreg3,indices);
     v = numerical_diff_v(Rreg3);
-    cost3.cost = cost(xi,v,tau,lambda,miu);
+    cost3.cost = fcost(xi,v,tau,lambda,miu);
     
     [speed0, acc0] = compute_profiles(problem, X0);
     [speed1, acc1] = compute_profiles(problem, reshape(Rreg1,3,3,[]));
@@ -293,69 +294,7 @@ function grad = grad_descent_armoji(Rdata, Rreg, indices, tau, lambda, miu, N)
     grad = -grad(:);
 end
 
-function Rreg = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, N)
-    % start from 30
-    Ns = 10;
-    N0 = Ns;
-    Rreg = reshape(Rreg,3,3,[]);
-    options = optimoptions('quadprog','MaxIterations',100,'OptimalityTolerance',1e-5,'StepTolerance',1e-5,'Display','off');
-    while N0 <= N
-        Ncur = round(linspace(1,N,N0));
-        for i = 1:length(indices)
-            if isempty(find(Ncur == indices(i),1))
-                Ncur = [Ncur indices(i)];
-            end
-        end
-        Ncur = sort(Ncur,'ascend');
-        indicescur = indices;
-        for i = 1:length(indices)
-            indicescur(i) = find(Ncur==indices(i),1);
-        end
-        
-        iter = 1;
-        maxiter = 100;
-        oldcost = inf;
-        tol1 = 1e-6;
-%         tr = 1;
-        N2 = length(Ncur);
-        Rregcur = Rreg(:,:,Ncur);
-        Rregcur = reshape(Rregcur,3,[]);
-        while iter < maxiter
-            newcost = -1e6;
-            for j = 1:N2
-                id = j;
-                xi = data_term_error(Rdata,Rregcur,indicescur,id);
-                v = numerical_diff_v(Rregcur,id);
-                dxi = seq_sol(xi, v, indicescur, tau, lambda, miu, N2, id);
-%                 if norm(dxi) > tr
-%                     dxi = dxi ./ norm(dxi) .* tr;
-%                 end
-                Rregcur(:,id*3-2:id*3) = Rregcur(:,id*3-2:id*3) * expSO3(dxi);
-                if norm(dxi) > newcost
-                    newcost = norm(dxi);
-                end
-            end
-            if abs(newcost - oldcost) < tol1
-                break;
-            else
-                oldcost = newcost;
-            end
-            iter = iter + 1;
-        end
-        Rregcur = reshape(Rregcur,3,3,[]);
-%         [speed0, acc0] = compute_profiles_fast(tau,Rregcur);
-%         figure(1);
-%         plot(1:N2,speed0,1:N2,acc0);
-        Rreg(:,:,Ncur) = Rregcur;
-        if N0 >= N
-            break;
-        else
-            N0 = min(N0+Ns,N);
-        end
-        
-    end
-    Rreg = reshape(Rreg,3,[]);
-end
+
     
     
 %   
@@ -387,165 +326,4 @@ end
 %     pbaspect([1.6, 1, 1]);
 % 
 %     ylim([0, 100]);
-    
-function dxi = seq_sol(xi, v, indices, tau, lambda, miu, N, id)
-    lhs = zeros(3,3);
-    rhs = zeros(3,1);
-    
-    if ~isempty(xi)
-        Jr = rightJinv(xi);
-        lhs = lhs + Jr'*Jr;
-        rhs = rhs + Jr'*xi;
-    end
-        
-    % second term
-    % endpoints 
-    c1 = lambda / tau;
-    if lambda ~= 0
-        if id == 1
-            Jr = rightJinv(v(:,1));
-            lhs = lhs + Jr'*Jr.*c1;
-            rhs = rhs + Jr'*(v(:,1)).*c1;
-        elseif id == N
-            Jr = rightJinv(v(:,end));
-            lhs = lhs + Jr'*Jr.*c1;
-            rhs = rhs + Jr'*(v(:,end)).*c1;
-        else
-            if id == 2
-                id1 = 1;
-                id2 = 2;
-            else
-                id1 = 2;
-                id2 = 3;
-            end
-                
-            Jr1 = rightJinv(v(:,id1));
-            Jr2 = rightJinv(v(:,id2));
-            A1 = Jr1'*Jr1;
-            b1 = Jr1'*v(:,id1);
-            A2 = Jr2'*Jr2;
-            b2 = Jr2'*(v(:,id2));
-            lhs = lhs + (A1+A2).*c1;
-            rhs = rhs + (b1+b2).*c1;
-        end
-    end
-    
-    % add angular velocity constraint
-%     eps = 5;
-%     if id == 1
-%         Jr = rightJinv(v(:,1));
-%         Aineq = [Jr./tau;-Jr./tau];
-%         bineq = [eps-v(:,1)./tau;eps+v(:,1)./tau];
-%     elseif id == N
-%         Jr = rightJinv(v(:,end));
-%         Aineq = [Jr./tau;-Jr./tau];
-%         bineq = [eps-v(:,end)./tau;eps+v(:,end)./tau];
-%     else
-%         if id == 2
-%             id1 = 1;id2 = 2;
-%         else
-%             id1 = 2;id2 = 3;
-%         end
-%         Jr1 = rightJinv(v(:,id1));
-%         Jr2 = rightJinv(v(:,id2));
-%         Aineq = [Jr1./tau;-Jr1./tau;Jr2./tau;-Jr2./tau];
-%         bineq = [eps-v(:,id1)./tau;eps+v(:,id1)./tau;eps-v(:,id2)./tau;eps+v(:,id2)./tau];
-%     end
-    
-    % third term
-    c2 = miu / (tau^3);
-    %% new, use parallel transport and unify all +/-
-    ss = 1;
-    if c2~=0
-        if id == 1
-            Jr = rightJinv(v(:,1));% * Rreg(:,1:3)';
-            lhs = lhs + Jr'*Jr.*c2;
-            rhs = rhs + Jr'*(v(:,1)+v(:,2).*ss).*c2;
-        elseif id == N
-            Jr = rightJinv(v(:,end));% * Rreg(:,end-2:end)';
-            lhs = lhs + Jr'*Jr.*c2;
-            rhs = rhs + Jr'*(v(:,end-1).*ss+v(:,end)).*c2;
-        elseif id == 2
-            % 2, two times
-            Jr1 = rightJinv(v(:,1));% * Rreg(:,4:6)'; 
-            Jr2 = rightJinv(v(:,2));% * Rreg(:,4:6)';
-            A1 = Jr1+Jr2; 
-            b1 = A1'*(v(:,2)+v(:,1));A1 = A1'*A1;
 
-            A2 = Jr2'*Jr2;
-            b2 = Jr2'*(v(:,3).*ss+v(:,2));
-
-            lhs = lhs + (A1+A2).*c2;
-            rhs = rhs + (b1+b2).*c2;
-        elseif id == N-1
-            % end - 1, two times
-            Jr1 = rightJinv(v(:,end-1));% * Rreg(:,end-5:end-3)'; 
-            Jr2 = rightJinv(v(:,end));% * Rreg(:,end-5:end-3)';
-            A1 = Jr1+Jr2; 
-            b1 = A1'*(v(:,end)+v(:,end-1));A1 = A1'*A1;
-
-            A2 = Jr1'*Jr1;
-            b2 = Jr1'*(v(:,end-2).*ss+v(:,end-1));
-
-            lhs = lhs + (A1+A2).*c2;
-            rhs = rhs + (b1+b2).*c2;
-        else
-            % 3 times
-            Jr1 = rightJinv(v(:,2));% * Rreg(:,id*3-2:id*3)';
-            Jr2 = rightJinv(v(:,3));% * Rreg(:,id*3-2:id*3)';
-            A1 = Jr1+Jr2;
-            b1 = A1'*(v(:,3) + v(:,2));A1 = A1'*A1;
-
-            A2 = Jr1;
-            b2 = A2'*(v(:,2)+v(:,1).*ss);A2 = A2'*A2;
-
-            A3 = Jr2;
-            b3 = A3'*(v(:,4).*ss+v(:,3));A3 = A3'*A3;
-
-            lhs = lhs + (A1+A2+A3).*c2;
-            rhs = rhs + (b1+b2+b3).*c2;
-        end
-    end
-
-    if c1 == 0 && c2 == 0
-        index = find(indices == id,1);
-        if isempty(index)
-            lhs = eye(3);
-        end
-    end
-    
-    LHS = lhs;
-    RHS = rhs;
-    
-    dxi = -LHS\RHS;% unconstrained optimization
-    
-%     %% what if I use constrained optimization.
-%     Aineq(dummy1*3+1:end,:) = [];
-%     bineq(dummy1*3+1:end,:) = [];
-%     amax = 0.01;%sqrt(1000)/2*tau*tau;
-%     Aineq2 = [Aineq;-Aineq];
-%     bineq2 = [amax-bineq;amax+bineq];
-% %     
-%     dxi = quadprog(2.*LHS,2*RHS',Aineq,bineq,[],[],[],[],[],options);
-end
-
-function y = cost(xi,v,tau,lambda,miu)
-    % cost term 1, data cost
-    cost1 = sum(vecnorm(xi,2).^2.*2);
-    
-    % cost term 2, first order smooth cost, integrate with trapezoidal
-    % rule, consistent with Boumal's paper. TODO change in paper.
-    N = size(v,2)+1;
-    wv = [1 ones(1,N-2)];
-    cost2 = sum(vecnorm(v,2).^2.*(2/tau).*wv);
-    
-    % cost term 3, second order smooth cost, integrate with trapezoidal
-    % rule
-    a = zeros(3,N-2);
-    for i = 2:N-1
-        a(:,i-1)=v(:,i)-v(:,i-1);
-    end
-    cost3 = sum(vecnorm(a,2).^2.*(2/tau^3));
-    
-    y = cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
-end

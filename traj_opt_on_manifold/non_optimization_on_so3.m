@@ -63,7 +63,7 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
         Rreg = reshape(Rreg,3,[]);
         xi = data_term_error(Rdata,Rreg,indices);
         v = numerical_diff_v(Rreg);
-        newcost = cost(xi,v,tau,lambda,miu);
+        newcost = fcost(xi,v,tau,lambda,miu);
         newcosts(i) = newcost;
         
         if i > 1
@@ -366,28 +366,6 @@ function [Aeq,beq] = constraint1(x, Rdata, indices, Rreg)
         beq(i*6-5:i*6-3) = -v1 + tol;
         beq(i*6-2:i*6) = v1 + tol;
     end
-end
-
-
-function y = cost(xi,v,tau,lambda,miu)
-    % cost term 1, data cost
-    cost1 = sum(vecnorm(xi,2).^2.*2);
-
-    % cost term 2, first order smooth cost, integrate with trapezoidal
-    % rule, consistent with Boumal's paper. TODO change in paper.
-    N = size(v,2)+1;
-    wv = [1 ones(1,N-2)];
-    cost2 = sum(vecnorm(v,2).^2.*(2/tau).*wv);
-
-    % cost term 3, second order smooth cost, integrate with trapezoidal
-    % rule
-    a = zeros(3,N-2);
-    for i = 2:N-1
-        a(:,i-1)=v(:,i)-v(:,i-1);
-    end
-    cost3 = sum(vecnorm(a,2).^2.*(2/tau^3));
-
-    y = cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
 end
 
 function [Q,fg] = objfunx_endpoint(x, tau, lambda, mu, indices, Rdata, Rreg)

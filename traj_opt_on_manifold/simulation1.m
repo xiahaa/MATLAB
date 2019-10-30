@@ -68,7 +68,7 @@ for i = 1:N2
     Rreg(:,i*3-2:i*3) = X0(:,:,i);
 end
 
-[Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau);
+[Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, 4);
     
 figure(7);
 plot(newcosts,'r-o','LineWidth',2);
