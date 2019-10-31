@@ -246,11 +246,8 @@ function dsicrete_trajectory_regression_on_manifold
     end
     posd = pos(indices,:);
 
-
     posPlot = pos;
     quatPlot = quat;
-
-
 
     extraTime = 1;
     samplePeriod = 1/100;
@@ -268,7 +265,6 @@ function dsicrete_trajectory_regression_on_manifold
                     'AxisLength', 0.1, 'ShowArrowHead', false, ...
                     'Xlabel', 'X (m)', 'Ylabel', 'Y (m)', 'Zlabel', 'Z (m)', 'ShowLegend', false, ...
                     'CreateAVI', false, 'AVIfileNameEnum', filename, 'AVIfps', ((1/samplePeriod) / SamplePlotFreq));
-
 
     for i = 1:size(X0,3)
         quat0(i,:) = rot2quat(X0(:,:,i))';

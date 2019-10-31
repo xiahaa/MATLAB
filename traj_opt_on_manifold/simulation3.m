@@ -121,7 +121,20 @@ function [cost2] = regression_comparison(data, Nd)
     grid on;
     ylim([0,50]);
     
-    showSO3group(Rdata,Rregs,tolthresh,indices);
+    showSO3group(Rdata,Rregs,tolthresh,indices);    
+    
+    figure
+    id = [1,3,5];
+    showtol = tolthresh(id);
+    for i = 1:length(id)
+        Rreg = reshape(Rregs{id(i)},3,3,[]);
+        subplot(length(id),1,i);
+        draw_some_cubes(Rreg,10,0.2,0.2,0.4);
+        title(convertStringsToChars(string(showtol(i))));
+    end
+    
+%     view(3);
+    axis equal;
     
 end
 
@@ -182,3 +195,87 @@ function showSO3group(Rdata,Rregs,tolthresh,indices)
     leg1 = convertStringsToChars(string(tolthresh));
     legend([h1,h2],{'Input',leg1{:}},'FontName','Arial','FontSize',15);
 end
+
+function draw_some_cubes(Rreg,skipnum,l1,l2,l3)
+    N2 = size(Rreg,3);
+    step = 1;
+    j = 1;
+    for i = 1:skipnum:N2
+        draw_cube_plot([(j-1)*step,0,0],l1,l2,l3,Rreg(:,:,i));hold on;
+        odx = (j-1)*step;
+        ody = 0;
+        odz = 0;
+        udx(1) = Rreg(1,1,i);
+        vdx(1) = Rreg(2,1,i);
+        wdx(1) = Rreg(3,1,i);
+        udy(1) = Rreg(1,2,i);
+        vdy(1) = Rreg(2,2,i);
+        wdy(1) = Rreg(3,2,i);
+        udz(1) = Rreg(1,3,i);
+        vdz(1) = Rreg(2,3,i);
+        wdz(1) = Rreg(3,3,i);
+        quiver3(odx, ody, odz, udx, vdx, wdx, l1,  'r', 'ShowArrowHead', 'off', 'MaxHeadSize', 0.99999, 'AutoScale', 'off','LineWidth',2);
+        quiver3(odx, ody, odz, udy, vdy, wdy, l2,  'g', 'ShowArrowHead', 'off', 'MaxHeadSize', 0.99999, 'AutoScale', 'off','LineWidth',2);
+        quiver3(odx, ody, odz, udz, vdz, wdz, l3,  'b', 'ShowArrowHead', 'off', 'MaxHeadSize', 0.99999, 'AutoScale', 'off','LineWidth',2);
+        j = j + 1;
+    end 
+end
+
+function draw_cube_plot(origin,X,Y,Z,R)
+% CUBE_PLOT plots a cube with dimension of X, Y, Z.
+%
+% INPUTS:
+% origin = set origin point for the cube in the form of [x,y,z].
+% X      = cube length along x direction.
+% Y      = cube length along y direction.
+% Z      = cube length along z direction.
+% color  = STRING, the color patched for the cube.
+%         List of colors
+%         b blue
+%         g green
+%         r red
+%         c cyan
+%         m magenta
+%         y yellow
+%         k black
+%         w white
+% OUPUTS:
+% Plot a figure in the form of cubics.
+%
+% EXAMPLES
+% cube_plot(2,3,4,'red')
+%
+
+% ------------------------------Code Starts Here------------------------------ %
+% Define the vertexes of the unit cubic
+
+ver = [1 1 -1;
+       -1 1 -1;
+       -1 1 1;
+       1 1 1;
+       -1 -1 1;
+       1 -1 1;
+       1 -1 -1;
+      -1 -1 -1];
+
+%  Define the faces of the unit cubic
+fac = [
+    1 2 3 4;
+    4 3 5 6;
+    6 7 8 5;
+    1 2 8 7;
+    6 7 1 4;
+    2 3 5 8
+    ];
+alphas = [0,0.6,0,0.6,0,0];
+color = jet(6);
+cube = [ver(:,1)*X,ver(:,2)*Y,ver(:,3)*Z];
+% cube = [ver(:,1)*X+origin(1),ver(:,2)*Y+origin(2),ver(:,3)*Z+origin(3)];
+cube = (R*cube' + origin')';
+for i = 1:size(fac,1)
+    patch('Faces',fac(i,:),'Vertices',cube,'FaceColor',color(i,:),'EdgeColor','k','FaceAlpha',alphas(i), ...
+        'LineWidth',1.5);hold on;
+end
+hold off;
+end
+% ------------------------------Code Ends Here-------------------------------- %
