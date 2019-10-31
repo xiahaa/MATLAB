@@ -15,8 +15,8 @@ data = load('controlpoints.mat');
 
 %% Define parameters of the discrete regression curve
 % The curve has Nd points on SO(n)
-Nd = 20:20:100;
-% Nd = 50;
+% Nd = 40:20:200;
+Nd = 97;
 
 for i = 1:length(Nd)
     [cost1, cost2, cost3] = regression_comparison(data, Nd(i));
@@ -25,6 +25,19 @@ for i = 1:length(Nd)
     costs3(i)=cost3;
 end
 % save('res.mat','costs1','costs2','costs3');
+% load('res.mat');
+figure
+yyaxis left;plot(Nd,[costs1.cost],'r-o','LineWidth',2)
+yyaxis left;plot(Nd,[costs2.cost],'b-d','LineWidth',2)
+hold on
+yyaxis left;plot(Nd,[costs1.cost],'r-o','LineWidth',2)
+ylabel('Cost','FontSize',15,'FontName','Arial')
+xlabel('Discrete Number','FontSize',15,'FontName','Arial');
+ylabel('Cost','FontSize',15,'FontName','Arial','Color','k')
+yyaxis right;plot(Nd,[costs1.time],'b--','LineWidth',2)
+yyaxis right;plot(Nd,[costs2.time],'r--','LineWidth',2)
+legend({'Cost: Bou','Cost: Our','Time: Bou','Time: Our'},'FontSize',15,'FontName','Arial')
+ylabel('Runtime: (s)','FontSize',15,'FontName','Arial','Color','k')
 
 function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     n = data.n;
@@ -90,8 +103,8 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     Rreg1 = reshape(X11,3,[]);
     xi = data_term_error(Rdata,Rreg1,indices);
     v = numerical_diff_v(Rreg1);
-    cost1.cost = fcost(xi,v,tau,lambda,miu);
-
+    cost1.cost = fcost(xi,v,tau,lambda,miu,0);
+    
     % start optimization
     iter = 1;
     maxiter = N2*10;
@@ -139,13 +152,19 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     [Rreg2,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, 4, 0.7);
     xi = data_term_error(Rdata,Rreg2,indices);
     v = numerical_diff_v(Rreg2);
-    newcosts(1) = fcost(xi,v,tau,lambda,miu);
+    newcosts(1) = fcost(xi,v,tau,lambda,miu,0);
     cost2.time = toc;
     cost2.cost = newcosts(end);
+    
+    for i = 1:length(indices)
+        dataloss1(i) = sqrt(2)*norm(logSO3(Rdata(:,i*3-2:i*3)'*Rreg1(:,indices(i)*3-2:indices(i)*3)));
+        dataloss2(i) = sqrt(2)*norm(logSO3(Rdata(:,i*3-2:i*3)'*Rreg2(:,indices(i)*3-2:indices(i)*3)));
+    end
     
     % jia chao's method
     tic
     Rreg3 = traj_smoothing_via_jc(Rreg, indices, 10, 10);
+%     Rreg3 = Rreg;
     cost3.time = toc;
     xi = data_term_error(Rdata,Rreg3,indices);
     v = numerical_diff_v(Rreg3);
@@ -156,19 +175,20 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     [speed2, acc2] = compute_profiles(problem, reshape(Rreg2,3,3,[]));
     [speed3, acc3] = compute_profiles(problem, reshape(Rreg3,3,3,[]));
 
+    ts = ((1:N2)-1).*tau;
     figure(1);
-    subplot(1, 2, 1);
+    subplot(2, 1, 1);
     plot(1:N2,speed0,1:N2,speed1,1:N2,speed2,1:N2,speed3,'LineWidth',2);
     title('Speed Profile');
-    xlabel('Frame');
+    xlabel('Time');
     ylabel('Speed');
-    legend('Initial', 'Trust-Region', 'Proposed', 'Newton', 'Location', 'NorthWest');
+    legend('Geodesic Interpolation', 'Bou', 'Our', 'Jia', 'Location', 'NorthWest');
     pbaspect([1.6, 1, 1]);
     grid on;
-    subplot(1, 2, 2);
+    subplot(2, 1, 2);
     plot(1:N2,acc0,1:N2,acc1,1:N2,acc2,1:N2,acc3,'LineWidth',2);
     title('Acceleration Profile');
-    xlabel('Frame');
+    xlabel('Time');
     ylabel('Acceleration');
 %     legend('Initial', 'Trust-Region', 'Proposed', 'Newton', 'Location', 'NorthWest');
     pbaspect([1.6, 1, 1]);
