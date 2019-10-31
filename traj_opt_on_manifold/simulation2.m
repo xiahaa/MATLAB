@@ -15,22 +15,21 @@ data = load('controlpoints.mat');
 
 %% Define parameters of the discrete regression curve
 % The curve has Nd points on SO(n)
-% Nd = 40:20:200;
-Nd = 97;
+Nd = 40:20:200;
+% Nd = 97;
 
-for i = 1:length(Nd)
-    [cost1, cost2, cost3] = regression_comparison(data, Nd(i));
-    costs1(i)=cost1;
-    costs2(i)=cost2;
-    costs3(i)=cost3;
-end
+% for i = 1:length(Nd)
+%     [cost1, cost2, cost3] = regression_comparison(data, Nd(i));
+%     costs1(i)=cost1;
+%     costs2(i)=cost2;
+%     costs3(i)=cost3;
+% end
 % save('res.mat','costs1','costs2','costs3');
-% load('res.mat');
+load('data/res.mat');
 figure
-yyaxis left;plot(Nd,[costs1.cost],'r-o','LineWidth',2)
-yyaxis left;plot(Nd,[costs2.cost],'b-d','LineWidth',2)
-hold on
-yyaxis left;plot(Nd,[costs1.cost],'r-o','LineWidth',2)
+yyaxis left;plot(Nd,[costs1(:).cost],'b-o','LineWidth',2);hold on;grid on;
+yyaxis left;plot(Nd,[costs2(:).cost],'r-d','LineWidth',2)
+yyaxis left;
 ylabel('Cost','FontSize',15,'FontName','Arial')
 xlabel('Discrete Number','FontSize',15,'FontName','Arial');
 ylabel('Cost','FontSize',15,'FontName','Arial','Color','k')
