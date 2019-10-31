@@ -2,7 +2,7 @@ clc;clear all;close all;
 addpath './jiachao/'
 addpath './utils/'
 
-t = linspace(0,6*pi,500);
+t = linspace(0,6*pi,200);
 roll = 10 * pi / 180 + sin(t) ;
 pitch = 20 * pi / 180 + sin(t);
 yaw = 45 * pi / 180 + sin(t);
@@ -15,7 +15,7 @@ tic
 Rreg = regression_so3(Rnoisy);
 toc;
 
-% Rreg1 = boumel(Rnoisy);
+Rreg1 = boumel(Rnoisy);
 tic
 Rreg2 = traj_smoothing_via_jc(Rnoisy, 1:size(Rreg,3), 10, 10);
 toc
@@ -28,8 +28,8 @@ for i = 2:length(t)
     anglenoisy(i) = norm(so3) * 180 / pi;
     so3 = logSO3(Rreg(:,:,i-1)'*Rreg(:,:,i));
     anglereg(i) = norm(so3) * 180 / pi;
-%     so3 = logSO3(Rreg1(:,:,i-1)'*Rreg1(:,:,i));
-%     anglereg1(i) = norm(so3) * 180 / pi;
+    so3 = logSO3(Rreg1(:,:,i-1)'*Rreg1(:,:,i));
+    anglereg1(i) = norm(so3) * 180 / pi;
     so3 = logSO3(Rreg2(:,:,i-1)'*Rreg2(:,:,i));
     anglereg2(i) = norm(so3) * 180 / pi;
 end
@@ -38,11 +38,11 @@ figure
 plot(anglereal,'LineWidth',1.5);hold on;grid on;
 plot(anglenoisy,'LineWidth',1.5);
 plot(anglereg,'LineWidth',1.5);
+plot(anglereg1,'LineWidth',1.5);
 plot(anglereg2,'LineWidth',1.5);
 xlabel('Frame');
 ylabel('Relative Rotation Angle: degree');
-legend({'Ground Truth','Input','Proposed','Jia'},'Location','northwest');
-% plot(anglereg1);
+legend({'Ground Truth','Input','Our','Bou','Jia'},'Location','northwest');
 
 
 
@@ -79,13 +79,13 @@ function X1 = regression_so3(Rreg)
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 1000;
+    lambda = 0.1;
 
     % Weight of the acceleration regularization term (nonnegative). The larger
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 0;
+    mu = 1e-2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
@@ -125,35 +125,38 @@ function X1 = regression_so3(Rreg)
     
     if 1
 %     indices = [];
-    while iter < maxiter        
-        % sequential update
-        newcost = 0;
-        for j = 1:N2
-            id = j;%ids(j);
-            xi = data_term_error(Rdata,Rreg,indices,id);
-            v = numerical_diff_v(Rreg,id);
-            dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id);
-            % 
-            if norm(dxi) > tr
-                dxi = dxi ./ norm(dxi) .* tr;
-            end
-            dxis(:,id)=dxi;
-            Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
-        end
-        
-        xi = data_term_error(Rdata,Rreg,indices);
-        v = numerical_diff_v(Rreg);
-        newcost = fcost(xi,v,tau,lambda,miu);
-        newcosts(iter) = newcost;
-        if abs(newcost - oldcost) < tol1
-            break;
-        end
-        oldcost = newcost;
-        
-        iter = iter + 1;
+%     while iter < maxiter        
+% %         sequential update
+%         newcost = 0;
+%         for j = 1:N2
+%             id = j;%ids(j);
+%             xi = data_term_error(Rdata,Rreg,indices,id);
+%             v = numerical_diff_v(Rreg,id);
+%             dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id);
+%             
+%             if norm(dxi) > tr
+%                 dxi = dxi ./ norm(dxi) .* tr;
+%             end
+%             dxis(:,id)=dxi;
+%             Rreg(:,id*3-2:id*3) = Rreg(:,id*3-2:id*3) * expSO3(dxi);
+%         end
+%         
+%         xi = data_term_error(Rdata,Rreg,indices);
+%         v = numerical_diff_v(Rreg);
+%         newcost = fcost(xi,v,tau,lambda,miu);
+%         newcosts(iter) = newcost;
+%         if abs(newcost - oldcost) < tol1
+%             break;
+%         end
+%         oldcost = newcost;
+%         
+%         iter = iter + 1;
 %         disp(iter);
-    end
+%     end
+    
+    [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, 4, 0.25);
     X1 = reshape(Rreg,3,3,[]);
+    
 %     figure(7);
 %     plot(newcosts,'r-','LineWidth',1.5); grid on;
 %     xlabel('Iteration');

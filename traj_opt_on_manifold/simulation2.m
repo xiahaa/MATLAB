@@ -15,7 +15,7 @@ data = load('controlpoints.mat');
 
 %% Define parameters of the discrete regression curve
 % The curve has Nd points on SO(n)
-Nd = 10:10:50;
+Nd = 20:20:100;
 % Nd = 50;
 
 for i = 1:length(Nd)
@@ -81,8 +81,8 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     % (below) will compute one itself. X0 is a 3D matrix of size n x n x Nd,
     % such that each slice X0(:, :, k) is a rotation matrix.
     X0 = initguess(problem);
-    
-    Rdata = reshape(X0,3,[]);
+    Rdata = X0(:,:,indices);
+    Rdata = reshape(Rdata,3,[]);
     Rreg = reshape(X0,3,[]);
     tic
     [X11, info, optim_problem] = digress(problem, X0);
@@ -102,40 +102,44 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     newcosts = zeros(1,maxiter);
     Rreg2 = Rreg;
     tic
-    while iter <= maxiter
-        % sequential update
-        newcost = 0;
-%         ids = randperm(N2,N2);
-        dxis=[];
-        for j = 1:N2
-            id = j;%ids(j);
-            xi = data_term_error(Rdata,Rreg2,indices,id);
-            v = numerical_diff_v(Rreg2,id);
-            dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id);
-            % 
-            if norm(dxi) > tr
-                dxi = dxi ./ norm(dxi) .* tr;
-            end
-            dxis(:,id)=dxi;
-            Rreg2(:,id*3-2:id*3) = Rreg2(:,id*3-2:id*3) * expSO3(dxi);
-        end
-%         dxis = dxis(:);
-%         Rreg2 = group_update(Rreg2, dxis, N2, ones(1,N2), 1);	
-
-        xi = data_term_error(Rdata,Rreg2,indices);
-        v = numerical_diff_v(Rreg2);
-        newcost = fcost(xi,v,tau,lambda,miu);
-        newcosts(iter) = newcost;
-        if abs(newcost - oldcost) < tol1
-            break;
-        end
-        oldcost = newcost;
-        iter = iter + 1;
-    end
+%     while iter <= maxiter
+%         % sequential update
+%         newcost = 0;
+% %         ids = randperm(N2,N2);
+%         dxis=[];
+%         for j = 1:N2
+%             id = j;%ids(j);
+%             xi = data_term_error(Rdata,Rreg2,indices,id);
+%             v = numerical_diff_v(Rreg2,id);
+%             dxi = seq_sol(xi, v, indices, tau, lambda, miu, N2, id);
+%             % 
+%             if norm(dxi) > tr
+%                 dxi = dxi ./ norm(dxi) .* tr;
+%             end
+%             dxis(:,id)=dxi;
+%             Rreg2(:,id*3-2:id*3) = Rreg2(:,id*3-2:id*3) * expSO3(dxi);
+%         end
+% %         dxis = dxis(:);
+% %         Rreg2 = group_update(Rreg2, dxis, N2, ones(1,N2), 1);	
+% 
+%         xi = data_term_error(Rdata,Rreg2,indices);
+%         v = numerical_diff_v(Rreg2);
+%         newcost = fcost(xi,v,tau,lambda,miu);
+%         newcosts(iter) = newcost;
+%         if abs(newcost - oldcost) < tol1
+%             break;
+%         end
+%         oldcost = newcost;
+%         iter = iter + 1;
+%     end
 %     Rreg2 = coarse_to_fine_seq_sol(Rdata, Rreg, indices, tau, lambda, miu, Nd);
 %     xi = data_term_error(Rdata,Rreg2,indices);
 %     v = numerical_diff_v(Rreg2);
 %     newcosts(1) = cost(xi,v,tau,lambda,miu);
+    [Rreg2,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, 4, 0.7);
+    xi = data_term_error(Rdata,Rreg2,indices);
+    v = numerical_diff_v(Rreg2);
+    newcosts(1) = fcost(xi,v,tau,lambda,miu);
     cost2.time = toc;
     cost2.cost = newcosts(end);
     
@@ -169,7 +173,7 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
 %     legend('Initial', 'Trust-Region', 'Proposed', 'Newton', 'Location', 'NorthWest');
     pbaspect([1.6, 1, 1]);
     grid on;
-    ylim([0,100]);
+    ylim([0,50]);
 end
 
 function new_group = group_update(old_group, d, N, coding, update_id)

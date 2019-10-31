@@ -1,6 +1,12 @@
-function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, solver)
+function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, solver, varargin)
     Rdata = reshape(Rdata,3,3,[]);
     Rreg = reshape(Rreg,3,3,[]);
+    
+    if nargin > 7
+        tolscale = varargin{1};
+    else
+        tolscale = 0.1;
+    end
 
     %% nonlinear optimization using continuous representation
 %     fobj = @(x) (nonobjfunx(x, tau, lambda, miu, indices, Rdata, Rreg));
@@ -40,7 +46,7 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
             x0 = zeros(3*size(Rreg,3),1);
             [~,~,A] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
             [Aeq,beq] = constraint_end2(x0);
-            [Aieq,bieq] = constraint_end1_new_lin(x0, Rdata, Rreg, indices);
+            [Aieq,bieq] = constraint_end1_new_lin(x0, Rdata, Rreg, indices, tolscale);
             x = quadprog(2*A, [], Aieq, bieq, Aeq, beq, [], [], [], options);
             Rreg = fromso3_end_new(Rreg, x);            
         elseif solver == 4
@@ -52,7 +58,7 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
             [Aeq,beq] = constraint_end2(x0);
             fobj = @(x) (objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg));
             fhess = @(x,lambda) (hessinterior(x,lambda,A));
-            fcons = @(x) (constraint_end1_new(x, Rdata, Rreg, indices));
+            fcons = @(x) (constraint_end1_new(x, Rdata, Rreg, indices, tolscale));
             options = optimoptions(@fmincon,'Algorithm','interior-point',...
                     'Display','final','SpecifyObjectiveGradient',true,'HessianFcn',fhess,'OptimalityTolerance',1e-10,...
                     'StepTolerance',1e-10,'SpecifyConstraintGradient',true);
@@ -536,7 +542,7 @@ function [f,gradf,Qout] = objfunx_endpoint_new(x, tau, lambda, mu, indices, Rdat
     end
 end
 
-function [Aieq, bieq] = constraint_end1_new_lin(x, Rdata, Rreg, indices)
+function [Aieq, bieq] = constraint_end1_new_lin(x, Rdata, Rreg, indices, tolscale)
 % endpoint bound constraints
     P0 = [[1 0 0]; ...
           [0 1 0]; ...
@@ -545,7 +551,7 @@ function [Aieq, bieq] = constraint_end1_new_lin(x, Rdata, Rreg, indices)
     N = round(length(x)/3);
     Aieq = zeros(6*length(indices), length(x));
     bieq = zeros(6*length(indices), 1);
-    tol = 0.1.*ones(1,N);%[0.2 0.5 0.5 0.2];
+    tol = tolscale.*ones(1,N);%[0.2 0.5 0.5 0.2];
     for i = 1:length(indices)
         ii = indices(i);
         v1 = logSO3(Rdata(:,:,i)');%*Rreg(:,:,ii)
@@ -557,7 +563,7 @@ function [Aieq, bieq] = constraint_end1_new_lin(x, Rdata, Rreg, indices)
     end
 end
 
-function [c, ceq, gradc, gradceq] = constraint_end1_new(x, Rdata, Rreg, indices)
+function [c, ceq, gradc, gradceq] = constraint_end1_new(x, Rdata, Rreg, indices, tolscale)
 % endpoint bound constraints
     P0 = [[1 0 0]; ...
           [0 1 0]; ...
@@ -577,7 +583,7 @@ function [c, ceq, gradc, gradceq] = constraint_end1_new(x, Rdata, Rreg, indices)
 %         bieq(i*6-5:i*6-3) = -v1 + tol(i);
 %         bieq(i*6-2:i*6) = v1 + tol(i);
 %     end
-    tol = 0.01.*ones(1,N);%[0.2 0.5 0.5 0.2];
+    tol = tolscale.*ones(1,N);%[0.2 0.5 0.5 0.2];
     c = zeros(6*length(indices),1);
     for i = 1:length(indices)
         ii = indices(i);

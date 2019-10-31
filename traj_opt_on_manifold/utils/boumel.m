@@ -31,13 +31,13 @@ function varargout = boumel(varargin)
     % Weight of the velocity regularization term (nonnegative). The larger it
     % is, the more velocity along the discrete curve is penalized. A large
     % value usually results in a shorter curve.
-    lambda = 0;
+    lambda = 0.1;
 
     % Weight of the acceleration regularization term (nonnegative). The larger
     % it is, the more acceleration along the discrete curve is penalized. A
     % large value usually results is a 'straighter' curve (closer to a
     % geodesic.)
-    mu = 1;
+    mu = 1e-2;
 
     %% Pack all data defining the regression problem in a problem structure.
     problem.n = n;
