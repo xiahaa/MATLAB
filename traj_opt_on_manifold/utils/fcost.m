@@ -1,4 +1,9 @@
-function y = cost(xi,v,tau,lambda,miu)
+function y = cost(xi,v,tau,lambda,miu,varargin)
+    if nargin > 5
+        alpha = varargin{1};
+    else
+        alpha = 1;
+    end
     % cost term 1, data cost
     cost1 = sum(vecnorm(xi,2).^2.*2);
 
@@ -16,5 +21,5 @@ function y = cost(xi,v,tau,lambda,miu)
     end
     cost3 = sum(vecnorm(a,2).^2.*(2/tau^3));
 
-    y = cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
+    y = alpha.*cost1 * 0.5 + cost2 * 0.5 * lambda + cost3 * 0.5 * miu;
 end
