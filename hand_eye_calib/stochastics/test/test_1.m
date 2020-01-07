@@ -14,22 +14,30 @@ end
 addpath('../beautiful_plot');
 
 %% Add file dependencies
-addpath C:\Users\xiahaa\Documents\MATLAB\hand_eye_calib\solver\
-addpath C:\Users\xiahaa\Documents\MATLAB\MatrixLieGroup\barfoot_tro14\
-addpath C:\Users\xiahaa\Documents\MATLAB\hand_eye_calib\data_gen\
-addpath D:\dtu\sourcecode\hand_eye\axxb_calibration-stable_stochastics_lie\axxb_calibration-stable\matlab\Batch_Method_ED_KL_BS
-
+if ismac
+    addpath ../../data_gen/
+    addpath ../utils/
+    addpath ../solver/
+    addpath ../
+    addpath ../mean/
+    addpath ../../evaluation/
+else
+    addpath C:\Users\xiahaa\Documents\MATLAB\hand_eye_calib\solver\
+    addpath C:\Users\xiahaa\Documents\MATLAB\MatrixLieGroup\barfoot_tro14\
+    addpath C:\Users\xiahaa\Documents\MATLAB\hand_eye_calib\data_gen\
+    addpath D:\dtu\sourcecode\hand_eye\axxb_calibration-stable_stochastics_lie\axxb_calibration-stable\matlab\Batch_Method_ED_KL_BS
+end
 %% Initialize Parameters
 num = 50; % Number of steps
 gmean = [0;0;0;0;0;0];	%Gaussian Noise Mean
 
-stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
-stds_n = 0 * ones(1, numel(stds));% exp 1 & 2, data generation methods.
-name = stds;
+% stds = 0.3:0.3:1.5; % Gaussian Noise standard deviation Range
+% stds_n = 0 * ones(1, numel(stds));% exp 1 & 2, data generation methods.
+% name = stds;
 
-% stds_n = [0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08]; % Gaussian Noise standard deviation Range
-% stds = 1*ones(1,numel(stds_n)); % Gaussian Noise standard deviation Range
-% name = stds_n;
+stds_n = [0.02 0.04 0.06 0.08 0.1]; % Gaussian Noise standard deviation Range
+stds = 1*ones(1,numel(stds_n)); % Gaussian Noise standard deviation Range
+name = stds_n;
 
 n_trials = 50; %60
 
@@ -120,7 +128,11 @@ for solver_id = 1:size(solver_name,2)
     res.error_r = error_r;
     res.error_t = error_t;
     res.times = times;
-    save(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/sto/test_1',solver_name{solver_id},'.mat'),'res');
+    if ismac
+        save(strcat('../../result/sto/test_1',solver_name{solver_id},'.mat'),'res');
+    else
+        save(strcat('C:/Users/xiahaa/Documents/MATLAB/hand_eye_calib/result/sto/test_1',solver_name{solver_id},'.mat'),'res');
+    end
 end
 
 function X = genRandomPose(num) 
