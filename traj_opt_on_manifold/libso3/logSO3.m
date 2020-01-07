@@ -1,7 +1,11 @@
 
 function r = logSO3(R)
     r = [0;0;0];
-    angle = acos((trace(R)-1)*0.5);
+    res = (trace(R)-1)*0.5;
+    if res < -1
+        res = -1;
+    end
+    angle = acos(res);
     if angle > 1e-10
         so3 = angle / (2*sin(angle))*(R-R');
         r = [-so3(2,3);so3(1,3);-so3(1,2)];
