@@ -14,7 +14,7 @@ Hreal(:,:,1) = H0 ./ (det(H0)^(1/3));
 Hmeas(:,:,1) = H0 ./ (det(H0)^(1/3));
 Areal(:,:,1) = A;
 for i = 2:N
-    Q = rand(3,3).*0.2;
+    Q = randn(3,3).*1;
     Q = tosl3(Q);
     H = Hreal(:,:,i-1)*expm((A).*dt);
     Hreal(:,:,i) = H ./ (det(H)^(1/3));
@@ -24,11 +24,10 @@ for i = 2:N
 end
 
 Hest = zeros(3,3,N);
-H1 = [3 1 2;1 0.4 1;1 0.4 2];
+H1 = [5 1 2;1 0.4 1;1 0.4 2];
 Hest(:,:,1) = H1./(det(H1)^(1/3));
 Aest = zeros(3,3,N);
 A0 = [0 0 0;0 0 0;0 0 0];
-Hest(:,:,1) = H0;
 for i = 2:N
     [Hest(:,:,i), Aest(:,:,i)] = SL3filter1(Hest(:,:,i-1), Hmeas(:,:,i), Aest(:,:,i-1), dt);
 end
@@ -41,6 +40,7 @@ for i = 1:1:3
         a11 = Aest(i,j,:);a11 = a11(:);
         plot(b11,'r-','LineWidth',2);hold on;
         plot(a11,'b-.','LineWidth',2);hold on;
+        legend({'real','est'});
     end
 end
 figure
@@ -51,13 +51,36 @@ for i = 1:1:3
         a11 = Hest(i,j,:);a11 = a11(:);
         plot(b11,'r-','LineWidth',2);hold on;grid on;
         plot(a11,'b-.','LineWidth',2);hold on;
+        legend({'real','est'});
     end
 end
 
+%% simulation-2
+n=100;
+K=eye(3,3);
+p=randn(3,n);
+p=p./vecnorm(p);
 
+Hest = zeros(3,3,N);
+H1 = [5 1 2;1 0.4 1;1 0.4 2];
+Hest(:,:,1) = H1./(det(H1)^(1/3));
+for i = 2:N
+    q = inv(Hreal(:,:,i)) * p;
+    q = q./vecnorm(q);
+    [Hest(:,:,i)] = SL3filter2(Hest(:,:,i-1), q, p, Areal(:,:,i-1), dt);
+end
 
-
-
+figure
+for i = 1:1:3
+    for j = 1:1:3
+        subplot(3,3,(i-1)*3+j);
+        b11 = Hreal(i,j,:);b11 = b11(:);
+        a11 = Hest(i,j,:);a11 = a11(:);
+        plot(b11,'r-','LineWidth',2);hold on;grid on;
+        plot(a11,'b-.','LineWidth',2);hold on;
+        legend({'real','est'});
+    end
+end
 
 
 
@@ -109,7 +132,7 @@ function [Hest, Aest] = SL3filter1(Hest, Hmeas, Aest, dt)
 
     Aest = Aest + Adot*dt;
     Hdot = (adjointSL3((Htilde),Aest) + alpha);
-    Hest = Hest*(eye(3)+(Hdot)*dt);% alternatively, Hest = Hest*expm(Hdot*dt)
+    Hest = Hest*expm(Hdot*dt);% alternatively, Hest = Hest*expm(Hdot*dt)
     Hest = Hest ./ (det(Hest)^(1/3));
 
 end
@@ -128,7 +151,21 @@ end
 
 % the benefit of this observor is that no direct measuremnt of H is
 % necessary
-function [Hest, tau] = SL3filter2(Hest, tau, dt, pref, pcur,omega)
+function Hest = SL3filter2(Hest, q, p, A, dt)
+% Hamel T, Mahony R, Trumpf J, et al.
+% Homography estimation on the special linear group based on direct point correspondence[C]
+% //2011 50th IEEE Conference on Decision and Control and European Control Conference. IEEE, 2011: 7902-7908.
+
+    % compute point correction
+    w = correctionByPoints(Hest, p, q);
+    % update tau
+    KP = 0.5;
+
+    Hdot = A+inv(Hest)*KP*w*Hest;
+    Hest = Hest*(eye(3)+(Hdot)*dt);
+end
+
+function [Hest, tau] = SL3filter3(Hest, tau, dt, pref, pcur,omega)
 % Hamel T, Mahony R, Trumpf J, et al.
 % Homography estimation on the special linear group based on direct point correspondence[C]
 % //2011 50th IEEE Conference on Decision and Control and European Control Conference. IEEE, 2011: 7902-7908.
