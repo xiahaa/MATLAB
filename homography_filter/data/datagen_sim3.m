@@ -14,7 +14,7 @@ function [P,Hreal,Rs,ws,xi,Etareal] = datagen_sim3(N,dt)
     xid = [-r*sin(ts*w)*w;r*cos(ts*w)*w;zeros(1,N)];
     %% rotation
     R0 = eye(3);
-    wr = randn(3,1)*3;wr(1:2) = 0;
+    wr = randn(3,1)*3;
     Rs = zeros(3,3,N);
     Rs(:,:,1) = R0;
     ws = zeros(3,N);
@@ -28,6 +28,7 @@ function [P,Hreal,Rs,ws,xi,Etareal] = datagen_sim3(N,dt)
     Hreal(:,:,1) = H1./(det(H1)^(1/3));
     Etareal(:,:,1) = Rs(:,:,1)'*xid(:,1)*n'/d;
     for i = 2:N
+        wr(1:2) = randn(2,1).*0.05;
         Rs(:,:,i) = Rs(:,:,i-1)*expm(toso3(wr*dt));
         ws(:,i) = wr;
         n = Rs(:,:,i)'*n0;

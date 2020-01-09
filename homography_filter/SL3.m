@@ -5,7 +5,10 @@ addpath libsl3
 addpath filter
 addpath data
 
-sim3;
+% sim1;
+% sim2;
+% sim3;
+sim4;
 
 function sim1()
     N = 1500;
@@ -125,4 +128,46 @@ function sim3()
     end
 end
 
+function sim4()
+    N = 1500;
+    dt = 0.01;
+    [P,Hreal,Rs,ws,xi,~] = datagen_sim3(N,dt);
+    
+    %% simulation-3
+    K=eye(3,3);
+    p = K*P;
+    Kinv = inv(K);
+    pkinv = Kinv * p;
+    % from point to line
+    l0 = zeros(3,round(size(P,2)*0.5));
+    k = 1;
+    l0 = cross(pkinv(:,[1:2:end-1]), pkinv(:,[2:2:end]));
+    l0 = l0 ./ vecnorm(l0);
+
+    Hest = zeros(3,3,N);
+    H1 = [5 1 2;1 0.4 1;1 0.4 2];
+    Hest(:,:,1) = H1./(det(H1)^(1/3));
+    Eta = zeros(3,3,N);
+    for i = 2:N
+        Q = Rs(:,:,i)'*(P - xi(:,i));
+        q = K*Q + 0.01*randn(3,size(Q,2));
+        qkinv = Kinv * q;
+        l1 = cross(qkinv(:,[1:2:end-1]), qkinv(:,[2:2:end]));
+        l1 = l1 ./ vecnorm(l1);
+        [Hest(:,:,i),Eta(:,:,i)] = SL3filter4(Hest(:,:,i-1), Eta(:,:,i-1), dt, l0, l1, ws(:,i)+0.01*randn(3,1));
+    end
+
+    figure
+    for i = 1:1:3
+        for j = 1:1:3
+            subplot(3,3,(i-1)*3+j);
+            b11 = Hreal(i,j,:);b11 = b11(:);
+            a11 = Hest(i,j,:);a11 = a11(:);
+            plot(b11,'r-','LineWidth',2);hold on;grid on;
+            plot(a11,'b-.','LineWidth',2);hold on;
+            legend({'real','est'});
+        end
+    end
+    
+end
 
