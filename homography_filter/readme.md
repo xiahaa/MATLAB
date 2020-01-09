@@ -10,5 +10,5 @@
 
 3. unknown group velocity: but assume it is constant (done);
 
-4. unknow group velocity: assume the group undergoes rigid motion (not yet complemented);
+4. unknown group velocity: assume the group undergoes rigid motion (not yet complemented);
 
