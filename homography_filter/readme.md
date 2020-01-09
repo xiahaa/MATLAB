@@ -24,3 +24,9 @@
 **Note**: with 4 and 5, it is trivial to apply the combined point and line correspondece method.
 
 **Note**: from the demo video made by the author, it can be inferred that the filter prediction will not be very accurate if the motion assumption doesn't hold (which is quite common). My personal opinion is that it can be used in a short time for prediction.
+
+### extract optical flow from continuous homography
+> Manerikar N, Hua M D, Hamel T. "Homography Observer Design on Special Linear Group SL (3) with Application to Optical Flow Estimation"[C], 2018 European Control Conference (ECC). IEEE, 2018: 1-5.
+
+利用有限差分，log(H)获取群速度U，进而根据rigid motion下的U构成，去掉旋转向量之后，再提取optical flow。
+此文可以反过来用，利用相机获取连续H，差分得到U，motion时假设V极小或者d极大，则U和Omega对应，反过来可以用来做对齐和标定。
