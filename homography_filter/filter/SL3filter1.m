@@ -16,7 +16,7 @@ function [Hest, Aest] = SL3filter1(Hest, Hmeas, Aest, dt)
 
     Aest = Aest + Adot*dt;
     Hdot = (adjointSL3((Htilde),Aest) + alpha);
-    Hest = Hest*expm(Hdot*dt);% alternatively, Hest = Hest*expm(Hdot*dt)
+    Hest = Hest*expm(Hdot*dt);% alternatively, Hest = Hest*expm(Hdot*dt) % exp(Ad_H U dt)*H = H*exp(U*dt), so this equals to expm(Hreal(:,:,i-1)*(A).*dt*inv(Hreal(:,:,i-1)))*Hreal(:,:,i-1)
     Hest = Hest ./ (det(Hest)^(1/3));
 
 end
