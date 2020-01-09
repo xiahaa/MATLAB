@@ -22,3 +22,5 @@
 5. unknown group velocity: assume the group undergoes rigid motion (done);
 
 **Note**: with 4 and 5, it is trivial to apply the combined point and line correspondece method.
+
+**Note**: from the demo video made by the author, it can be inferred that the filter prediction will not be very accurate if the motion assumption doesn't hold (which is quite common). My personal opinion is that it can be used in a short time for prediction.
