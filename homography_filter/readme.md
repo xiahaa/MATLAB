@@ -14,5 +14,13 @@
 
 3. unknown group velocity: but assume it is constant (done);
 
-4. unknown group velocity: assume the group undergoes rigid motion (done);
+4. unknown group velocity: assume the group undergoes rigid motion (done); choose the second form where the V/d is a constant (cyclical motion)
 
+### use line correspondece as measurement
+> Hua, Minh-Duc, et al. "Point and line feature-based observer design on SL (3) for Homography estimation and its application to image stabilization." (2017).
+
+5. unknown group velocity: assume the group undergoes rigid motion (done);
+
+**Note**: with 4 and 5, it is trivial to apply the combined point and line correspondece method.
+
+**Note**: from the demo video made by the author, it can be inferred that the filter prediction will not be very accurate if the motion assumption doesn't hold (which is quite common). My personal opinion is that it can be used in a short time for prediction.
