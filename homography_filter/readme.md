@@ -31,3 +31,6 @@
 利用有限差分，log(H)获取群速度U，进而根据rigid motion下的U构成，去掉旋转向量之后，再提取optical flow。
 
 **此文可以反过来用，利用相机获取连续H，差分得到U，motion时假设V极小或者d极大，则U和Omega对应，反过来可以用来做对齐和标定。**
+
+
+### EKF version
