@@ -61,3 +61,4 @@ imgproc/pnp/test/eurasip/formeSO32.m
 imgproc/pnp/test/find_inliers_em.m
 
 traj_opt_on_manifold/nouse/*.m
+homography_filter/3rdparty/Razor_AHRS_test - Copy.pde
