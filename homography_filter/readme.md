@@ -32,6 +32,9 @@
 
 **此文可以反过来用，利用相机获取连续H，差分得到U，motion时假设V极小或者d极大，则U和Omega对应，反过来可以用来做对齐和标定。**
 
+### use conic
+> Hua, M. D., Hamel, T., Mahony, R., & Allibert, G. (2017, December). Explicit complementary observer design on special linear group sl (3) for homography estimation using conic correspondences. In 2017 IEEE 56th Annual Conference on Decision and Control (CDC) (pp. 2434-2441). IEEE.
+
 
 ### EKF version
 
