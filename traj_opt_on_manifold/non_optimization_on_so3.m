@@ -41,7 +41,9 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
             [Aieq,bieq] = constraint_end1(x0, Rdata, indices);
             x = quadprog(2*A, f, Aieq, bieq, Aeq, beq, [], [], [], options);
             Rreg = fromso3_end(Rreg, x);
-        %% end-point
+        %% solver3 is directly working with lie algebra. it works well but
+        % lacks of scientifical proof especially the coverage is not
+        % one-to-one.
         elseif solver == 3
             x0 = zeros(3*size(Rreg,3),1);
             [~,~,A] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
@@ -50,6 +52,11 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
             x = quadprog(2*A, [], Aieq, bieq, Aeq, beq, [], [], [], options);
             Rreg = fromso3_end_new(Rreg, x);            
         elseif solver == 4
+        %% solver4 is what is written in the IFAC WC 2020. It uses lie albegra 
+        % to formulate the cost function, but formulate the constraint
+        % as nonlinear constrain and solve with fmincon. It works similarly
+        % to solver3 but with more strict mathematical meaning regarding
+        % the nonlinear constraint.
             x0 = zeros(3*size(Rreg,3),1);
     %         for j = 1:size(Rreg,3)
     %             x0(j*3-2:j*3)=logSO3(Rreg(:,:,j));
