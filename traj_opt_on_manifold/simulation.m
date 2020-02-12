@@ -1,6 +1,7 @@
 clc;clear all;close all;
 addpath './jiachao/'
 addpath './utils/'
+addpath 'SOn_regression-master/'
 
 t = linspace(0,6*pi,200);
 roll = 10 * pi / 180 + sin(t) ;
