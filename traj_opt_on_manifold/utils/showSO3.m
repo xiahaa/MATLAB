@@ -15,16 +15,19 @@ function showSO3(Rdata,Rreg)
     x1 = [xid(1,:).*v(1);xid(2,:).*v(2);xid(3,:)*v(3)];
     x2 = [xi(1,:).*v(1);xi(2,:).*v(2);xi(3,:)*v(3)];
     
-    [x,y,z]=sphere(100);
-    figure
-    h0=surf(x,y,z,'FaceAlpha',0.1,'FaceColor',[0.1,0.1,0.1],'EdgeColor','none')
-    shading interp
+    [x,y,z]=sphere(30);
+%     figure
+    h0=surf(x,y,z,'FaceAlpha',0.1,'FaceColor',[0.1,0.1,0.1],'EdgeColor','k')
+%     shading interp
     hold on;
     cmap = lines(2);
     h1=plot3(x1(1,:),x1(2,:),x1(3,:),'o','MarkerSize',8,'Color',cmap(1,:),'MarkerFaceColor',cmap(1,:));
     h2=plot3(x2(1,:),x2(2,:),x2(3,:),'-','LineWidth',2,'Color',cmap(2,:));
 %     title('Regression');
     legend([h1,h2],{'Input','Regression'});
+
+    axis off;
+    axis equal;
     
     set(gca,'xtick',[]);
     set(gca,'ytick',[]);

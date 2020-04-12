@@ -68,8 +68,14 @@ for i = 1:N2
     Rreg(:,i*3-2:i*3) = X0(:,:,i);
 end
 
-[Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, 4);
-    
+[Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, 4,0.4);
+figure
+% subplot(1,2,1);
+showSO3(Rdata,Rreg);
+[Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, indices, tau, 4,0.01);
+% subplot(1,2,2);
+figure;showSO3(Rdata,Rreg);
+
 figure(7);
 plot(newcosts,'r-o','LineWidth',2);
     
@@ -78,7 +84,6 @@ for i = 1:N2
     X1(:,:,i) = Rreg(:,i*3-2:i*3);
 end
 
-showSO3(Rdata,Rreg);
 
 [speed0, acc0] = compute_profiles(problem, X0);
 [speed1, acc1] = compute_profiles(problem, X1);
