@@ -1,7 +1,7 @@
 clc;clear all;close all;
 addpath './jiachao/'
 addpath './utils/'
-addpath 'SOn_regression-master/'
+addpath(genpath('SOn_regression-master/'))
 
 t = linspace(0,6*pi,200);
 roll = 10 * pi / 180 + sin(t) ;
@@ -44,7 +44,7 @@ plot(anglereg1,'LineWidth',1.5);
 plot(anglereg2,'LineWidth',1.5);
 xlabel('Frame');
 ylabel('Relative Rotation Angle: degree');
-legend({'Ground Truth','Input','Our','Bou','Jia'},'Location','northwest');
+legend({'Ground Truth','Input','Ours','Bou','Jia'},'Location','northwest');
 
 
 

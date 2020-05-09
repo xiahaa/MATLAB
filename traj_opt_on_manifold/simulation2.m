@@ -35,7 +35,7 @@ xlabel('Discrete Number','FontSize',15,'FontName','Arial');
 ylabel('Cost','FontSize',15,'FontName','Arial','Color','k')
 yyaxis right;plot(Nd,[costs1.time],'b--','LineWidth',2)
 yyaxis right;plot(Nd,[costs2.time],'r--','LineWidth',2)
-legend({'Cost: Bou','Cost: Our','Time: Bou','Time: Our'},'FontSize',15,'FontName','Arial')
+legend({'Cost: Bou','Cost: Ours','Time: Bou','Time: Ours'},'FontSize',15,'FontName','Arial')
 ylabel('Runtime: (s)','FontSize',15,'FontName','Arial','Color','k')
 
 function [cost1, cost2, cost3] = regression_comparison(data, Nd)
@@ -181,7 +181,7 @@ function [cost1, cost2, cost3] = regression_comparison(data, Nd)
     title('Speed Profile');
     xlabel('Time');
     ylabel('Speed');
-    legend('Geodesic Interpolation', 'Bou', 'Our', 'Jia', 'Location', 'NorthWest');
+    legend('Geodesic Interpolation', 'Bou', 'Ours', 'Jia', 'Location', 'NorthWest');
     pbaspect([1.6, 1, 1]);
     grid on;
     subplot(2, 1, 2);
