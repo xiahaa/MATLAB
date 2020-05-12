@@ -64,7 +64,7 @@ function [Rreg,newcosts] = non_optimization_on_so3(Rdata, Rreg, miu, lambda, ind
             [~,~,A] = objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg);
             [Aeq,beq] = constraint_end2(x0);
             fobj = @(x) (objfunx_endpoint_new(x0, tau, lambda, miu, indices, Rdata, Rreg));
-            fhess = @(x,lambda) (hessinterior(x,lambda,A));
+            fhess = @(x,lambda) (hessinterior(x,lambda,A, Rdata, indices));
             fcons = @(x) (constraint_end1_new(x, Rdata, Rreg, indices, tolscale));
             options = optimoptions(@fmincon,'Algorithm','interior-point',...
                     'Display','final','SpecifyObjectiveGradient',true,'HessianFcn',fhess,'OptimalityTolerance',1e-10,...
@@ -628,6 +628,34 @@ function Rreg = fromso3_end_new(Rreg, x)
     end
 end
 
-function h = hessinterior(x,lambda,A)
+function h = hessinterior(x,lambda,A, Rdata, indices)
     h = A+A';
+    
+    % endpoint bound constraints
+    P0 = [[1 0 0]; ...
+          [0 1 0]; ...
+          [0 0 1]];
+      
+    N = round(length(x)/3);
+%     h = cell(1,6*length(indices));
+    for i = 1:length(indices)
+        ii = indices(i);
+        v1 = P0*x(ii*3-2:ii*3);
+        v2 = logSO3(Rdata(:,:,i)'*expSO3(v1));
+        Jr1 = rightJ(v1);
+        Jr2 = rightJinv(v2);
+%         Jr = Jr2*Jr1;
+        hess = estab_hess(x(ii*3-2:ii*3),Jr2,Jr1);
+        
+        h(ii*3-2:ii*3,ii*3-2:ii*3) = h(ii*3-2:ii*3,ii*3-2:ii*3) + lambda.ineqnonlin(1) * hess{1};
+        h(ii*3-2:ii*3,ii*3-2:ii*3) = h(ii*3-2:ii*3,ii*3-2:ii*3) + lambda.ineqnonlin(2) * hess{2};
+        h(ii*3-2:ii*3,ii*3-2:ii*3) = h(ii*3-2:ii*3,ii*3-2:ii*3) + lambda.ineqnonlin(3) * hess{3};
+        h(ii*3-2:ii*3,ii*3-2:ii*3) = h(ii*3-2:ii*3,ii*3-2:ii*3) + lambda.ineqnonlin(4) * -hess{1};
+        h(ii*3-2:ii*3,ii*3-2:ii*3) = h(ii*3-2:ii*3,ii*3-2:ii*3) + lambda.ineqnonlin(5) * -hess{2};
+        h(ii*3-2:ii*3,ii*3-2:ii*3) = h(ii*3-2:ii*3,ii*3-2:ii*3) + lambda.ineqnonlin(6) * -hess{3};
+        
+%         der(i*6-5:i*6-3, (ii*3-2:ii*3)) = Jr;
+%         der(i*6-2:i*6, (ii*3-2:ii*3)) = -Jr;
+    end
+    
 end
