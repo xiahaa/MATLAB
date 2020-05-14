@@ -644,8 +644,8 @@ function h = hessinterior(x,lambda,A, Rdata, indices)
         v2 = logSO3(Rdata(:,:,i)'*expSO3(v1));
         Jr1 = rightJ(v1);
         Jr2 = rightJinv(v2);
-%         Jr = Jr2*Jr1;
-        hess = estab_hess(x(ii*3-2:ii*3),Jr2,Jr1);
+        Jr = Jr2*Jr1;
+        hess = estab_hess(x(ii*3-2:ii*3),v2,Jr2,Jr1,Jr);
         
         h(ii*3-2:ii*3,ii*3-2:ii*3) = h(ii*3-2:ii*3,ii*3-2:ii*3) + lambda.ineqnonlin(1) * hess{1};
         h(ii*3-2:ii*3,ii*3-2:ii*3) = h(ii*3-2:ii*3,ii*3-2:ii*3) + lambda.ineqnonlin(2) * hess{2};
