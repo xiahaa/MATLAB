@@ -24,12 +24,18 @@ phi = [1;0;0];
 [v,d]=eig(C);
 
 cond = (trace(C)-1)/2;
+if cond > 1
+    cond = 1;
+elseif cond < -1
+    cond = -1;
+end
+
 if abs(cond+1) > 1e-10
     for i=1:3
        if abs(d(i,i)-1) < 1e-10
           a = v(:,i);
           a = a/sqrt(a'*a);
-          phim = acos((trace(C)-1)/2);
+          phim = acos(cond);%(trace(C)-1)/2
           phi = phim*a;
 
           if abs(trace(vec2rot( phi )'*C)-3) > 1e-14
