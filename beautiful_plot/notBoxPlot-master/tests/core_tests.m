@@ -10,10 +10,14 @@ classdef core_tests < matlab.unittest.TestCase
 
 
         function checkInputParameters(testCase)
+            addpath('../code/')
             %Check that no gross errors are produced for all param/val pairs not already tested above
             y=rand(10,3);
             x=[1,2,2]; %To place to boxes on the same x location and one on its own
 
+            clf
+            H=notBoxPlot(y,x);
+            
             clf
             H=notBoxPlot(y,x,'jitter',0.6,'style','sdline');
 
